@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン｜仮想損害保険株式会社</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --navy:      #0d2b5e;
+      --navy-dark: #091e45;
+      --navy-mid:  #1a3a72;
+      --gold:      #c9a84c;
+      --gold-light:#e2c47a;
+      --white:     #ffffff;
+      --gray-bg:   #f0f2f7;
+      --gray-border:#cdd3e0;
+      --text-main: #1a1a2e;
+      --text-sub:  #5a6480;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--gray-bg);
+      display: flex;
+      flex-direction: column;
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+    }
+
+    /* ─── ヘッダーバー ─── */
+    .top-bar {
+      background: var(--navy-dark);
+      height: 4px;
+      background: linear-gradient(90deg, var(--navy-dark) 0%, var(--gold) 50%, var(--navy-dark) 100%);
+    }
+
+    /* ─── メインコンテナ ─── */
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(13,43,94,0.12), 0 1px 4px rgba(13,43,94,0.08);
+      width: 100%;
+      max-width: 440px;
+      overflow: hidden;
+    }
+
+    /* ─── カードヘッダー ─── */
+    .card-header {
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 36px 40px 32px;
+      text-align: center;
+      position: relative;
+    }
+
+    .card-header::after {
+      content: '';
+      display: block;
+      width: 60px;
+      height: 2px;
+      background: var(--gold);
+      margin: 16px auto 0;
+      border-radius: 1px;
+    }
+
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(201,168,76,0.6);
+      border-radius: 50%;
+      margin-bottom: 16px;
+    }
+
+    .logo-wrap svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    .company-name {
+      color: var(--white);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      opacity: 0.85;
+      margin-bottom: 6px;
+    }
+
+    .system-name {
+      color: var(--white);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    /* ─── フォーム部 ─── */
+    .card-body {
+      padding: 36px 40px 32px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--navy);
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+
+    label .required {
+      color: var(--gold);
+      margin-left: 4px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--gray-border);
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 11px 14px 11px 40px;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 5px;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(13,43,94,0.10);
+    }
+
+    input[type="text"]:focus + .input-icon,
+    input[type="password"]:focus + .input-icon {
+      color: var(--navy);
+    }
+
+    /* アイコンをinputの後ろに置くため順序を逆にする */
+    .input-wrap input { order: 1; }
+    .input-wrap svg   { order: 2; }
+
+    /* ─── ログインボタン ─── */
+    .btn-login {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      margin-top: 28px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      color: var(--white);
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(13,43,94,0.30);
+    }
+
+    .btn-login:hover {
+      opacity: 0.92;
+      box-shadow: 0 4px 14px rgba(13,43,94,0.38);
+      transform: translateY(-1px);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 4px rgba(13,43,94,0.25);
+    }
+
+    /* ─── 区切り線 ─── */
+    .divider {
+      border: none;
+      border-top: 1px solid #e8ecf4;
+      margin: 28px 0 20px;
+    }
+
+    /* ─── リンク類 ─── */
+    .link-area {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .link-area a {
+      color: var(--navy);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .link-area a:hover {
+      text-decoration: underline;
+    }
+
+    /* ─── フッター ─── */
+    footer {
+      background: var(--navy-dark);
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      padding: 14px 16px;
+    }
+
+    /* ─── レスポンシブ ─── */
+    @media (max-width: 480px) {
+      .card-header { padding: 28px 24px 24px; }
+      .card-body   { padding: 28px 24px 24px; }
+      .system-name { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar"></div>
+
+  <main class="main">
+    <div class="card">
+
+      <!-- カードヘッダー：ロゴ・社名 -->
+      <div class="card-header">
+        <div class="logo-wrap">
+          <!-- 盾アイコン（SVG） -->
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+                  fill="none" stroke="#c9a84c" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+                  fill="rgba(201,168,76,0.15)"/>
+            <polyline points="22,32 29,39 43,25"
+                      stroke="#c9a84c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="company-name">仮想損害保険株式会社</p>
+        <p class="system-name">代理店Webシステム</p>
+      </div>
+
+      <!-- フォーム -->
+      <div class="card-body">
+        <form method="post" action="/api/login" autocomplete="off">
+
+          <div class="form-group">
+            <label for="agency-code">代理店コード<span class="required">*</span></label>
+            <div class="input-wrap">
+              <input type="text" id="agency-code" name="agency_code"
+                     placeholder="例）AG-00123" maxlength="20" required>
+              <!-- ビルアイコン -->
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="login-id">ログインID<span class="required">*</span></label>
+            <div class="input-wrap">
+              <input type="text" id="login-id" name="login_id"
+                     placeholder="ログインIDを入力" maxlength="50" required>
+              <!-- ユーザーアイコン -->
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">パスワード<span class="required">*</span></label>
+            <div class="input-wrap">
+              <input type="password" id="password" name="password"
+                     placeholder="パスワードを入力" maxlength="128" required>
+              <!-- 鍵アイコン -->
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="11" width="14" height="10" rx="2"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+              </svg>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login">ログイン</button>
+        </form>
+
+        <hr class="divider">
+
+        <div class="link-area">
+          <a href="#">パスワードをお忘れの方はこちら</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 仮想損害保険株式会社. All Rights Reserved.
+  </footer>
+
+</body>
+</html>
