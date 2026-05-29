@@ -1,6 +1,6 @@
 """
 画面遷移テスト仕様書・証跡 生成スクリプト
-  - 画面遷移テスト仕様書.xlsx（Sheet1：テスト仕様書 18件）
+  - 画面遷移テスト仕様書.xlsx（Sheet1：テスト仕様書 27件）
   - 画面遷移テスト証跡.xlsx（Sheet1：DBダンプ_contracts / Sheet2：DBダンプ_users / Sheet3〜：画面キャプチャ）
 実行後は不要であれば削除してよい
 """
@@ -14,16 +14,17 @@ from playwright.sync_api import sync_playwright
 import sqlite3
 
 # ── パス定数 ──────────────────────────────────────────────────────
-BASE_DIR  = Path(__file__).parent.parent.parent
-DB_PATH   = str(BASE_DIR / "db" / "users.sqlite")
-TEST_DIR  = Path(__file__).parent
-SS_DIR    = TEST_DIR / "screenshots"
-SPEC_PATH = TEST_DIR / "画面遷移テスト仕様書.xlsx"
-EVID_PATH = TEST_DIR / "画面遷移テスト証跡.xlsx"
-LOGIN_URL = (BASE_DIR / "frontend" / "login.html").as_uri()
-DASH_URL  = (BASE_DIR / "frontend" / "dashboard.html").as_uri()
-MAT_URL   = (BASE_DIR / "frontend" / "maturity.html").as_uri()
-TODAY     = datetime.date.today().strftime("%Y/%m/%d")
+BASE_DIR      = Path(__file__).parent.parent.parent
+DB_PATH       = str(BASE_DIR / "db" / "users.sqlite")
+TEST_DIR      = Path(__file__).parent
+SS_DIR        = TEST_DIR / "screenshots"
+UPDATE_SS_DIR = TEST_DIR.parent / "screenshots"   # 過去実施スクリーンショット格納先
+SPEC_PATH     = TEST_DIR / "画面遷移テスト仕様書.xlsx"
+EVID_PATH     = TEST_DIR / "画面遷移テスト証跡.xlsx"
+LOGIN_URL     = (BASE_DIR / "frontend" / "login.html").as_uri()
+DASH_URL      = (BASE_DIR / "frontend" / "dashboard.html").as_uri()
+MAT_URL       = (BASE_DIR / "frontend" / "maturity.html").as_uri()
+TODAY         = datetime.date.today().strftime("%Y/%m/%d")
 
 SS_DIR.mkdir(exist_ok=True)
 
@@ -103,14 +104,43 @@ SPEC_CASES = [
     ("UT-FLOW-018", "maturity.html / GET /api/maturity",
      "A001でログインして満期管理画面で更改STS「落ち」を選択し検索する",
      "A001の更改STS「落ち」件数が DB の COUNTIFS 結果「1件」と一致すること"),
+    # ── 画面詳細表示・ソート機能確認（過去実施分） ──
+    ("UT-FLOW-019", "login.html",
+     "ブラウザで login.html を開き、ページ全体の UI を目視確認する",
+     "会社ロゴ・代理店コード・ログインID・パスワード入力欄・ログインボタン・パスワードお忘れリンクが表示されること"),
+    ("UT-FLOW-020", "dashboard.html",
+     "A001/admin でログインしてダッシュボードの更改状況グラフを目視確認する",
+     "今月更改グラフ中央に「28件完了」・完了率バッジ「11.3%」、翌月更改グラフ中央に「125件完了」・完了率バッジ「38.5%」が表示されること"),
+    ("UT-FLOW-021", "maturity.html",
+     "A001でログインして満期管理画面を表示し、一覧カラムと件数を目視確認する",
+     "満期年月日・証券番号・顧客名・種目・担当者・連絡手段/連絡先・年換算保険料・事故・異動・メモ・発送予定日・帳票・FC-STS・更改STS の各カラムが表示され、検索結果：5件と表示されること"),
+    ("UT-FLOW-022", "maturity.html",
+     "満期管理一覧で任意の行の「＋」ボタンをクリックしてアコーディオン詳細を展開する",
+     "展開行に「更改後証券番号」「更改後年換算保険料」「アップセルSTS」「落ちSTS」「メモ」の詳細情報が表示されること"),
+    ("UT-FLOW-023", "maturity.html",
+     "フォローコールSTS プルダウンで「未実施」を選択して検索ボタンをクリックする",
+     "検索結果が絞り込まれ「検索結果：2件」と表示されること（山田 直子・中村 浩司）"),
+    ("UT-FLOW-024", "maturity.html",
+     "フォローコールSTS「未実施」絞込の状態で「担当者」列ヘッダーをクリックして昇順ソートする",
+     "担当者列ヘッダーに昇順矢印（↑）が表示され、S001→S002の順に並び替わること"),
+    ("UT-FLOW-025", "maturity.html",
+     "検索条件をクリアした後「満期年月日」列ヘッダーをクリックして昇順ソートする",
+     "満期年月日列ヘッダーに昇順矢印（↑）が表示され、2026-03-20 → 2026-04-15 → 2026-05-10 → 2026-05-31 → 2026-06-15 の順に並び替わること"),
+    ("UT-FLOW-026", "maturity.html",
+     "「担当者」列ヘッダーをクリックして昇順ソートする（全件表示）",
+     "担当者列ヘッダーに昇順矢印（↑）が表示され、S001（3件）→ S002（2件）の順に並び替わること"),
+    ("UT-FLOW-027", "maturity.html",
+     "「年換算保険料」列ヘッダーをクリックして昇順ソートする（全件表示）",
+     "年換算保険料列ヘッダーに昇順矢印（↑）が表示され、¥45,000 → ¥85,000 → ¥95,000 → ¥120,000 → ¥150,000 の順に並び替わること"),
 ]
 
 COLUMNS = ["明細番号", "確認対象画面（遷移元→遷移先）", "オペレーション内容", "期待結果", "テスト結果", "テスト実施日", "テスト確認日"]
 
 GROUPS = [
-    ("画面遷移確認（001〜008）",                          8),
-    ("ダッシュボード表示データ整合性確認（009〜013）",    5),
-    ("満期管理画面データ整合性確認（014〜018）",          5),
+    ("画面遷移確認（001〜008）",                              8),
+    ("ダッシュボード表示データ整合性確認（009〜013）",        5),
+    ("満期管理画面データ整合性確認（014〜018）",              5),
+    ("画面詳細表示・ソート機能確認（019〜027）",              9),
 ]
 
 
@@ -333,6 +363,38 @@ SS_META = {
                     "C003/user1 でログイン後、dashboard.html へ遷移しヘッダーに C003 が表示されることを確認"),
     "UT-FLOW-008": ("UT-FLOW-008　C003 ダッシュボード → 満期管理画面遷移",
                     "C003 で maturity.html へ遷移し C003 の満期一覧が表示されることを確認"),
+    # 過去実施分（update_flow スクリーンショット使用）
+    "UT-FLOW-019": ("UT-FLOW-019　ログイン画面 UI 表示確認",
+                    "ロゴ・代理店コード/ログインID/パスワード入力欄・ログインボタン・パスワードお忘れリンクの全表示を確認"),
+    "UT-FLOW-020": ("UT-FLOW-020　A001 ダッシュボード 更改状況グラフ確認",
+                    "今月更改28件完了/11.3%、翌月更改125件完了/38.5% のグラフ表示を確認"),
+    "UT-FLOW-021": ("UT-FLOW-021　満期管理一覧 デフォルト表示確認",
+                    "全カラム表示・検索結果5件・デフォルト日付範囲での表示を確認"),
+    "UT-FLOW-022": ("UT-FLOW-022　アコーディオン詳細展開確認",
+                    "「＋」ボタンクリックで更改後証券番号・更改後保険料・アップセルSTS・落ちSTS・メモの詳細行が展開されることを確認"),
+    "UT-FLOW-023": ("UT-FLOW-023　フォローコールSTS「未実施」絞込確認",
+                    "フォローコールSTS=未実施で絞込み、検索結果2件（山田直子・中村浩司）が表示されることを確認"),
+    "UT-FLOW-024": ("UT-FLOW-024　担当者列 昇順ソート確認（未実施フィルター後）",
+                    "フォローコール未実施2件の状態で担当者列ヘッダークリック → S001→S002の昇順ソートを確認"),
+    "UT-FLOW-025": ("UT-FLOW-025　満期年月日列 昇順ソート確認（全件）",
+                    "日付条件クリア後、満期年月日ヘッダークリック → 2026-03-20から昇順表示を確認"),
+    "UT-FLOW-026": ("UT-FLOW-026　担当者列 昇順ソート確認（全件）",
+                    "全件表示の状態で担当者列ヘッダークリック → S001（3件）→S002（2件）の昇順ソートを確認"),
+    "UT-FLOW-027": ("UT-FLOW-027　年換算保険料列 昇順ソート確認（全件）",
+                    "全件表示の状態で年換算保険料ヘッダークリック → ¥45,000から昇順表示を確認"),
+}
+
+# 過去実施スクリーンショットのパスマッピング
+UPDATE_SS_MAP = {
+    "UT-FLOW-019": "update_flow_01_login.png",
+    "UT-FLOW-020": "update_flow_02_dashboard.png",
+    "UT-FLOW-021": "update_flow_03_maturity.png",
+    "UT-FLOW-022": "update_flow_04_detail.png",
+    "UT-FLOW-023": "update_flow_05_filter_followcall.png",
+    "UT-FLOW-024": "update_flow_06_sort_staff.png",
+    "UT-FLOW-025": "update_flow_07_sort_expiry.png",
+    "UT-FLOW-026": "update_flow_08_sort_staff.png",
+    "UT-FLOW-027": "update_flow_09_sort_premium.png",
 }
 
 
@@ -558,11 +620,23 @@ def gen_evidence(ss_paths: dict):
     for i, w in enumerate([6, 14, 14, 18, 22], 1):
         ws2.column_dimensions[get_column_letter(i)].width = w
 
-    # ── Sheet3〜: 画面遷移キャプチャ証跡 ────────────────────────
-    ordered_ids = ["UT-FLOW-001", "UT-FLOW-002", "UT-FLOW-003", "UT-FLOW-004",
-                   "UT-FLOW-005", "UT-FLOW-006", "UT-FLOW-007", "UT-FLOW-008"]
+    # ── Sheet3〜: 画面遷移キャプチャ証跡（Playwright取得分） ──────
+    playwright_ids = ["UT-FLOW-001", "UT-FLOW-002", "UT-FLOW-003", "UT-FLOW-004",
+                      "UT-FLOW-005", "UT-FLOW-006", "UT-FLOW-007", "UT-FLOW-008"]
+    # 過去実施分（update_flow スクリーンショット）
+    update_ids = ["UT-FLOW-019", "UT-FLOW-020", "UT-FLOW-021", "UT-FLOW-022",
+                  "UT-FLOW-023", "UT-FLOW-024", "UT-FLOW-025", "UT-FLOW-026", "UT-FLOW-027"]
+    ordered_ids = playwright_ids + update_ids
+
     for test_id in ordered_ids:
-        img_path = ss_paths.get(test_id)
+        # 過去実施分は update_flow スクリーンショットを使用
+        if test_id in UPDATE_SS_MAP:
+            img_path = str(UPDATE_SS_DIR / UPDATE_SS_MAP[test_id])
+            env_note = "テスト実施日：2026/05/29（過去実施）　　環境：ローカルファイル（file://）　　ブラウザ：Chromium (Playwright headless)"
+        else:
+            img_path = ss_paths.get(test_id)
+            env_note = f"テスト実施日：{TODAY}　　環境：ローカルファイル（file://）　　ブラウザ：Chromium (Playwright headless)"
+
         title, desc = SS_META.get(test_id, (test_id, ""))
 
         ws = wb.create_sheet(test_id)
@@ -583,9 +657,9 @@ def gen_evidence(ss_paths: dict):
         ws.row_dimensions[2].height = 20
 
         ws.merge_cells("A3:H3")
-        ws[f"A3"].value     = f"テスト実施日：{TODAY}　　環境：ローカルファイル（file://）　　ブラウザ：Chromium (Playwright headless)"
-        ws["A3"].font       = Font(name="游ゴシック", size=9, color="5A6480")
-        ws["A3"].alignment  = left()
+        ws["A3"].value     = env_note
+        ws["A3"].font      = Font(name="游ゴシック", size=9, color="5A6480")
+        ws["A3"].alignment = left()
         ws.row_dimensions[3].height = 16
 
         if img_path and os.path.exists(img_path):
@@ -595,7 +669,7 @@ def gen_evidence(ss_paths: dict):
             ws.add_image(img, "A5")
             ws.row_dimensions[5].height = 430
         else:
-            ws["A5"].value = "（スクリーンショット未取得）"
+            ws["A5"].value = f"（スクリーンショット未取得：{img_path}）"
 
         ws.column_dimensions["A"].width = 18
 
