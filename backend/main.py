@@ -1,13 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from jose import jwt
+from jose import jwt, JWTError
 import bcrypt
 import sqlite3
 import datetime
 import os
 
-app = FastAPI(title="仮想損害保険 代理店システムAPI")
+app = FastAPI(title="AX損害保険 代理店システムAPI")
 
 # フロントエンドからのリクエストを許可するCORS設定
 app.add_middleware(
@@ -62,6 +62,17 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def verify_token(authorization: str = Header(default=None)) -> dict:
+    """AuthorizationヘッダーのBearerトークンを検証してペイロードを返す"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="認証トークンがありません")
+    token = authorization[len("Bearer "):]
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="無効または期限切れのトークンです")
+
+
 @app.post("/api/login")
 def login(request: LoginRequest):
     """
@@ -83,12 +94,65 @@ def login(request: LoginRequest):
     # 認証成功：JWTトークンを生成して返す
     token = create_access_token({
         "agency_code": user["agency_code"],
-        "login_id": user["login_id"],
-        "name": user["name"],
+        "login_id":    user["login_id"],
+        "name":        user["name"],
     })
 
     return {
         "access_token": token,
-        "token_type": "bearer",
-        "name": user["name"],
+        "token_type":   "bearer",
+        "name":         user["name"],
     }
+
+
+@app.get("/api/dashboard")
+def get_dashboard(payload: dict = Depends(verify_token)):
+    """
+    ダッシュボードデータを返す
+
+    JWTトークンから代理店コードを取得し、
+    今月・翌月の更改件数をステータス別に集計して返す
+    """
+    agency_code = payload["agency_code"]
+    today       = datetime.date.today()
+    cur_month   = today.strftime("%Y-%m")
+
+    # 翌月を算出する（12月の場合は翌年1月になる）
+    if today.month == 12:
+        nxt_month = f"{today.year + 1}-01"
+    else:
+        nxt_month = f"{today.year}-{today.month + 1:02d}"
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        def aggregate(month: str) -> dict:
+            """指定月のステータス別件数を集計して返す"""
+            cur.execute("""
+                SELECT status, COUNT(*) AS cnt
+                FROM contracts
+                WHERE agency_code = ? AND renewal_month = ?
+                GROUP BY status
+            """, (agency_code, month))
+            rows  = {r["status"]: r["cnt"] for r in cur.fetchall()}
+            done  = rows.get("completed", 0)
+            pend  = rows.get("pending",   0)
+            total = done + pend
+            return {
+                "month":     month,
+                "completed": done,
+                "pending":   pend,
+                "total":     total,
+                "rate":      round(done / total * 100, 1) if total > 0 else 0,
+            }
+
+        return {
+            "agency_code":   agency_code,
+            "login_id":      payload.get("login_id", ""),
+            "name":          payload.get("name", ""),
+            "current_month": aggregate(cur_month),
+            "next_month":    aggregate(nxt_month),
+        }
+    finally:
+        conn.close()
