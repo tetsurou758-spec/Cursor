@@ -1,7 +1,37 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## プロジェクト概要
+全国損害保険代理店向けWebシステム（デモ環境）
 
-## Project
+## システム構成
+- Web/AP: FastAPI (Python)
+- DB: SQLite
+- 帳票: ReportLab
+- バッチ: Pythonスクリプト
 
-This repository ("My Dev Project") is newly initialized and does not yet have a defined tech stack, build system, or source code. Update this file as the project takes shape.
+## 主要機能
+- 契約者管理
+- 保険契約管理
+- 保険料計算
+- 帳票出力（PDF）
+- 更新案内バッチ
+
+## 開発ルール
+- コメントは日本語で書く
+- ファイル構成は機能単位で分ける
+- 変更したら必ずgit pushする
+
+## ディレクトリ構成
+/frontend  # 画面
+/backend   # API
+/batch     # バッチ
+/reports   # 帳票
+/db        # データベース
+
+## マルチエージェント構成
+- オーケストレーター: 要件を読んで各エージェントに指示
+- 設計エージェント: DB設計・API設計
+- バックエンドエージェント: FastAPI実装
+- フロントエンドエージェント: 画面実装
+- 帳票エージェント: PDF生成
+- テストエージェント: 動作確認
