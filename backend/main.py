@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from jose import jwt, JWTError
+from typing import Optional
 import bcrypt
 import sqlite3
 import datetime
@@ -103,6 +104,81 @@ def login(request: LoginRequest):
         "token_type":   "bearer",
         "name":         user["name"],
     }
+
+
+@app.get("/api/maturity")
+def get_maturity(
+    payload:           dict           = Depends(verify_token),
+    date_from:         Optional[str]  = Query(default=None, description="満期年月日FROM (YYYY-MM-DD)"),
+    date_to:           Optional[str]  = Query(default=None, description="満期年月日TO (YYYY-MM-DD)"),
+    staff_code:        Optional[str]  = Query(default=None),
+    policy_type:       Optional[str]  = Query(default=None),
+    renewal_status:    Optional[str]  = Query(default=None),
+    followcall_status: Optional[str]  = Query(default=None),
+):
+    """
+    満期管理エンドポイント
+
+    JWTの代理店コードをもとに満期3カ月前〜翌3カ月の契約を取得する。
+    検索パラメータで絞り込みが可能。
+    """
+    agency_code = payload["agency_code"]
+    today       = datetime.date.today()
+
+    # デフォルト検索範囲：満期3カ月前〜翌3カ月
+    if date_from is None:
+        date_from = (today.replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
+        date_from = (date_from.replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
+        date_from = (date_from.replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
+        date_from = date_from.isoformat()
+    if date_to is None:
+        m = today.month + 3
+        y = today.year + (m - 1) // 12
+        m = (m - 1) % 12 + 1
+        date_to = datetime.date(y, m, 28).isoformat()
+
+    sql = """
+        SELECT
+            c.id, c.agency_code, c.contract_no, c.customer_name,
+            c.renewal_month, c.status,
+            c.customer_id, c.policy_number, c.policy_type,
+            c.expiry_date, c.annual_premium,
+            c.staff_code, c.contact_method, c.contact_info, c.memo,
+            c.has_accident, c.has_change,
+            c.followcall_status, c.renewal_status,
+            c.renewed_policy_number, c.renewed_premium,
+            c.upsell_status, c.lapse_status,
+            mn.notice_date, mn.notice_type
+        FROM contracts c
+        LEFT JOIN maturity_notices mn ON mn.contract_id = c.id
+        WHERE c.agency_code = ?
+          AND c.expiry_date IS NOT NULL
+          AND c.expiry_date BETWEEN ? AND ?
+    """
+    params = [agency_code, date_from, date_to]
+
+    if staff_code:
+        sql += " AND c.staff_code = ?"
+        params.append(staff_code)
+    if policy_type:
+        sql += " AND c.policy_type = ?"
+        params.append(policy_type)
+    if renewal_status:
+        sql += " AND c.renewal_status = ?"
+        params.append(renewal_status)
+    if followcall_status:
+        sql += " AND c.followcall_status = ?"
+        params.append(followcall_status)
+
+    sql += " ORDER BY c.expiry_date"
+
+    conn = get_db_connection()
+    try:
+        rows = conn.execute(sql, params).fetchall()
+        contracts = [dict(r) for r in rows]
+        return {"contracts": contracts, "total": len(contracts)}
+    finally:
+        conn.close()
 
 
 @app.get("/api/dashboard")

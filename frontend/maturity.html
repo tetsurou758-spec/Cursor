@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>満期管理システム｜AX損害保険株式会社</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:      #0d2b5e;
+      --navy-dark: #091e45;
+      --navy-mid:  #1a3a72;
+      --navy-light:#2d4f8e;
+      --gold:      #c9a84c;
+      --gold-light:#e2c47a;
+      --white:     #ffffff;
+      --gray-bg:   #f0f2f7;
+      --gray-card: #f7f9fc;
+      --gray-border:#e0e5f0;
+      --text-main: #1a1a2e;
+      --text-sub:  #5a6480;
+    }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 100%);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: 0 2px 12px rgba(9,30,69,0.35);
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; color:var(--white); text-decoration:none; }
+    .header-logo svg { width:28px; height:28px; flex-shrink:0; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:#FFD700; }
+    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:var(--white); }
+    .header-right { display:flex; align-items:center; gap:10px; }
+    .page-badge {
+      background: rgba(201,168,76,0.2);
+      border: 1px solid rgba(201,168,76,0.5);
+      color: var(--gold-light);
+      border-radius:4px; padding:3px 10px;
+      font-size:0.75rem; font-weight:700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(201,168,76,0.4);
+      border-radius:20px; padding:4px 14px;
+      color:var(--white); font-size:0.8rem;
+    }
+    .user-badge span { color:#FFD700; font-weight:700; margin-right:6px; }
+    .btn-logout {
+      background:transparent; border:1.5px solid rgba(201,168,76,0.6);
+      color:var(--gold-light); border-radius:4px; padding:5px 14px;
+      font-size:0.78rem; font-weight:600; cursor:pointer;
+      transition:background 0.2s,color 0.2s;
+    }
+    .btn-logout:hover { background:var(--gold); color:var(--navy-dark); border-color:var(--gold); }
+    .btn-back {
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      color:var(--white); border-radius:4px; padding:5px 12px;
+      font-size:0.75rem; cursor:pointer; text-decoration:none;
+      transition:background 0.2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,0.18); }
+    .gold-bar { height:3px; background:linear-gradient(90deg,var(--navy-dark) 0%,var(--gold) 50%,var(--navy-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════ */
+    .main-content { max-width:1400px; margin:0 auto; padding:20px 16px 40px; }
+    .page-title {
+      font-size:1.1rem; font-weight:700; color:var(--navy);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .page-title::before {
+      content:''; display:inline-block; width:4px; height:20px;
+      background:var(--gold); border-radius:2px;
+    }
+
+    /* ═══ SEARCH CARD ═══════════════════════════════════════ */
+    .search-card {
+      background:var(--white); border-radius:8px;
+      box-shadow:0 2px 10px rgba(13,43,94,0.08);
+      padding:18px 20px; margin-bottom:16px;
+    }
+    .search-grid {
+      display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;
+    }
+    .field-group { display:flex; flex-direction:column; gap:4px; }
+    .field-group label { font-size:0.72rem; font-weight:600; color:var(--navy); letter-spacing:0.04em; }
+    .field-group input,
+    .field-group select {
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:6px 10px; font-size:0.82rem; color:var(--text-main);
+      outline:none; background:var(--white);
+      transition:border-color 0.2s;
+      height:32px;
+    }
+    .field-group input:focus,
+    .field-group select:focus { border-color:var(--navy); box-shadow:0 0 0 2px rgba(13,43,94,0.08); }
+    .field-group.date input { width:140px; }
+    .field-group.text input { width:110px; }
+    .field-group.sel select { width:120px; }
+    .btn-group { display:flex; gap:8px; align-items:flex-end; padding-bottom:0; }
+    .btn-search {
+      background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);
+      color:var(--white); border:none; border-radius:4px;
+      padding:0 20px; height:32px; font-size:0.82rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+    }
+    .btn-search:hover { opacity:0.88; }
+    .btn-clear {
+      background:var(--white); color:var(--navy); border:1.5px solid var(--gray-border);
+      border-radius:4px; padding:0 16px; height:32px;
+      font-size:0.82rem; cursor:pointer; transition:border-color 0.2s;
+    }
+    .btn-clear:hover { border-color:var(--navy); }
+
+    /* ═══ RESULT INFO ════════════════════════════════════════ */
+    .result-info {
+      font-size:0.8rem; color:var(--text-sub);
+      margin-bottom:10px; padding-left:4px;
+    }
+    .result-info strong { color:var(--navy); font-size:1rem; }
+
+    /* ═══ TABLE CARD ═════════════════════════════════════════ */
+    .table-card {
+      background:var(--white); border-radius:8px;
+      box-shadow:0 2px 10px rgba(13,43,94,0.08);
+      overflow:hidden;
+    }
+    .table-wrap { overflow-x:auto; }
+
+    table { width:100%; border-collapse:collapse; white-space:nowrap; }
+
+    thead tr { background:var(--navy); }
+    thead th {
+      color:var(--white); font-size:0.72rem; font-weight:700;
+      padding:9px 8px; text-align:center; letter-spacing:0.04em;
+      border-right:1px solid rgba(255,255,255,0.1);
+      white-space:nowrap;
+    }
+    thead th:last-child { border-right:none; }
+    thead th.sortable { cursor:pointer; user-select:none; }
+    thead th.sortable:hover { background:var(--navy-mid); }
+
+    tbody tr.main-row { transition:background 0.15s; }
+    tbody tr.main-row:hover { background:#f0f4fc; }
+    tbody tr.main-row.highlight-month { background:#fffbea; }
+    tbody tr.main-row.highlight-month:hover { background:#fff5cc; }
+
+    tbody td {
+      padding:7px 8px; border-bottom:1px solid var(--gray-border);
+      text-align:center; font-size:0.78rem; color:var(--text-main);
+      vertical-align:middle;
+    }
+    tbody td.td-left { text-align:left; }
+
+    /* アコーディオン詳細行 */
+    tr.detail-row td {
+      background:#f7f9fc; padding:0;
+      border-bottom:2px solid var(--navy);
+    }
+    .detail-inner {
+      padding:14px 20px;
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:12px 20px;
+    }
+    .detail-item label {
+      display:block; font-size:0.68rem; color:var(--text-sub);
+      font-weight:600; margin-bottom:3px;
+    }
+    .detail-item span { font-size:0.82rem; color:var(--text-main); }
+    .detail-item.memo-item { grid-column:span 2; }
+
+    /* ＋/－ボタン */
+    .toggle-btn {
+      width:22px; height:22px; border-radius:50%;
+      background:var(--navy); color:var(--white);
+      border:none; font-size:0.85rem; font-weight:700;
+      cursor:pointer; line-height:1;
+      transition:background 0.2s;
+    }
+    .toggle-btn:hover { background:var(--navy-mid); }
+    .toggle-btn.open { background:var(--gold); color:var(--navy-dark); }
+
+    /* バッジ */
+    .badge {
+      display:inline-block; border-radius:12px;
+      padding:2px 9px; font-size:0.7rem; font-weight:700;
+      white-space:nowrap;
+    }
+    .badge-red    { background:#f8d7da; color:#721c24; }
+    .badge-orange { background:#fff3cd; color:#856404; }
+    .badge-green  { background:#d4edda; color:#155724; }
+    .badge-gray   { background:#e9ecef; color:#495057; }
+
+    /* 事故/異動/メモアイコン */
+    .icon-flag { font-size:1rem; }
+    .icon-none { color:#cdd3e0; font-size:0.85rem; }
+
+    /* 種目バッジ */
+    .type-badge {
+      display:inline-block; border-radius:3px;
+      padding:1px 7px; font-size:0.7rem; font-weight:700;
+    }
+    .type-auto  { background:#e8f4fd; color:#0c5460; }
+    .type-fire  { background:#fde8e8; color:#721c24; }
+    .type-acc   { background:#e8fde8; color:#155724; }
+    .type-other { background:#f0e8fd; color:#4a1272; }
+
+    /* 連絡先 */
+    .contact-wrap { text-align:left; }
+    .contact-method { font-size:0.7rem; background:#e8ecf4; border-radius:3px; padding:1px 5px; color:var(--navy); font-weight:600; }
+    .contact-info   { font-size:0.72rem; color:var(--text-sub); display:block; margin-top:2px; }
+
+    /* 帳票リンク */
+    .notice-link { color:var(--navy); font-size:0.75rem; text-decoration:underline; cursor:pointer; }
+
+    /* 保険料 */
+    .premium { text-align:right; font-size:0.8rem; font-weight:600; color:var(--navy); }
+
+    /* 空メッセージ */
+    .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
+
+    /* ═══ FOOTER ════════════════════════════════════════════ */
+    .site-footer {
+      background:var(--navy-dark); color:rgba(255,255,255,0.45);
+      text-align:center; font-size:0.7rem; letter-spacing:0.06em;
+      padding:14px 16px; margin-top:40px;
+    }
+
+    /* ═══ RESPONSIVE ════════════════════════════════════════ */
+    @media (max-width:768px) {
+      .search-grid { flex-direction:column; }
+      .field-group.date input, .field-group.text input, .field-group.sel select { width:100%; }
+      .detail-inner { grid-template-columns:repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="site-header">
+  <div class="header-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+            fill="none" stroke="#FFD700" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+            fill="rgba(255,215,0,0.35)"/>
+      <polyline points="22,32 29,39 43,25"
+                stroke="#FFD700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo-text">
+      <div class="company">AX損害保険株式会社</div>
+      <div class="system">満期管理システム</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="page-badge">満期管理</span>
+    <div class="user-badge"><span id="hdr-agency">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <button class="btn-logout" id="btn-logout">ログアウト</button>
+  </div>
+</header>
+<div class="gold-bar"></div>
+
+<div class="main-content">
+
+  <div class="page-title">満期管理一覧</div>
+
+  <!-- 検索バー -->
+  <div class="search-card">
+    <div class="search-grid">
+      <div class="field-group date">
+        <label>満期年月日 FROM</label>
+        <input type="date" id="date-from">
+      </div>
+      <div class="field-group date">
+        <label>満期年月日 TO</label>
+        <input type="date" id="date-to">
+      </div>
+      <div class="field-group text">
+        <label>担当者コード</label>
+        <input type="text" id="staff-code" placeholder="例）S001">
+      </div>
+      <div class="field-group sel">
+        <label>種目</label>
+        <select id="policy-type">
+          <option value="">全て</option>
+          <option value="自動車">自動車</option>
+          <option value="火災">火災</option>
+          <option value="傷害">傷害</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="field-group sel">
+        <label>更改STS</label>
+        <select id="renewal-status">
+          <option value="">全て</option>
+          <option value="未対応">未対応</option>
+          <option value="対応中">対応中</option>
+          <option value="更改済">更改済</option>
+          <option value="落ち">落ち</option>
+        </select>
+      </div>
+      <div class="field-group sel">
+        <label>フォローコールSTS</label>
+        <select id="followcall-status">
+          <option value="">全て</option>
+          <option value="未実施">未実施</option>
+          <option value="実施済">実施済</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn-search" onclick="doSearch()">検索</button>
+        <button class="btn-clear"  onclick="clearSearch()">クリア</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-info" id="result-info">— 件</div>
+
+  <!-- 一覧テーブル -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"></th>
+            <th class="sortable" onclick="sortBy('expiry_date')">満期年月日 <span id="sort-expiry_date"></span></th>
+            <th>証券番号</th>
+            <th>顧客名</th>
+            <th>種目</th>
+            <th class="sortable" onclick="sortBy('staff_code')">担当者 <span id="sort-staff_code"></span></th>
+            <th>連絡手段 / 連絡先</th>
+            <th>年換算保険料</th>
+            <th title="事故フラグ">事故</th>
+            <th title="異動フラグ">異動</th>
+            <th title="メモ">メモ</th>
+            <th>発送予定日</th>
+            <th>帳票</th>
+            <th>FC-STS</th>
+            <th>更改STS</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="15" class="empty-msg">検索ボタンを押してください</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+<script>
+  const API_BASE   = 'http://127.0.0.1:8000';
+  const THIS_MONTH = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  })();
+
+  let currentData = [];
+  let sortCol     = 'expiry_date';
+  let sortDir     = 1;
+
+  // ─── 初期化 ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = 'login.html'; return; }
+
+    document.getElementById('hdr-agency').textContent = (localStorage.getItem('agency_code') || '') + ' ';
+    document.getElementById('hdr-name').textContent   = localStorage.getItem('login_id') || '';
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    // 初期日付範囲を設定する（満期3カ月前〜翌3カ月）
+    const today = new Date();
+    const from  = new Date(today); from.setMonth(from.getMonth() - 3); from.setDate(1);
+    const to    = new Date(today); to.setMonth(to.getMonth() + 3);    to.setDate(28);
+    document.getElementById('date-from').value = from.toISOString().slice(0,10);
+    document.getElementById('date-to').value   = to.toISOString().slice(0,10);
+
+    doSearch();
+  });
+
+  // ─── 検索実行 ─────────────────────────────────────────────
+  async function doSearch() {
+    const token    = localStorage.getItem('token');
+    const params   = new URLSearchParams();
+    const dateFrom = document.getElementById('date-from').value;
+    const dateTo   = document.getElementById('date-to').value;
+    const staff    = document.getElementById('staff-code').value.trim();
+    const ptype    = document.getElementById('policy-type').value;
+    const rsts     = document.getElementById('renewal-status').value;
+    const fcsts    = document.getElementById('followcall-status').value;
+
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo)   params.set('date_to',   dateTo);
+    if (staff)    params.set('staff_code', staff);
+    if (ptype)    params.set('policy_type', ptype);
+    if (rsts)     params.set('renewal_status', rsts);
+    if (fcsts)    params.set('followcall_status', fcsts);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/maturity?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+      const data = await res.json();
+      currentData = data.contracts || [];
+      sortCol = 'expiry_date'; sortDir = 1;
+      renderTable(currentData);
+      document.getElementById('result-info').innerHTML =
+        `検索結果：<strong>${currentData.length}</strong> 件`;
+    } catch(e) {
+      document.getElementById('result-info').textContent = '取得エラー：サーバーを確認してください';
+    }
+  }
+
+  // ─── クリア ───────────────────────────────────────────────
+  function clearSearch() {
+    document.getElementById('date-from').value       = '';
+    document.getElementById('date-to').value         = '';
+    document.getElementById('staff-code').value      = '';
+    document.getElementById('policy-type').value     = '';
+    document.getElementById('renewal-status').value  = '';
+    document.getElementById('followcall-status').value = '';
+  }
+
+  // ─── ソート ───────────────────────────────────────────────
+  function sortBy(col) {
+    if (sortCol === col) sortDir = -sortDir;
+    else { sortCol = col; sortDir = 1; }
+    currentData.sort((a, b) => {
+      const va = a[col] || ''; const vb = b[col] || '';
+      return va < vb ? -sortDir : va > vb ? sortDir : 0;
+    });
+    // ソートインジケーター更新
+    ['expiry_date','staff_code'].forEach(c => {
+      const el = document.getElementById('sort-' + c);
+      if (el) el.textContent = c === sortCol ? (sortDir === 1 ? '▲' : '▼') : '';
+    });
+    renderTable(currentData);
+  }
+
+  // ─── アコーディオン開閉 ────────────────────────────────────
+  function toggle(idx) {
+    const detail = document.getElementById(`detail-${idx}`);
+    const btn    = document.getElementById(`btn-${idx}`);
+    const isOpen = detail.style.display !== 'none';
+    detail.style.display = isOpen ? 'none' : 'table-row';
+    btn.textContent = isOpen ? '＋' : '－';
+    btn.classList.toggle('open', !isOpen);
+  }
+
+  // ─── バッジ生成 ────────────────────────────────────────────
+  function renewalBadge(s) {
+    if (!s) return '<span class="icon-none">—</span>';
+    const cls = { '未対応':'badge-red','対応中':'badge-orange','更改済':'badge-green','落ち':'badge-gray' }[s] || 'badge-gray';
+    return `<span class="badge ${cls}">${s}</span>`;
+  }
+  function followcallBadge(s) {
+    if (!s) return '<span class="icon-none">—</span>';
+    return `<span class="badge ${s === '未実施' ? 'badge-red' : 'badge-green'}">${s}</span>`;
+  }
+  function typeBadge(t) {
+    if (!t) return '—';
+    const cls = { '自動車':'type-auto','火災':'type-fire','傷害':'type-acc','その他':'type-other' }[t] || '';
+    return `<span class="type-badge ${cls}">${t}</span>`;
+  }
+  function yen(v) {
+    return v != null ? '¥' + Number(v).toLocaleString() : '—';
+  }
+  function esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─── テーブル描画 ──────────────────────────────────────────
+  function renderTable(rows) {
+    const tbody = document.getElementById('table-body');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="15" class="empty-msg">該当するデータがありません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map((c, idx) => {
+      const isThisMonth = c.expiry_date && c.expiry_date.startsWith(THIS_MONTH);
+      const mainCls     = 'main-row' + (isThisMonth ? ' highlight-month' : '');
+      const pno         = esc(c.policy_number || c.contract_no);
+      const memo        = esc(c.memo || '');
+
+      const mainRow = `
+        <tr class="${mainCls}">
+          <td><button class="toggle-btn" id="btn-${idx}" onclick="toggle(${idx})">＋</button></td>
+          <td>${c.expiry_date || '—'}</td>
+          <td style="font-size:0.72rem">${pno}</td>
+          <td class="td-left" style="min-width:90px">${esc(c.customer_name)}</td>
+          <td>${typeBadge(c.policy_type)}</td>
+          <td>${esc(c.staff_code) || '—'}</td>
+          <td class="td-left">
+            <div class="contact-wrap">
+              <span class="contact-method">${esc(c.contact_method) || '—'}</span>
+              <span class="contact-info">${esc(c.contact_info) || '—'}</span>
+            </div>
+          </td>
+          <td class="premium">${yen(c.annual_premium)}</td>
+          <td>${c.has_accident ? '<span class="icon-flag">🔴</span>' : '<span class="icon-none">○</span>'}</td>
+          <td>${c.has_change   ? '<span class="icon-flag">📝</span>' : '<span class="icon-none">○</span>'}</td>
+          <td>${memo ? `<span class="icon-flag" title="${memo}">📌</span>` : '<span class="icon-none">○</span>'}</td>
+          <td>${c.notice_date || '—'}</td>
+          <td>${c.notice_type ? `<a class="notice-link" href="#" onclick="return false">${esc(c.notice_type)}</a>` : '—'}</td>
+          <td>${followcallBadge(c.followcall_status)}</td>
+          <td>${renewalBadge(c.renewal_status)}</td>
+        </tr>`;
+
+      const detailRow = `
+        <tr class="detail-row" id="detail-${idx}" style="display:none">
+          <td colspan="15">
+            <div class="detail-inner">
+              <div class="detail-item">
+                <label>更改後証券番号</label>
+                <span>${esc(c.renewed_policy_number) || '—'}</span>
+              </div>
+              <div class="detail-item">
+                <label>更改後年換算保険料</label>
+                <span>${yen(c.renewed_premium)}</span>
+              </div>
+              <div class="detail-item">
+                <label>アップセルSTS</label>
+                <span>${esc(c.upsell_status) || '—'}</span>
+              </div>
+              <div class="detail-item">
+                <label>落ちSTS</label>
+                <span>${c.lapse_status ? '<span class="badge badge-gray">落ち</span>' : '—'}</span>
+              </div>
+              <div class="detail-item memo-item">
+                <label>メモ</label>
+                <span>${memo || '（なし）'}</span>
+              </div>
+            </div>
+          </td>
+        </tr>`;
+
+      return mainRow + detailRow;
+    }).join('');
+  }
+</script>
+</body>
+</html>
