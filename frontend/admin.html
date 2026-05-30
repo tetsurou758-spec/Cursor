@@ -397,6 +397,31 @@
     .toast.success { background: var(--green); }
     .toast.error   { background: var(--red); }
 
+    /* ════════════════════════ USER-TYPE BADGE ═══════════════════════════════════ */
+    .utype-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    /* 代理店：紺色テーマ */
+    .utype-agency {
+      background: rgba(13, 43, 94, 0.1);
+      color: #0D2B5E;
+      border: 1px solid rgba(13, 43, 94, 0.35);
+    }
+
+    /* 社員：ピンクテーマ */
+    .utype-staff {
+      background: rgba(255, 20, 147, 0.08);
+      color: #CC0077;
+      border: 1px solid rgba(204, 0, 119, 0.35);
+    }
+
     /* ════════════════════════ FOOTER ════════════════════════════════════════════ */
     .site-footer {
       background: var(--primary-dark);
@@ -450,6 +475,7 @@
           <table>
             <thead>
               <tr>
+                <th>ユーザー種別</th>
                 <th>ログインID</th>
                 <th>氏名</th>
                 <th>ロール</th>
@@ -458,7 +484,7 @@
               </tr>
             </thead>
             <tbody id="users-tbody">
-              <tr><td colspan="5" style="text-align:center;color:var(--text-sub);padding:24px">読み込み中...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--text-sub);padding:24px">読み込み中...</td></tr>
             </tbody>
           </table>
         </div>
@@ -499,6 +525,20 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="form-user-id">
+        <input type="hidden" id="form-record-usertype" value="staff">
+        <!-- 新規追加時のユーザー種別選択（社員管理者のみ表示） -->
+        <div class="form-group" id="form-newtype-group" style="display:none">
+          <label>ユーザー種別</label>
+          <select id="form-new-usertype">
+            <option value="staff">社員</option>
+            <option value="agency">代理店</option>
+          </select>
+        </div>
+        <!-- 代理店ユーザー追加時の代理店コード入力（社員管理者のみ） -->
+        <div class="form-group" id="form-agencycode-group" style="display:none">
+          <label>代理店コード</label>
+          <input type="text" id="form-agency-code" placeholder="例）A001" maxlength="20">
+        </div>
         <div class="form-group" id="form-login-id-group">
           <label id="form-login-id-label">ログインID</label>
           <input type="text" id="form-login-id" placeholder="ログインIDを入力" maxlength="50">
@@ -541,6 +581,16 @@
     const API_BASE = 'http://127.0.0.1:8000';
 
     let token, userType, headerCode, headerName;
+    let editingUserType = 'staff'; // 編集中レコードのuser_type（保存先テーブル判定に使用）
+
+    const AGENCY_ROLE_OPTS =
+      '<option value="1">管理者</option>' +
+      '<option value="2">一般担当</option>' +
+      '<option value="3">閲覧専用</option>';
+    const STAFF_ROLE_OPTS =
+      '<option value="1">システム管理者</option>' +
+      '<option value="2">代理店担当者</option>' +
+      '<option value="3">参照専用社員</option>';
 
     // ── トースト通知 ──────────────────────────────────────────
     function showToast(msg, type = 'success') {
@@ -576,16 +626,25 @@
 
       const tbody = document.getElementById('users-tbody');
       if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-sub);padding:24px">ユーザーが存在しません</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-sub);padding:24px">ユーザーが存在しません</td></tr>';
         return;
       }
 
       // 代理店管理者は削除ボタン非表示（ロール設定のみ可）
       const showDelete = (userType === 'staff');
 
-      tbody.innerHTML = users.map(u => `
+      tbody.innerHTML = users.map(u => {
+        const ut = u.user_type || 'staff';
+        const utLabel = ut === 'agency' ? '代理店' : '社員';
+        const utClass = ut === 'agency' ? 'utype-agency' : 'utype-staff';
+        // 代理店ユーザーの場合は代理店コードをログインIDに併記
+        const loginIdDisplay = (ut === 'agency' && u.agency_code)
+          ? `<span style="color:var(--text-sub);font-size:0.72rem">[${escHtml(u.agency_code)}]</span> ${escHtml(u.login_id)}`
+          : escHtml(u.login_id);
+        return `
         <tr>
-          <td style="font-weight:600">${escHtml(u.login_id)}</td>
+          <td><span class="utype-badge ${utClass}">${utLabel}</span></td>
+          <td style="font-weight:600">${loginIdDisplay}</td>
           <td>${escHtml(u.name)}</td>
           <td><span class="role-chip role-${u.role_id}">${escHtml(u.role_name)}</span></td>
           <td>
@@ -594,11 +653,11 @@
             </span>
           </td>
           <td>
-            <button class="btn-edit" onclick="openEdit(${u.id}, '${escHtml(u.login_id)}', ${u.role_id}, ${u.is_active}, '${escHtml(u.name)}')">編集</button>
-            ${showDelete ? `<button class="btn-delete" onclick="deleteUser(${u.id}, '${escHtml(u.login_id)}')">削除</button>` : ''}
+            <button class="btn-edit" onclick="openEdit(${u.id}, '${escHtml(u.login_id)}', ${u.role_id}, ${u.is_active}, '${escHtml(u.name)}', '${ut}')">編集</button>
+            ${showDelete ? `<button class="btn-delete" onclick="deleteUser(${u.id}, '${escHtml(u.login_id)}', '${ut}')">削除</button>` : ''}
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
+      }).join('');
     }
 
     // ── 権限マトリクスを描画する ──────────────────────────────
@@ -628,32 +687,75 @@
     }
 
     // ── モーダルを開く（追加） ────────────────────────────────
+    function onNewUserTypeChange() {
+      const val = document.getElementById('form-new-usertype').value;
+      const isAgency = (val === 'agency');
+      document.getElementById('form-agencycode-group').style.display = isAgency ? '' : 'none';
+      document.getElementById('form-name-group').style.display       = isAgency ? 'none' : '';
+      document.getElementById('form-password-group').style.display   = '';
+      document.getElementById('form-login-id-label').textContent     = isAgency ? 'ログインID' : '社員番号';
+      document.getElementById('form-role-id').innerHTML              = isAgency ? AGENCY_ROLE_OPTS : STAFF_ROLE_OPTS;
+    }
+
     function openAdd() {
       document.getElementById('modal-title').textContent  = 'ユーザー追加';
       document.getElementById('form-user-id').value       = '';
+      document.getElementById('form-record-usertype').value = 'new';
       document.getElementById('form-login-id').value      = '';
       document.getElementById('form-login-id').disabled   = false;
       document.getElementById('form-name').value          = '';
       document.getElementById('form-password').value      = '';
+      document.getElementById('form-agency-code').value   = '';
       document.getElementById('form-role-id').value       = '2';
       document.getElementById('form-is-active').value     = '1';
       document.getElementById('pw-label').textContent     = 'パスワード';
+      // 社員管理者：種別セレクトを社員にリセットして表示
+      document.getElementById('form-new-usertype').value  = 'staff';
+      document.getElementById('form-newtype-group').style.display = '';
+      document.getElementById('form-agencycode-group').style.display = 'none';
+      document.getElementById('form-name-group').style.display = '';
+      document.getElementById('form-password-group').style.display = '';
+      document.getElementById('form-login-id-label').textContent = '社員番号';
+      document.getElementById('form-role-id').innerHTML = STAFF_ROLE_OPTS;
       document.getElementById('modal-overlay').style.display = 'flex';
       document.getElementById('form-login-id').focus();
     }
 
     // ── モーダルを開く（編集） ────────────────────────────────
-    function openEdit(id, loginId, roleId, isActive, name) {
-      document.getElementById('modal-title').textContent  = 'ユーザー編集';
-      document.getElementById('form-user-id').value       = id;
-      document.getElementById('form-login-id').value      = loginId;
-      // 社員管理者は社員番号も変更可。代理店管理者は変更不可
-      document.getElementById('form-login-id').disabled   = (userType !== 'staff');
-      document.getElementById('form-name').value          = name || '';
-      document.getElementById('form-password').value      = '';
-      document.getElementById('form-role-id').value       = roleId;
-      document.getElementById('form-is-active').value     = isActive;
-      document.getElementById('pw-label').textContent     = 'パスワード（変更する場合のみ入力）';
+    function openEdit(id, loginId, roleId, isActive, name, recordUserType) {
+      recordUserType = recordUserType || (userType === 'staff' ? 'staff' : 'agency');
+      editingUserType = recordUserType; // 保存先テーブル判定用グローバル変数に保持
+
+      document.getElementById('modal-title').textContent      = 'ユーザー編集';
+      document.getElementById('form-user-id').value           = id;
+      document.getElementById('form-record-usertype').value   = recordUserType;
+      document.getElementById('form-login-id').value          = loginId;
+      document.getElementById('form-name').value              = name || '';
+      document.getElementById('form-password').value          = '';
+      document.getElementById('form-role-id').value           = roleId;
+      document.getElementById('form-is-active').value         = isActive;
+      document.getElementById('pw-label').textContent         = 'パスワード（変更する場合のみ入力）';
+
+      // 新規追加用セレクト・代理店コード欄は編集時は非表示
+      document.getElementById('form-newtype-group').style.display    = 'none';
+      document.getElementById('form-agencycode-group').style.display = 'none';
+
+      if (recordUserType === 'agency') {
+        // 代理店ユーザー編集：ログインID・パスワード・氏名は変更不可、ロールのみ
+        document.getElementById('form-login-id').disabled           = true;
+        document.getElementById('form-login-id-label').textContent  = 'ログインID';
+        document.getElementById('form-password-group').style.display = 'none';
+        document.getElementById('form-name-group').style.display    = 'none';
+        document.getElementById('form-role-id').innerHTML           = AGENCY_ROLE_OPTS;
+      } else {
+        // 社員ユーザー編集：社員管理者は社員番号も変更可
+        document.getElementById('form-login-id').disabled           = (userType !== 'staff');
+        document.getElementById('form-login-id-label').textContent  = '社員番号';
+        document.getElementById('form-password-group').style.display = '';
+        document.getElementById('form-name-group').style.display    = '';
+        document.getElementById('form-role-id').innerHTML           = STAFF_ROLE_OPTS;
+      }
+
       document.getElementById('modal-overlay').style.display = 'flex';
     }
 
@@ -670,18 +772,43 @@
       const password = document.getElementById('form-password').value;
       const roleId   = parseInt(document.getElementById('form-role-id').value);
       const isActive = parseInt(document.getElementById('form-is-active').value);
-      const isNew    = !userId;
+      const isNew         = !userId;
+      const recordUType   = document.getElementById('form-record-usertype').value;
 
       if (userType === 'staff') {
+        // ── 社員管理者として操作 ──────────────────────────────
         if (isNew) {
-          if (!loginIdV) { showToast('社員番号を入力してください', 'error'); return; }
-          if (!nameV)    { showToast('氏名を入力してください', 'error'); return; }
-          if (!password) { showToast('パスワードを入力してください', 'error'); return; }
-          const body = { staff_code: loginIdV, name: nameV, password, role_id: roleId, is_active: isActive };
-          const res  = await apiFetch('/api/staff/users', { method: 'POST', body: JSON.stringify(body) });
-          if (res.ok) { showToast('社員ユーザーを登録しました'); closeModal(); loadUsers(); }
-          else { showToast((await res.json()).detail || '登録に失敗しました', 'error'); }
+          // 新規追加：種別セレクトで社員/代理店を判定
+          const newUType = document.getElementById('form-new-usertype').value;
+          if (newUType === 'agency') {
+            // 代理店ユーザー追加
+            const agencyCodeV = document.getElementById('form-agency-code').value.trim();
+            if (!agencyCodeV) { showToast('代理店コードを入力してください', 'error'); return; }
+            if (!loginIdV)    { showToast('ログインIDを入力してください', 'error'); return; }
+            if (!password)    { showToast('パスワードを入力してください', 'error'); return; }
+            const body = { login_id: loginIdV, name: loginIdV, password, role_id: roleId, is_active: isActive };
+            const url  = `/api/staff/agency-users?agency_code=${encodeURIComponent(agencyCodeV)}`;
+            const res  = await apiFetch(url, { method: 'POST', body: JSON.stringify(body) });
+            if (res.ok) { showToast('代理店ユーザーを登録しました'); closeModal(); loadUsers(); }
+            else { showToast((await res.json()).detail || '登録に失敗しました', 'error'); }
+          } else {
+            // 社員ユーザー追加
+            if (!loginIdV) { showToast('社員番号を入力してください', 'error'); return; }
+            if (!nameV)    { showToast('氏名を入力してください', 'error'); return; }
+            if (!password) { showToast('パスワードを入力してください', 'error'); return; }
+            const body = { staff_code: loginIdV, name: nameV, password, role_id: roleId, is_active: isActive };
+            const res  = await apiFetch('/api/staff/users', { method: 'POST', body: JSON.stringify(body) });
+            if (res.ok) { showToast('社員ユーザーを登録しました'); closeModal(); loadUsers(); }
+            else { showToast((await res.json()).detail || '登録に失敗しました', 'error'); }
+          }
+        } else if (recordUType === 'agency') {
+          // 代理店ユーザー編集（社員管理者から）：ロール・有効フラグのみ
+          const body = { role_id: roleId, is_active: isActive };
+          const res = await apiFetch(`/api/staff/agency-users/${userId}`, { method: 'PUT', body: JSON.stringify(body) });
+          if (res.ok) { showToast('代理店ユーザーのロールを更新しました'); closeModal(); loadUsers(); }
+          else { showToast((await res.json()).detail || '更新に失敗しました', 'error'); }
         } else {
+          // 社員ユーザー編集：社員番号・氏名・パスワード・ロール更新可
           const body = { role_id: roleId, is_active: isActive };
           if (loginIdV) body.staff_code = loginIdV;
           if (nameV)    body.name       = nameV;
@@ -691,7 +818,7 @@
           else { showToast((await res.json()).detail || '更新に失敗しました', 'error'); }
         }
       } else {
-        // 代理店管理者：ロール・有効フラグのみ更新可
+        // ── 代理店管理者：ロール・有効フラグのみ更新可 ─────────
         if (isNew) { showToast('代理店管理者はユーザー追加できません', 'error'); return; }
         const body = { role_id: roleId, is_active: isActive };
         const res = await apiFetch(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(body) });
@@ -701,11 +828,17 @@
     }
 
     // ── 削除処理（論理削除） ──────────────────────────────────
-    async function deleteUser(userId, loginId) {
+    async function deleteUser(userId, loginId, recordUserType) {
       if (!confirm(`「${loginId}」を無効化します。よろしいですか？`)) return;
-      const endpoint = userType === 'staff'
-        ? `/api/staff/users/${userId}`
-        : `/api/users/${userId}`;
+      let endpoint;
+      if (userType === 'staff') {
+        // 社員管理者：レコードのuser_typeで対象テーブルを判定
+        endpoint = (recordUserType === 'agency')
+          ? `/api/staff/agency-users/${userId}`
+          : `/api/staff/users/${userId}`;
+      } else {
+        endpoint = `/api/users/${userId}`;
+      }
       const res = await apiFetch(endpoint, { method: 'DELETE' });
       if (res.ok) { showToast('ユーザーを無効化しました'); loadUsers(); }
       else { showToast((await res.json()).detail || '削除に失敗しました', 'error'); }
@@ -778,6 +911,7 @@
       document.getElementById('modal-close').addEventListener('click', closeModal);
       document.getElementById('btn-cancel').addEventListener('click', closeModal);
       document.getElementById('btn-save').addEventListener('click', saveUser);
+      document.getElementById('form-new-usertype').addEventListener('change', onNewUserTypeChange);
 
       // オーバーレイクリックで閉じる
       document.getElementById('modal-overlay').addEventListener('click', e => {

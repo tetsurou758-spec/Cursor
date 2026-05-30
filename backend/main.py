@@ -442,18 +442,143 @@ def get_role_matrix(payload: dict = Depends(require_admin)):
 
 @app.get("/api/staff/users")
 def get_staff_users(payload: dict = Depends(require_staff_admin)):
-    """社員管理者のみ：社員ユーザー一覧を返す"""
+    """
+    社員管理者のみ：社員全員 ＋ 管轄代理店（同一buka_code）のユーザーを合算して返す。
+    各レコードにuser_type（staff/agency）フィールドを付与してテーブル判定に使用する。
+    """
+    buka_code = payload.get("buka_code", "")
     conn = get_db_connection()
     try:
-        rows = conn.execute("""
+        # ── 社員ユーザー（全員）────────────────────────────────
+        staff_rows = conn.execute("""
             SELECT su.staff_id AS id, su.staff_code AS login_id, su.name,
                    su.buka_code, su.is_active,
-                   sr.role_id, sr.role_name
+                   sr.role_id, sr.role_name,
+                   'staff' AS user_type, '' AS agency_code
             FROM staff_users su
             LEFT JOIN staff_roles sr ON su.role_id = sr.role_id
             ORDER BY su.staff_id
         """).fetchall()
-        return {"users": [dict(r) for r in rows]}
+
+        # ── 管轄代理店のユーザー（buka_code一致の代理店に所属するユーザー）──
+        agency_rows = conn.execute("""
+            SELECT u.id AS id, u.login_id, u.name,
+                   '' AS buka_code, u.is_active,
+                   r.role_id, r.role_name,
+                   'agency' AS user_type, u.agency_code
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.role_id
+            LEFT JOIN agencies ag ON u.agency_id = ag.agency_id
+            WHERE ag.buka_code = ?
+            ORDER BY u.agency_id, u.id
+        """, (buka_code,)).fetchall()
+
+        users = [dict(r) for r in staff_rows] + [dict(r) for r in agency_rows]
+        return {"users": users}
+    finally:
+        conn.close()
+
+
+@app.post("/api/staff/agency-users", status_code=201)
+def create_staff_agency_user(request: UserCreateRequest,
+                             agency_code: str,
+                             payload: dict = Depends(require_staff_admin)):
+    """
+    社員管理者のみ：管轄代理店に新規ユーザーを登録する。
+    管轄外の代理店コードを指定した場合は403を返す。
+    """
+    buka_code = payload.get("buka_code", "")
+    conn = get_db_connection()
+    try:
+        # 代理店が管轄内かチェック
+        ag = conn.execute(
+            "SELECT agency_id FROM agencies WHERE agency_code = ? AND buka_code = ?",
+            (agency_code, buka_code)
+        ).fetchone()
+        if not ag:
+            raise HTTPException(status_code=403, detail="管轄外の代理店です。または代理店コードが存在しません")
+
+        hashed = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+        conn.execute("""
+            INSERT INTO users (agency_code, agency_id, role_id, login_id, password_hash, name, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (agency_code, ag["agency_id"], request.role_id, request.login_id,
+              hashed, request.name, request.is_active))
+        conn.commit()
+        return {"message": "代理店ユーザーを登録しました", "login_id": request.login_id}
+    except HTTPException:
+        raise
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        raise HTTPException(status_code=409, detail="そのログインIDは既に使用されています")
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.put("/api/staff/agency-users/{user_id}")
+def update_staff_agency_user(user_id: int, request: UserUpdateRequest,
+                             payload: dict = Depends(require_staff_admin)):
+    """
+    社員管理者のみ：管轄代理店のユーザーのロール・有効フラグを変更する。
+    管轄外ユーザーへのアクセスは403を返す。
+    """
+    buka_code = payload.get("buka_code", "")
+    conn = get_db_connection()
+    try:
+        # 管轄内の代理店に属するユーザーかチェック
+        row = conn.execute("""
+            SELECT u.id FROM users u
+            LEFT JOIN agencies ag ON u.agency_id = ag.agency_id
+            WHERE u.id = ? AND ag.buka_code = ?
+        """, (user_id, buka_code)).fetchone()
+        if not row:
+            raise HTTPException(status_code=403, detail="管轄外のユーザーです")
+
+        fields, params = [], []
+        if request.role_id is not None:
+            fields.append("role_id = ?"); params.append(request.role_id)
+        if request.is_active is not None:
+            fields.append("is_active = ?"); params.append(request.is_active)
+        if not fields:
+            raise HTTPException(status_code=400, detail="更新する項目がありません")
+
+        params.append(user_id)
+        conn.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", params)
+        conn.commit()
+        return {"message": "代理店ユーザー情報を更新しました"}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.delete("/api/staff/agency-users/{user_id}")
+def delete_staff_agency_user(user_id: int, payload: dict = Depends(require_staff_admin)):
+    """社員管理者のみ：管轄代理店のユーザーを論理削除する"""
+    buka_code = payload.get("buka_code", "")
+    conn = get_db_connection()
+    try:
+        row = conn.execute("""
+            SELECT u.id FROM users u
+            LEFT JOIN agencies ag ON u.agency_id = ag.agency_id
+            WHERE u.id = ? AND ag.buka_code = ?
+        """, (user_id, buka_code)).fetchone()
+        if not row:
+            raise HTTPException(status_code=403, detail="管轄外のユーザーです")
+        conn.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+        conn.commit()
+        return {"message": "代理店ユーザーを無効化しました"}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
