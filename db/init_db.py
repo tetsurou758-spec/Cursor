@@ -127,14 +127,14 @@ MATURITY_CONTRACTS = [
     ),
     dict(
         agency_code="A001", contract_no="M-A001-003", customer_name="鈴木 一郎",
-        renewal_month="2026-05", status="pending",
+        renewal_month="2026-05", status="completed",
         customer_id="CUST-A001-003", policy_number="POL-A001-2605-0001",
         policy_type="自動車", expiry_date="2026-05-10", annual_premium=95000,
         staff_code="S002", contact_method="TEL", contact_info="080-9876-5432",
         memo="事故歴あり。保険料上昇の可能性あり要説明", has_accident=1, has_change=0,
-        followcall_status="実施済", renewal_status="対応中",
-        renewed_policy_number=None, renewed_premium=None,
-        upsell_status="なし", lapse_status=0,
+        followcall_status="実施済", renewal_status="更改済",
+        renewed_policy_number="POL-A001-2605-NEW1", renewed_premium=95000,
+        upsell_status="あり", lapse_status=0,
     ),
     dict(
         agency_code="A001", contract_no="M-A001-004", customer_name="山田 直子",
@@ -149,14 +149,14 @@ MATURITY_CONTRACTS = [
     ),
     dict(
         agency_code="A001", contract_no="M-A001-005", customer_name="中村 浩司",
-        renewal_month="2026-06", status="pending",
+        renewal_month="2026-06", status="completed",
         customer_id="CUST-A001-005", policy_number="POL-A001-2606-0001",
         policy_type="火災", expiry_date="2026-06-15", annual_premium=150000,
         staff_code="S001", contact_method="TEL", contact_info="070-1111-2222",
         memo="", has_accident=0, has_change=0,
-        followcall_status="未実施", renewal_status="未対応",
-        renewed_policy_number=None, renewed_premium=None,
-        upsell_status="なし", lapse_status=0,
+        followcall_status="実施済", renewal_status="更改済",
+        renewed_policy_number="POL-A001-2606-NEW1", renewed_premium=160000,
+        upsell_status="あり", lapse_status=0,
     ),
     # ── B002 ──────────────────────────────────────────────────
     dict(
@@ -183,13 +183,13 @@ MATURITY_CONTRACTS = [
     ),
     dict(
         agency_code="B002", contract_no="M-B002-003", customer_name="吉田 文子",
-        renewal_month="2026-05", status="pending",
+        renewal_month="2026-05", status="completed",
         customer_id="CUST-B002-003", policy_number="POL-B002-2605-0001",
         policy_type="傷害", expiry_date="2026-05-15", annual_premium=55000,
         staff_code="S003", contact_method="TEL", contact_info="080-5555-6666",
         memo="", has_accident=0, has_change=0,
-        followcall_status="実施済", renewal_status="対応中",
-        renewed_policy_number=None, renewed_premium=None,
+        followcall_status="実施済", renewal_status="更改済",
+        renewed_policy_number="POL-B002-2605-NEW1", renewed_premium=85000,
         upsell_status="なし", lapse_status=0,
     ),
     dict(
@@ -213,6 +213,17 @@ MATURITY_CONTRACTS = [
         followcall_status="未実施", renewal_status="未対応",
         renewed_policy_number=None, renewed_premium=None,
         upsell_status="なし", lapse_status=0,
+    ),
+    dict(
+        agency_code="B002", contract_no="M-B002-006", customer_name="新田 裕司",
+        renewal_month="2026-06", status="completed",
+        customer_id="CUST-B002-006", policy_number="POL-B002-2606-0001",
+        policy_type="火災", expiry_date="2026-06-20", annual_premium=100000,
+        staff_code="S003", contact_method="TEL", contact_info="090-9999-1111",
+        memo="", has_accident=0, has_change=0,
+        followcall_status="実施済", renewal_status="更改済",
+        renewed_policy_number="POL-B002-2606-NEW1", renewed_premium=120000,
+        upsell_status="あり", lapse_status=0,
     ),
     # ── C003 ──────────────────────────────────────────────────
     dict(
@@ -239,13 +250,13 @@ MATURITY_CONTRACTS = [
     ),
     dict(
         agency_code="C003", contract_no="M-C003-003", customer_name="木村 隆",
-        renewal_month="2026-05", status="pending",
+        renewal_month="2026-05", status="completed",
         customer_id="CUST-C003-003", policy_number="POL-C003-2605-0001",
         policy_type="自動車", expiry_date="2026-05-05", annual_premium=72000,
         staff_code="S005", contact_method="TEL", contact_info="080-3030-4040",
         memo="", has_accident=0, has_change=0,
-        followcall_status="実施済", renewal_status="対応中",
-        renewed_policy_number=None, renewed_premium=None,
+        followcall_status="実施済", renewal_status="更改済",
+        renewed_policy_number="POL-C003-2605-NEW1", renewed_premium=75000,
         upsell_status="なし", lapse_status=0,
     ),
     dict(
@@ -261,14 +272,14 @@ MATURITY_CONTRACTS = [
     ),
     dict(
         agency_code="C003", contract_no="M-C003-005", customer_name="高橋 浩司",
-        renewal_month="2026-06", status="pending",
+        renewal_month="2026-06", status="completed",
         customer_id="CUST-C003-005", policy_number="POL-C003-2606-0001",
         policy_type="火災", expiry_date="2026-06-30", annual_premium=225000,
         staff_code="S004", contact_method="TEL", contact_info="070-5050-6060",
         memo="大口。年払い。慎重に対応", has_accident=0, has_change=0,
-        followcall_status="未実施", renewal_status="未対応",
-        renewed_policy_number=None, renewed_premium=None,
-        upsell_status="なし", lapse_status=0,
+        followcall_status="実施済", renewal_status="更改済",
+        renewed_policy_number="POL-C003-2606-NEW1", renewed_premium=95000,
+        upsell_status="あり", lapse_status=0,
     ),
 ]
 
@@ -469,15 +480,23 @@ def init_db():
         print(f"  事故データ: {len(ACCIDENTS)}件")
 
         # ── ダッシュボード用 既存サンプル契約（1449件）──────────
+        # expiry_dateとrenewal_statusを設定してダッシュボード集計APIに対応する
         total_dash = 0
         for agency_code, month, completed, pending in CONTRACT_CONFIG:
             seq = 0
-            for sts, cnt in [("completed", completed), ("pending", pending)]:
+            for sts, cnt, r_sts, fc_sts in [
+                ("completed", completed, "更改済", "実施済"),
+                ("pending",   pending,   "未対応", "未実施"),
+            ]:
                 for _ in range(cnt):
+                    expiry_date = f"{month}-15"
                     cur.execute("""
-                        INSERT INTO contracts (agency_code, contract_no, customer_name, renewal_month, status)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (agency_code, f"{agency_code}-{month}-{seq:04d}", make_name(seq), month, sts))
+                        INSERT INTO contracts
+                        (agency_code, contract_no, customer_name, renewal_month, status,
+                         expiry_date, renewal_status, followcall_status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (agency_code, f"{agency_code}-{month}-{seq:04d}", make_name(seq),
+                          month, sts, expiry_date, r_sts, fc_sts))
                     seq += 1
             total_dash += completed + pending
         print(f"  契約（ダッシュボード用）: {total_dash}件")
@@ -500,7 +519,7 @@ def init_db():
                 )
             """, mc)
             cid   = cur.lastrowid
-            ntype = NOTICE_TYPES[int(mc["contract_no"].split("-")[-1]) - 1]
+            ntype = NOTICE_TYPES[(int(mc["contract_no"].split("-")[-1]) - 1) % len(NOTICE_TYPES)]
             ndate = notice_date(mc["expiry_date"])
             cur.execute("""
                 INSERT INTO maturity_notices (contract_id, notice_date, notice_type)
