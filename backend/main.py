@@ -532,7 +532,7 @@ def get_maturity(
 
     sql = """
         SELECT
-            c.id, c.agency_code, c.contract_no, c.customer_name,
+            c.id, c.agency_code, ag.buka_code, c.contract_no, c.customer_name,
             c.renewal_month, c.status,
             c.customer_id, c.policy_number, c.policy_type,
             c.expiry_date, c.annual_premium,

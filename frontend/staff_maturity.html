@@ -3,23 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>満期管理システム｜AX損害保険株式会社</title>
+  <title>満期管理システム（社員）｜AX損害保険株式会社</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:      #0d2b5e;
-      --navy-dark: #091e45;
-      --navy-mid:  #1a3a72;
-      --navy-light:#2d4f8e;
-      --gold:      #c9a84c;
-      --gold-light:#e2c47a;
-      --white:     #ffffff;
-      --gray-bg:   #f0f2f7;
-      --gray-card: #f7f9fc;
-      --gray-border:#e0e5f0;
-      --text-main: #1a1a2e;
-      --text-sub:  #5a6480;
+      --pink:       #FF1493;
+      --pink-dark:  #CC0077;
+      --pink-mid:   #E01288;
+      --pink-light: #FF69B4;
+      --white:      #ffffff;
+      --gray-bg:    #fff0f7;
+      --gray-card:  #fff5fa;
+      --gray-border:#ffd6ec;
+      --text-main:  #2e001a;
+      --text-sub:   #884466;
     }
 
     body {
@@ -31,7 +29,7 @@
 
     /* ═══ HEADER ═══════════════════════════════════════════ */
     .site-header {
-      background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 100%);
+      background: linear-gradient(135deg, var(--pink-dark) 0%, var(--pink-mid) 100%);
       padding: 0 24px;
       height: 60px;
       display: flex;
@@ -40,65 +38,67 @@
       position: sticky;
       top: 0;
       z-index: 200;
-      box-shadow: 0 2px 12px rgba(9,30,69,0.35);
+      box-shadow: 0 2px 12px rgba(204,0,119,0.35);
     }
     .header-logo { display:flex; align-items:center; gap:10px; color:var(--white); text-decoration:none; }
     .header-logo svg { width:28px; height:28px; flex-shrink:0; }
-    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:#FFD700; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:#FFB6C1; }
     .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:var(--white); }
     .header-right { display:flex; align-items:center; gap:10px; }
     .page-badge {
-      background: rgba(201,168,76,0.2);
-      border: 1px solid rgba(201,168,76,0.5);
-      color: var(--gold-light);
+      background: rgba(255,105,180,0.25);
+      border: 1px solid rgba(255,105,180,0.5);
+      color: #FFB6C1;
       border-radius:4px; padding:3px 10px;
       font-size:0.75rem; font-weight:700;
     }
     .user-badge {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(201,168,76,0.4);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,105,180,0.4);
       border-radius:20px; padding:4px 14px;
       color:var(--white); font-size:0.8rem;
     }
-    .user-badge span { color:#FFD700; font-weight:700; margin-right:6px; }
+    .user-badge .badge-code { color:#FFB6C1; font-weight:700; margin-right:4px; }
+    .user-badge .badge-role { color:#FFB6C1; font-weight:600; margin-left:4px; }
+    .user-badge .badge-buka { color:rgba(255,255,255,0.7); font-size:0.72rem; margin-left:6px; }
     .btn-logout {
-      background:transparent; border:1.5px solid rgba(201,168,76,0.6);
-      color:var(--gold-light); border-radius:4px; padding:5px 14px;
+      background:transparent; border:1.5px solid rgba(255,105,180,0.6);
+      color:#FFB6C1; border-radius:4px; padding:5px 14px;
       font-size:0.78rem; font-weight:600; cursor:pointer;
       transition:background 0.2s,color 0.2s;
     }
-    .btn-logout:hover { background:var(--gold); color:var(--navy-dark); border-color:var(--gold); }
+    .btn-logout:hover { background:var(--pink-light); color:var(--pink-dark); border-color:var(--pink-light); }
     .btn-back {
-      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25);
       color:var(--white); border-radius:4px; padding:5px 12px;
       font-size:0.75rem; cursor:pointer; text-decoration:none;
       transition:background 0.2s;
     }
-    .btn-back:hover { background:rgba(255,255,255,0.18); }
-    .gold-bar { height:3px; background:linear-gradient(90deg,var(--navy-dark) 0%,var(--gold) 50%,var(--navy-dark) 100%); }
+    .btn-back:hover { background:rgba(255,255,255,0.2); }
+    .gold-bar { height:3px; background:linear-gradient(90deg,var(--pink-dark) 0%,var(--pink-light) 50%,var(--pink-dark) 100%); }
 
     /* ═══ MAIN ══════════════════════════════════════════════ */
     .main-content { max-width:1400px; margin:0 auto; padding:20px 16px 40px; }
     .page-title {
-      font-size:1.1rem; font-weight:700; color:var(--navy);
+      font-size:1.1rem; font-weight:700; color:var(--pink-dark);
       margin-bottom:16px; display:flex; align-items:center; gap:8px;
     }
     .page-title::before {
       content:''; display:inline-block; width:4px; height:20px;
-      background:var(--gold); border-radius:2px;
+      background:var(--pink-light); border-radius:2px;
     }
 
     /* ═══ SEARCH CARD ═══════════════════════════════════════ */
     .search-card {
       background:var(--white); border-radius:8px;
-      box-shadow:0 2px 10px rgba(13,43,94,0.08);
+      box-shadow:0 2px 10px rgba(255,20,147,0.08);
       padding:18px 20px; margin-bottom:16px;
     }
     .search-grid {
       display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;
     }
     .field-group { display:flex; flex-direction:column; gap:4px; }
-    .field-group label { font-size:0.72rem; font-weight:600; color:var(--navy); letter-spacing:0.04em; }
+    .field-group label { font-size:0.72rem; font-weight:600; color:var(--pink-dark); letter-spacing:0.04em; }
     .field-group input,
     .field-group select {
       border:1.5px solid var(--gray-border); border-radius:4px;
@@ -108,43 +108,43 @@
       height:32px;
     }
     .field-group input:focus,
-    .field-group select:focus { border-color:var(--navy); box-shadow:0 0 0 2px rgba(13,43,94,0.08); }
+    .field-group select:focus { border-color:var(--pink); box-shadow:0 0 0 2px rgba(255,20,147,0.10); }
     .field-group.date input { width:140px; }
     .field-group.text input { width:110px; }
     .field-group.sel select { width:120px; }
     .btn-group { display:flex; gap:8px; align-items:flex-end; padding-bottom:0; }
     .btn-search {
-      background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);
+      background:linear-gradient(135deg,var(--pink-dark) 0%,var(--pink-mid) 100%);
       color:var(--white); border:none; border-radius:4px;
       padding:0 20px; height:32px; font-size:0.82rem; font-weight:700;
       cursor:pointer; transition:opacity 0.2s;
     }
     .btn-search:hover { opacity:0.88; }
     .btn-clear {
-      background:var(--white); color:var(--navy); border:1.5px solid var(--gray-border);
+      background:var(--white); color:var(--pink-dark); border:1.5px solid var(--gray-border);
       border-radius:4px; padding:0 16px; height:32px;
       font-size:0.82rem; cursor:pointer; transition:border-color 0.2s;
     }
-    .btn-clear:hover { border-color:var(--navy); }
+    .btn-clear:hover { border-color:var(--pink); }
 
     /* ═══ RESULT INFO ════════════════════════════════════════ */
     .result-info {
       font-size:0.8rem; color:var(--text-sub);
       margin-bottom:10px; padding-left:4px;
     }
-    .result-info strong { color:var(--navy); font-size:1rem; }
+    .result-info strong { color:var(--pink-dark); font-size:1rem; }
 
     /* ═══ TABLE CARD ═════════════════════════════════════════ */
     .table-card {
       background:var(--white); border-radius:8px;
-      box-shadow:0 2px 10px rgba(13,43,94,0.08);
+      box-shadow:0 2px 10px rgba(255,20,147,0.08);
       overflow:hidden;
     }
     .table-wrap { overflow-x:auto; }
 
     table { width:100%; border-collapse:collapse; white-space:nowrap; }
 
-    thead tr { background:var(--navy); }
+    thead tr { background:var(--pink-mid); }
     thead th {
       color:var(--white); font-size:0.72rem; font-weight:700;
       padding:9px 8px; text-align:center; letter-spacing:0.04em;
@@ -153,21 +153,21 @@
     }
     thead th:last-child { border-right:none; }
     thead th.sortable { cursor:pointer; user-select:none; }
-    thead th.sortable:hover { background:var(--navy-mid); }
-    thead th.sort-active { background:rgba(0,206,209,0.18) !important; }
+    thead th.sortable:hover { background:var(--pink-light); }
+    thead th.sort-active { background:rgba(255,20,147,0.35) !important; }
     .sort-icon {
       display:inline-block; margin-left:4px;
       font-size:0.8rem; font-style:normal;
-      color:rgba(255,255,255,0.4);
+      color:rgba(255,255,255,0.5);
       transition:color 0.15s, font-weight 0.15s;
       vertical-align:middle;
     }
-    thead th.sort-active .sort-icon { color:#00CED1; font-weight:700; }
+    thead th.sort-active .sort-icon { color:#FFB6C1; font-weight:700; }
 
     tbody tr.main-row { transition:background 0.15s; }
-    tbody tr.main-row:hover { background:#f0f4fc; }
-    tbody tr.main-row.highlight-month { background:#fffbea; }
-    tbody tr.main-row.highlight-month:hover { background:#fff5cc; }
+    tbody tr.main-row:hover { background:#fff0f7; }
+    tbody tr.main-row.highlight-month { background:#ffe8f6; }
+    tbody tr.main-row.highlight-month:hover { background:#ffd6ec; }
 
     tbody td {
       padding:7px 8px; border-bottom:1px solid var(--gray-border);
@@ -178,8 +178,8 @@
 
     /* アコーディオン詳細行 */
     tr.detail-row td {
-      background:#f7f9fc; padding:0;
-      border-bottom:2px solid var(--navy);
+      background:#fff5fa; padding:0;
+      border-bottom:2px solid var(--pink-mid);
     }
     .detail-inner {
       padding:14px 20px;
@@ -197,13 +197,13 @@
     /* ＋/－ボタン */
     .toggle-btn {
       width:22px; height:22px; border-radius:50%;
-      background:var(--navy); color:var(--white);
+      background:var(--pink-mid); color:var(--white);
       border:none; font-size:0.85rem; font-weight:700;
       cursor:pointer; line-height:1;
       transition:background 0.2s;
     }
-    .toggle-btn:hover { background:var(--navy-mid); }
-    .toggle-btn.open { background:var(--gold); color:var(--navy-dark); }
+    .toggle-btn:hover { background:var(--pink-light); }
+    .toggle-btn.open { background:var(--pink-light); color:var(--pink-dark); }
 
     /* バッジ */
     .badge {
@@ -216,9 +216,9 @@
     .badge-green  { background:#d4edda; color:#155724; }
     .badge-gray   { background:#e9ecef; color:#495057; }
 
-    /* 事故/異動/メモアイコン */
+    /* 事故/異動アイコン */
     .icon-flag { font-size:1rem; }
-    .icon-none { color:#cdd3e0; font-size:0.85rem; }
+    .icon-none { color:#ffd6ec; font-size:0.85rem; }
 
     /* 種目バッジ */
     .type-badge {
@@ -232,21 +232,21 @@
 
     /* 連絡先 */
     .contact-wrap { text-align:left; }
-    .contact-method { font-size:0.7rem; background:#e8ecf4; border-radius:3px; padding:1px 5px; color:var(--navy); font-weight:600; }
+    .contact-method { font-size:0.7rem; background:#ffd6ec; border-radius:3px; padding:1px 5px; color:var(--pink-dark); font-weight:600; }
     .contact-info   { font-size:0.72rem; color:var(--text-sub); display:block; margin-top:2px; }
 
     /* 帳票リンク */
-    .notice-link { color:var(--navy); font-size:0.75rem; text-decoration:underline; cursor:pointer; }
+    .notice-link { color:var(--pink-dark); font-size:0.75rem; text-decoration:underline; cursor:pointer; }
 
     /* 保険料 */
-    .premium { text-align:right; font-size:0.8rem; font-weight:600; color:var(--navy); }
+    .premium { text-align:right; font-size:0.8rem; font-weight:600; color:var(--pink-dark); }
 
     /* 空メッセージ */
     .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
 
     /* ═══ FOOTER ════════════════════════════════════════════ */
     .site-footer {
-      background:var(--navy-dark); color:rgba(255,255,255,0.45);
+      background:var(--pink-dark); color:rgba(255,255,255,0.45);
       text-align:center; font-size:0.7rem; letter-spacing:0.06em;
       padding:14px 16px; margin-top:40px;
     }
@@ -266,21 +266,26 @@
   <div class="header-logo">
     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
-            fill="none" stroke="#FFD700" stroke-width="3" stroke-linejoin="round"/>
+            fill="none" stroke="#FF69B4" stroke-width="3" stroke-linejoin="round"/>
       <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
-            fill="rgba(255,215,0,0.35)"/>
+            fill="rgba(255,105,180,0.25)"/>
       <polyline points="22,32 29,39 43,25"
-                stroke="#FFD700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                stroke="#FFB6C1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div class="header-logo-text">
       <div class="company">AX損害保険株式会社</div>
-      <div class="system">満期管理システム</div>
+      <div class="system">満期管理システム（社員）</div>
     </div>
   </div>
   <div class="header-right">
     <span class="page-badge">満期管理</span>
-    <div class="user-badge"><span id="hdr-agency">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
-    <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <div class="user-badge">
+      <span class="badge-code" id="hdr-code">--</span>
+      <span id="hdr-name" style="color:#fff;font-weight:400">--</span>
+      <span class="badge-role" id="hdr-role"></span>
+      <span class="badge-buka" id="hdr-buka"></span>
+    </div>
+    <a href="staff_dashboard.html" class="btn-back">← ダッシュボード</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
 </header>
@@ -288,7 +293,7 @@
 
 <div class="main-content">
 
-  <div class="page-title">満期管理一覧</div>
+  <div class="page-title">満期管理一覧（社員ビュー）</div>
 
   <!-- 検索バー -->
   <div class="search-card">
@@ -304,6 +309,14 @@
       <div class="field-group text">
         <label>担当者コード</label>
         <input type="text" id="staff-code" placeholder="例）S001">
+      </div>
+      <div class="field-group text">
+        <label>代理店コード</label>
+        <input type="text" id="agency-code-filter" placeholder="例）A001">
+      </div>
+      <div class="field-group text">
+        <label>部課コード</label>
+        <input type="text" id="buka-code-filter" placeholder="例）X001">
       </div>
       <div class="field-group sel">
         <label>種目</label>
@@ -385,23 +398,31 @@
   })();
 
   let currentData  = [];
-  let originalData = [];   // 検索直後の元順序（ソートリセット用）
-  let sortCol      = null; // null = 未ソート
-  let sortDir      = 1;    // 1=昇順, -1=降順
+  let originalData = [];
+  let sortCol      = null;
+  let sortDir      = 1;
 
   const SORT_COLS = ['expiry_date', 'staff_code', 'annual_premium'];
 
   // ─── 初期化 ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = 'login.html'; return; }
+    const token = localStorage.getItem('staff_token');
+    if (!token) { window.location.href = 'staff_login.html'; return; }
 
-    document.getElementById('hdr-agency').textContent = (localStorage.getItem('agency_code') || '') + ' ';
-    document.getElementById('hdr-name').textContent   = localStorage.getItem('login_id') || '';
+    const staffCode = localStorage.getItem('staff_code') || '';
+    const staffName = localStorage.getItem('staff_name') || '';
+    const roleName  = localStorage.getItem('staff_role_name') || '';
+    const bukaCode  = localStorage.getItem('staff_buka_code') || '';
+
+    document.getElementById('hdr-code').textContent = staffCode + ' ';
+    document.getElementById('hdr-name').textContent = staffName;
+    document.getElementById('hdr-role').textContent = roleName ? '｜' + roleName : '';
+    document.getElementById('hdr-buka').textContent = bukaCode ? `[${bukaCode}]` : '';
 
     document.getElementById('btn-logout').addEventListener('click', () => {
-      localStorage.clear();
-      window.location.href = 'login.html';
+      ['staff_token','staff_code','staff_name','staff_role_id',
+       'staff_role_name','staff_buka_code','staff_permissions'].forEach(k => localStorage.removeItem(k));
+      window.location.href = 'staff_login.html';
     });
 
     // 初期日付範囲を設定する（満期3カ月前〜翌3カ月）
@@ -416,7 +437,7 @@
 
   // ─── 検索実行 ─────────────────────────────────────────────
   async function doSearch() {
-    const token    = localStorage.getItem('token');
+    const token    = localStorage.getItem('staff_token');
     const params   = new URLSearchParams();
     const dateFrom = document.getElementById('date-from').value;
     const dateTo   = document.getElementById('date-to').value;
@@ -436,9 +457,27 @@
       const res = await fetch(`${API_BASE}/api/maturity?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+      if (res.status === 401) {
+        ['staff_token','staff_code','staff_name','staff_role_id',
+         'staff_role_name','staff_buka_code','staff_permissions'].forEach(k => localStorage.removeItem(k));
+        window.location.href = 'staff_login.html';
+        return;
+      }
       const data = await res.json();
-      originalData = data.contracts || [];
+
+      // 代理店コード・部課コードはクライアント側でフィルタリングする
+      const agencyFilter = document.getElementById('agency-code-filter').value.trim().toLowerCase();
+      const bukaFilter   = document.getElementById('buka-code-filter').value.trim().toLowerCase();
+
+      let filtered = data.contracts || [];
+      if (agencyFilter) {
+        filtered = filtered.filter(c => (c.agency_code || '').toLowerCase().includes(agencyFilter));
+      }
+      if (bukaFilter) {
+        filtered = filtered.filter(c => (c.buka_code || '').toLowerCase().includes(bukaFilter));
+      }
+
+      originalData = filtered;
       currentData  = [...originalData];
       sortCol = null; sortDir = 1;
       updateSortIndicators();
@@ -452,35 +491,31 @@
 
   // ─── クリア ───────────────────────────────────────────────
   function clearSearch() {
-    document.getElementById('date-from').value       = '';
-    document.getElementById('date-to').value         = '';
-    document.getElementById('staff-code').value      = '';
-    document.getElementById('policy-type').value     = '';
-    document.getElementById('renewal-status').value  = '';
-    document.getElementById('followcall-status').value = '';
+    document.getElementById('date-from').value            = '';
+    document.getElementById('date-to').value              = '';
+    document.getElementById('staff-code').value           = '';
+    document.getElementById('agency-code-filter').value   = '';
+    document.getElementById('buka-code-filter').value     = '';
+    document.getElementById('policy-type').value          = '';
+    document.getElementById('renewal-status').value       = '';
+    document.getElementById('followcall-status').value    = '';
   }
 
   // ─── ソート（昇順→降順→未ソートの3段階トグル）────────────
   function sortBy(col) {
     if (sortCol !== col) {
-      // 別の列をクリック：昇順開始
-      sortCol = col;
-      sortDir = 1;
+      sortCol = col; sortDir = 1;
     } else if (sortDir === 1) {
-      // 昇順中→降順へ
       sortDir = -1;
     } else {
-      // 降順中→未ソートへ戻す
       sortCol = null;
     }
 
     if (sortCol === null) {
-      // 元の検索順に戻す
       currentData = [...originalData];
     } else {
       currentData = [...originalData].sort((a, b) => {
         let va = a[col]; let vb = b[col];
-        // 数値列は数値比較する
         if (col === 'annual_premium') {
           va = Number(va) || 0; vb = Number(vb) || 0;
         } else {
