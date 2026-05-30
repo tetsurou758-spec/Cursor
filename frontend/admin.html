@@ -499,11 +499,15 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="form-user-id">
-        <div class="form-group">
-          <label>ログインID</label>
+        <div class="form-group" id="form-login-id-group">
+          <label id="form-login-id-label">ログインID</label>
           <input type="text" id="form-login-id" placeholder="ログインIDを入力" maxlength="50">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="form-name-group" style="display:none">
+          <label>氏名</label>
+          <input type="text" id="form-name" placeholder="氏名を入力" maxlength="100">
+        </div>
+        <div class="form-group" id="form-password-group">
           <label id="pw-label">パスワード</label>
           <input type="password" id="form-password" placeholder="パスワードを入力" maxlength="128">
         </div>
@@ -536,7 +540,7 @@
   <script>
     const API_BASE = 'http://127.0.0.1:8000';
 
-    let token, agencyCode, loginId;
+    let token, userType, headerCode, headerName;
 
     // ── トースト通知 ──────────────────────────────────────────
     function showToast(msg, type = 'success') {
@@ -558,14 +562,15 @@
       });
       if (res.status === 401) {
         sessionStorage.clear(); localStorage.clear();
-        window.location.href = 'login.html';
+        window.location.href = getLoginUrl();
       }
       return res;
     }
 
     // ── ユーザー一覧を描画する ────────────────────────────────
     async function loadUsers() {
-      const res = await apiFetch('/api/users');
+      const endpoint = userType === 'staff' ? '/api/staff/users' : '/api/users';
+      const res = await apiFetch(endpoint);
       if (!res.ok) { showToast('ユーザー一覧の取得に失敗しました', 'error'); return; }
       const { users } = await res.json();
 
@@ -574,6 +579,9 @@
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-sub);padding:24px">ユーザーが存在しません</td></tr>';
         return;
       }
+
+      // 代理店管理者は削除ボタン非表示（ロール設定のみ可）
+      const showDelete = (userType === 'staff');
 
       tbody.innerHTML = users.map(u => `
         <tr>
@@ -587,7 +595,7 @@
           </td>
           <td>
             <button class="btn-edit" onclick="openEdit(${u.id}, '${escHtml(u.login_id)}', ${u.role_id}, ${u.is_active}, '${escHtml(u.name)}')">編集</button>
-            <button class="btn-delete" onclick="deleteUser(${u.id}, '${escHtml(u.login_id)}')">削除</button>
+            ${showDelete ? `<button class="btn-delete" onclick="deleteUser(${u.id}, '${escHtml(u.login_id)}')">削除</button>` : ''}
           </td>
         </tr>
       `).join('');
@@ -595,7 +603,8 @@
 
     // ── 権限マトリクスを描画する ──────────────────────────────
     async function loadMatrix() {
-      const res = await apiFetch('/api/role-matrix');
+      const endpoint = userType === 'staff' ? '/api/staff/role-matrix' : '/api/role-matrix';
+      const res = await apiFetch(endpoint);
       if (!res.ok) return;
       const { roles, features, permissions } = await res.json();
 
@@ -624,6 +633,7 @@
       document.getElementById('form-user-id').value       = '';
       document.getElementById('form-login-id').value      = '';
       document.getElementById('form-login-id').disabled   = false;
+      document.getElementById('form-name').value          = '';
       document.getElementById('form-password').value      = '';
       document.getElementById('form-role-id').value       = '2';
       document.getElementById('form-is-active').value     = '1';
@@ -637,7 +647,9 @@
       document.getElementById('modal-title').textContent  = 'ユーザー編集';
       document.getElementById('form-user-id').value       = id;
       document.getElementById('form-login-id').value      = loginId;
-      document.getElementById('form-login-id').disabled   = true;
+      // 社員管理者は社員番号も変更可。代理店管理者は変更不可
+      document.getElementById('form-login-id').disabled   = (userType !== 'staff');
+      document.getElementById('form-name').value          = name || '';
       document.getElementById('form-password').value      = '';
       document.getElementById('form-role-id').value       = roleId;
       document.getElementById('form-is-active').value     = isActive;
@@ -653,55 +665,50 @@
     // ── 保存処理 ──────────────────────────────────────────────
     async function saveUser() {
       const userId   = document.getElementById('form-user-id').value;
-      const loginId  = document.getElementById('form-login-id').value.trim();
+      const loginIdV = document.getElementById('form-login-id').value.trim();
+      const nameV    = document.getElementById('form-name').value.trim();
       const password = document.getElementById('form-password').value;
       const roleId   = parseInt(document.getElementById('form-role-id').value);
       const isActive = parseInt(document.getElementById('form-is-active').value);
+      const isNew    = !userId;
 
-      const isNew = !userId;
-
-      if (isNew) {
-        if (!loginId) { showToast('ログインIDを入力してください', 'error'); return; }
-        if (!password) { showToast('パスワードを入力してください', 'error'); return; }
-
-        const body = { login_id: loginId, password, role_id: roleId, name: loginId, is_active: isActive };
-        const res = await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(body) });
-        if (res.ok) {
-          showToast('ユーザーを登録しました');
-          closeModal();
-          loadUsers();
+      if (userType === 'staff') {
+        if (isNew) {
+          if (!loginIdV) { showToast('社員番号を入力してください', 'error'); return; }
+          if (!nameV)    { showToast('氏名を入力してください', 'error'); return; }
+          if (!password) { showToast('パスワードを入力してください', 'error'); return; }
+          const body = { staff_code: loginIdV, name: nameV, password, role_id: roleId, is_active: isActive };
+          const res  = await apiFetch('/api/staff/users', { method: 'POST', body: JSON.stringify(body) });
+          if (res.ok) { showToast('社員ユーザーを登録しました'); closeModal(); loadUsers(); }
+          else { showToast((await res.json()).detail || '登録に失敗しました', 'error'); }
         } else {
-          const err = await res.json();
-          showToast(err.detail || '登録に失敗しました', 'error');
+          const body = { role_id: roleId, is_active: isActive };
+          if (loginIdV) body.staff_code = loginIdV;
+          if (nameV)    body.name       = nameV;
+          if (password) body.password   = password;
+          const res = await apiFetch(`/api/staff/users/${userId}`, { method: 'PUT', body: JSON.stringify(body) });
+          if (res.ok) { showToast('社員ユーザー情報を更新しました'); closeModal(); loadUsers(); }
+          else { showToast((await res.json()).detail || '更新に失敗しました', 'error'); }
         }
       } else {
+        // 代理店管理者：ロール・有効フラグのみ更新可
+        if (isNew) { showToast('代理店管理者はユーザー追加できません', 'error'); return; }
         const body = { role_id: roleId, is_active: isActive };
-        if (password) body.password = password;
-
         const res = await apiFetch(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(body) });
-        if (res.ok) {
-          showToast('ユーザー情報を更新しました');
-          closeModal();
-          loadUsers();
-        } else {
-          const err = await res.json();
-          showToast(err.detail || '更新に失敗しました', 'error');
-        }
+        if (res.ok) { showToast('ロールを更新しました'); closeModal(); loadUsers(); }
+        else { showToast((await res.json()).detail || '更新に失敗しました', 'error'); }
       }
     }
 
     // ── 削除処理（論理削除） ──────────────────────────────────
     async function deleteUser(userId, loginId) {
       if (!confirm(`「${loginId}」を無効化します。よろしいですか？`)) return;
-
-      const res = await apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast('ユーザーを無効化しました');
-        loadUsers();
-      } else {
-        const err = await res.json();
-        showToast(err.detail || '削除に失敗しました', 'error');
-      }
+      const endpoint = userType === 'staff'
+        ? `/api/staff/users/${userId}`
+        : `/api/users/${userId}`;
+      const res = await apiFetch(endpoint, { method: 'DELETE' });
+      if (res.ok) { showToast('ユーザーを無効化しました'); loadUsers(); }
+      else { showToast((await res.json()).detail || '削除に失敗しました', 'error'); }
     }
 
     // ── HTMLエスケープ ────────────────────────────────────────
@@ -713,17 +720,16 @@
 
     // ── 初期化 ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
-      token = requireAuth();
+      token    = requireAuth();
       if (!token) return;
-
-      const userType = _ssGet('user_type') || 'agency';
+      userType = _ssGet('user_type') || 'agency';
 
       if (userType === 'staff') {
-        agencyCode = _ssGet('staff_code');
-        loginId    = _ssGet('staff_name');
+        headerCode = _ssGet('staff_code');
+        headerName = _ssGet('staff_name');
       } else {
-        agencyCode = _ssGet('agency_code');
-        loginId    = _ssGet('login_id');
+        headerCode = _ssGet('agency_code');
+        headerName = _ssGet('login_id');
       }
 
       // 権限チェック：管理者以外はダッシュボードにリダイレクト
@@ -732,7 +738,7 @@
       });
 
       if (!permRes.ok) {
-        window.location.href = 'login.html';
+        window.location.href = getLoginUrl();
         return;
       }
 
@@ -743,13 +749,25 @@
       }
 
       // ヘッダー表示
-      document.getElementById('hdr-agency').textContent = (agencyCode || '') + ' ';
-      document.getElementById('hdr-name').textContent   = loginId || '';
+      document.getElementById('hdr-agency').textContent = (headerCode || '') + ' ';
+      document.getElementById('hdr-name').textContent   = headerName || '';
       document.getElementById('hdr-role').textContent   = '｜' + permData.role_name;
 
-      // タイトル・ダッシュボードリンクをuser_typeで切り替える
+      // ユーザー種別ごとのUI差分
       if (userType === 'staff') {
         document.querySelector('.header-logo-text .system').textContent = '社員専用システム｜ユーザー管理';
+        document.getElementById('form-login-id-label').textContent = '社員番号';
+        document.getElementById('form-name-group').style.display   = '';
+        // ロール選択肢を社員ロールに差し替え
+        document.getElementById('form-role-id').innerHTML =
+          '<option value="1">システム管理者</option>' +
+          '<option value="2">代理店担当者</option>' +
+          '<option value="3">参照専用社員</option>';
+      } else {
+        // 代理店管理者：ロール設定のみ（追加・パスワード・氏名は非表示）
+        document.getElementById('btn-add-user').style.display       = 'none';
+        document.getElementById('form-password-group').style.display = 'none';
+        document.getElementById('form-name-group').style.display    = 'none';
       }
 
       // ログアウト

@@ -535,7 +535,7 @@
         document.getElementById('hdr-role').textContent  = roleName ? '｜' + roleName : '';
         document.getElementById('hdr-buka').textContent  = bukaCode ? `[${bukaCode}]` : '';
 
-        if (roleId === 1) document.getElementById('admin-link').style.display = '';
+        if (roleId === 1) document.getElementById('admin-link').style.display = 'inline';
 
         document.getElementById('scope-badge').classList.add('visible');
 
@@ -555,7 +555,7 @@
           if (permRes.ok) {
             const p = await permRes.json();
             document.getElementById('hdr-role').textContent = '｜' + p.role_name;
-            if (p.role_id === 1) document.getElementById('admin-link').style.display = '';
+            if (p.role_id === 1) document.getElementById('admin-link').style.display = 'inline';
             applyPermissions(p.permissions);
           }
         } catch (e) { console.error(e); }

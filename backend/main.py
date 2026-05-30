@@ -154,6 +154,33 @@ def require_admin(payload: dict = Depends(verify_token)) -> dict:
     return payload
 
 
+def require_staff_admin(payload: dict = Depends(verify_token)) -> dict:
+    """社員かつシステム管理者ロール（user_type=staff・role_id=1）のみアクセスを許可する"""
+    if payload.get("user_type") != "staff" or payload.get("role_id") != 1:
+        raise HTTPException(status_code=403, detail="社員管理者権限が必要です")
+    return payload
+
+
+class StaffUserCreateRequest(BaseModel):
+    """社員ユーザー登録リクエストのスキーマ"""
+    staff_code: str
+    password: str
+    name: str
+    buka_code: str = ""
+    role_id: int
+    is_active: int = 1
+
+
+class StaffUserUpdateRequest(BaseModel):
+    """社員ユーザー更新リクエストのスキーマ（社員番号変更も可）"""
+    staff_code: Optional[str] = None
+    password: Optional[str] = None
+    name: Optional[str] = None
+    buka_code: Optional[str] = None
+    role_id: Optional[int] = None
+    is_active: Optional[int] = None
+
+
 @app.post("/api/login")
 def login(request: LoginRequest):
     """
@@ -407,6 +434,134 @@ def get_role_matrix(payload: dict = Depends(require_admin)):
         for p in perms:
             perm_map.setdefault(p["role_id"], []).append(p["feature_code"])
         return {"roles": roles, "features": features, "permissions": perm_map}
+    finally:
+        conn.close()
+
+
+# ─── 社員ユーザー管理エンドポイント群（社員システム管理者専用）───────────────────────
+
+@app.get("/api/staff/users")
+def get_staff_users(payload: dict = Depends(require_staff_admin)):
+    """社員管理者のみ：社員ユーザー一覧を返す"""
+    conn = get_db_connection()
+    try:
+        rows = conn.execute("""
+            SELECT su.staff_id AS id, su.staff_code AS login_id, su.name,
+                   su.buka_code, su.is_active,
+                   sr.role_id, sr.role_name
+            FROM staff_users su
+            LEFT JOIN staff_roles sr ON su.role_id = sr.role_id
+            ORDER BY su.staff_id
+        """).fetchall()
+        return {"users": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+@app.post("/api/staff/users", status_code=201)
+def create_staff_user(request: StaffUserCreateRequest,
+                      payload: dict = Depends(require_staff_admin)):
+    """社員管理者のみ：新規社員ユーザーを登録する"""
+    hashed = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+    conn = get_db_connection()
+    try:
+        conn.execute("""
+            INSERT INTO staff_users (staff_code, password, name, buka_code, role_id, is_active)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (request.staff_code, hashed, request.name, request.buka_code,
+              request.role_id, request.is_active))
+        conn.commit()
+        return {"message": "社員ユーザーを登録しました", "staff_code": request.staff_code}
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        raise HTTPException(status_code=409, detail="その社員番号は既に使用されています")
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.put("/api/staff/users/{staff_id}")
+def update_staff_user(staff_id: int, request: StaffUserUpdateRequest,
+                      payload: dict = Depends(require_staff_admin)):
+    """社員管理者のみ：社員ユーザー情報を変更する（社員番号の変更も可）"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            "SELECT staff_id FROM staff_users WHERE staff_id = ?", (staff_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="社員ユーザーが見つかりません")
+
+        fields, params = [], []
+        if request.staff_code is not None:
+            fields.append("staff_code = ?"); params.append(request.staff_code)
+        if request.password is not None:
+            fields.append("password = ?")
+            params.append(bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode())
+        if request.name is not None:
+            fields.append("name = ?"); params.append(request.name)
+        if request.buka_code is not None:
+            fields.append("buka_code = ?"); params.append(request.buka_code)
+        if request.role_id is not None:
+            fields.append("role_id = ?"); params.append(request.role_id)
+        if request.is_active is not None:
+            fields.append("is_active = ?"); params.append(request.is_active)
+
+        if not fields:
+            raise HTTPException(status_code=400, detail="更新する項目がありません")
+
+        params.append(staff_id)
+        conn.execute(f"UPDATE staff_users SET {', '.join(fields)} WHERE staff_id = ?", params)
+        conn.commit()
+        return {"message": "社員ユーザー情報を更新しました"}
+    except HTTPException:
+        raise
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        raise HTTPException(status_code=409, detail="その社員番号は既に使用されています")
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.delete("/api/staff/users/{staff_id}")
+def delete_staff_user(staff_id: int, payload: dict = Depends(require_staff_admin)):
+    """社員管理者のみ：社員ユーザーを論理削除する（is_active=0）"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            "SELECT staff_id FROM staff_users WHERE staff_id = ?", (staff_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="社員ユーザーが見つかりません")
+        conn.execute("UPDATE staff_users SET is_active = 0 WHERE staff_id = ?", (staff_id,))
+        conn.commit()
+        return {"message": "社員ユーザーを無効化しました"}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@app.get("/api/staff/role-matrix")
+def get_staff_role_matrix(payload: dict = Depends(require_staff_admin)):
+    """社員管理者のみ：社員ロール×権限マトリクスを返す"""
+    conn = get_db_connection()
+    try:
+        roles    = [dict(r) for r in conn.execute(
+            "SELECT role_id, role_name FROM staff_roles ORDER BY role_id"
+        ).fetchall()]
+        features = [dict(f) for f in conn.execute(
+            "SELECT feature_code, feature_name FROM features"
+        ).fetchall()]
+        return {"roles": roles, "features": features, "permissions": STAFF_PERMISSIONS}
     finally:
         conn.close()
 
