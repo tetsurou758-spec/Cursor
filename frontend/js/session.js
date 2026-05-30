@@ -101,10 +101,17 @@ function getToken() {
  * ユーザー種別に応じたダッシュボードへ遷移する。
  * agency → dashboard.html
  * staff  → staff_dashboard.html
+ * 不明   → login.html
  */
 function goToDashboard() {
   const userType = localStorage.getItem(KEY.USER_TYPE);
-  window.location.href = (userType === 'staff') ? 'staff_dashboard.html' : 'dashboard.html';
+  if (userType === 'staff') {
+    window.location.href = 'staff_dashboard.html';
+  } else if (userType === 'agency') {
+    window.location.href = 'dashboard.html';
+  } else {
+    window.location.href = 'login.html';
+  }
 }
 
 /**

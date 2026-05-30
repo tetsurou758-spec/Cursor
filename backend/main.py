@@ -429,19 +429,20 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 ).fetchall()]
 
             def aggregate_staff(month: str) -> dict:
-                """管轄代理店全体のステータス別件数を集計して返す"""
+                """管轄代理店全体の当月/翌月更改ステータス別件数を集計して返す"""
                 if not agency_codes:
                     return {"month": month, "completed": 0, "pending": 0, "total": 0, "rate": 0}
                 placeholders = ",".join("?" * len(agency_codes))
                 cur.execute(f"""
-                    SELECT status, COUNT(*) AS cnt
+                    SELECT renewal_status, COUNT(*) AS cnt
                     FROM contracts
-                    WHERE agency_code IN ({placeholders}) AND renewal_month = ?
-                    GROUP BY status
+                    WHERE agency_code IN ({placeholders})
+                      AND strftime('%Y-%m', expiry_date) = ?
+                    GROUP BY renewal_status
                 """, (*agency_codes, month))
-                rows  = {r["status"]: r["cnt"] for r in cur.fetchall()}
-                done  = rows.get("completed", 0)
-                pend  = rows.get("pending",   0)
+                rows  = {r["renewal_status"]: r["cnt"] for r in cur.fetchall()}
+                done  = rows.get("更改済", 0)
+                pend  = rows.get("未対応", 0) + rows.get("対応中", 0)
                 total = done + pend
                 return {
                     "month":     month,
@@ -466,16 +467,17 @@ def get_dashboard(payload: dict = Depends(verify_token)):
             agency_code = payload["agency_code"]
 
             def aggregate(month: str) -> dict:
-                """指定月のステータス別件数を集計して返す"""
+                """自代理店の当月/翌月更改ステータス別件数を集計して返す"""
                 cur.execute("""
-                    SELECT status, COUNT(*) AS cnt
+                    SELECT renewal_status, COUNT(*) AS cnt
                     FROM contracts
-                    WHERE agency_code = ? AND renewal_month = ?
-                    GROUP BY status
+                    WHERE agency_code = ?
+                      AND strftime('%Y-%m', expiry_date) = ?
+                    GROUP BY renewal_status
                 """, (agency_code, month))
-                rows  = {r["status"]: r["cnt"] for r in cur.fetchall()}
-                done  = rows.get("completed", 0)
-                pend  = rows.get("pending",   0)
+                rows  = {r["renewal_status"]: r["cnt"] for r in cur.fetchall()}
+                done  = rows.get("更改済", 0)
+                pend  = rows.get("未対応", 0) + rows.get("対応中", 0)
                 total = done + pend
                 return {
                     "month":     month,
