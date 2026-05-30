@@ -26,11 +26,24 @@ TOKEN_EXPIRE_MINUTES = 60
 # データベースファイルのパス
 DB_PATH = os.path.join(os.path.dirname(__file__), "../db/users.sqlite")
 
+# 社員ロール別の利用可能機能リスト
+STAFF_PERMISSIONS = {
+    1: ["PAYMENT_VIEW", "CUSTOMER_EDIT", "MATURITY_VIEW", "REPORT_VIEW", "USER_ADMIN"],
+    2: ["CUSTOMER_EDIT", "MATURITY_VIEW", "REPORT_VIEW", "USER_ADMIN"],
+    3: [],
+}
+
 
 class LoginRequest(BaseModel):
-    """ログインリクエストのスキーマ"""
+    """代理店ログインリクエストのスキーマ"""
     agency_code: str
     login_id: str
+    password: str
+
+
+class StaffLoginRequest(BaseModel):
+    """社員ログインリクエストのスキーマ"""
+    staff_code: str
     password: str
 
 
@@ -74,6 +87,20 @@ def find_user(agency_code: str, login_id: str):
         conn.close()
 
 
+def find_staff_user(staff_code: str):
+    """社員番号で社員ユーザーを検索し、ロール情報もJOINして返す"""
+    conn = get_db_connection()
+    try:
+        return conn.execute("""
+            SELECT su.*, sr.role_name
+            FROM staff_users su
+            LEFT JOIN staff_roles sr ON su.role_id = sr.role_id
+            WHERE su.staff_code = ? AND su.is_active = 1
+        """, (staff_code,)).fetchone()
+    finally:
+        conn.close()
+
+
 def get_user_permissions(role_id: int) -> List[str]:
     """ロールIDから利用可能なfeature_codeリストを取得する"""
     conn = get_db_connection()
@@ -82,6 +109,21 @@ def get_user_permissions(role_id: int) -> List[str]:
             "SELECT feature_code FROM role_permissions WHERE role_id = ?", (role_id,)
         ).fetchall()
         return [r["feature_code"] for r in rows]
+    finally:
+        conn.close()
+
+
+def get_staff_managed_agencies(role_id: int, buka_code: str) -> List[str]:
+    """社員ロールに応じた管轄代理店コードリストを返す"""
+    conn = get_db_connection()
+    try:
+        if role_id == 1:
+            rows = conn.execute("SELECT agency_code FROM agencies").fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT agency_code FROM agencies WHERE buka_code = ?", (buka_code,)
+            ).fetchall()
+        return [r["agency_code"] for r in rows]
     finally:
         conn.close()
 
@@ -115,10 +157,10 @@ def require_admin(payload: dict = Depends(verify_token)) -> dict:
 @app.post("/api/login")
 def login(request: LoginRequest):
     """
-    ログイン認証エンドポイント
+    代理店ログイン認証エンドポイント
 
     認証成功時: JWTトークン・ユーザー情報・利用可能機能リストを返す
-    JWTにはrole_id・agency_id・group_codeを含める
+    JWTにはuser_type:agency・role_id・agency_id・group_codeを含める
     """
     user = find_user(request.agency_code, request.login_id)
 
@@ -133,6 +175,7 @@ def login(request: LoginRequest):
     group_code = user["group_code"]
 
     token = create_access_token({
+        "user_type":   "agency",
         "agency_code": user["agency_code"],
         "login_id":    user["login_id"],
         "name":        user["name"],
@@ -155,26 +198,87 @@ def login(request: LoginRequest):
     }
 
 
+@app.post("/api/staff/login")
+def staff_login(request: StaffLoginRequest):
+    """
+    社員ログイン認証エンドポイント
+
+    社員番号+パスワードで認証。
+    JWTにはuser_type:staff・staff_id・staff_code・buka_code・role_idを含める。
+    認証成功時にrole情報・管轄代理店リスト・権限リストも返す。
+    """
+    staff = find_staff_user(request.staff_code)
+
+    if not staff or not bcrypt.checkpw(request.password.encode(), staff["password"].encode()):
+        raise HTTPException(
+            status_code=401,
+            detail="社員番号またはパスワードが正しくありません",
+        )
+
+    role_id   = staff["role_id"]
+    buka_code = staff["buka_code"]
+
+    token = create_access_token({
+        "user_type":  "staff",
+        "staff_id":   staff["staff_id"],
+        "staff_code": staff["staff_code"],
+        "name":       staff["name"],
+        "buka_code":  buka_code,
+        "role_id":    role_id,
+    })
+
+    permissions      = STAFF_PERMISSIONS.get(role_id, [])
+    managed_agencies = get_staff_managed_agencies(role_id, buka_code)
+
+    return {
+        "access_token":     token,
+        "token_type":       "bearer",
+        "staff_code":       staff["staff_code"],
+        "name":             staff["name"],
+        "role_id":          role_id,
+        "role_name":        staff["role_name"],
+        "buka_code":        buka_code,
+        "permissions":      permissions,
+        "managed_agencies": managed_agencies,
+    }
+
+
 @app.get("/api/permissions")
 def get_permissions(payload: dict = Depends(verify_token)):
     """JWTのrole_idから利用可能なfeature_codeリストとロール名を返す"""
-    role_id = payload.get("role_id")
+    role_id   = payload.get("role_id")
+    user_type = payload.get("user_type", "agency")
+
     if role_id is None:
         raise HTTPException(status_code=400, detail="トークンにロール情報がありません")
 
-    conn = get_db_connection()
-    try:
-        role = conn.execute(
-            "SELECT role_name FROM roles WHERE role_id = ?", (role_id,)
-        ).fetchone()
-        permissions = get_user_permissions(role_id)
-        return {
-            "role_id":     role_id,
-            "role_name":   role["role_name"] if role else "",
-            "permissions": permissions,
-        }
-    finally:
-        conn.close()
+    if user_type == "staff":
+        conn = get_db_connection()
+        try:
+            role = conn.execute(
+                "SELECT role_name FROM staff_roles WHERE role_id = ?", (role_id,)
+            ).fetchone()
+            return {
+                "role_id":     role_id,
+                "role_name":   role["role_name"] if role else "",
+                "permissions": STAFF_PERMISSIONS.get(role_id, []),
+            }
+        finally:
+            conn.close()
+    else:
+        conn = get_db_connection()
+        try:
+            role = conn.execute(
+                "SELECT role_name FROM roles WHERE role_id = ?", (role_id,)
+            ).fetchone()
+            permissions = get_user_permissions(role_id)
+            return {
+                "role_id":     role_id,
+                "role_name":   role["role_name"] if role else "",
+                "permissions": permissions,
+            }
+        finally:
+            conn.close()
 
 
 @app.get("/api/users")
@@ -293,6 +397,106 @@ def get_role_matrix(payload: dict = Depends(require_admin)):
         conn.close()
 
 
+@app.get("/api/dashboard")
+def get_dashboard(payload: dict = Depends(verify_token)):
+    """
+    ダッシュボードデータを返す
+
+    user_type:agency → 自代理店の契約を集計
+    user_type:staff  → role_id=1は全代理店、role_id=2,3は同一部課の代理店を集計
+    """
+    today     = datetime.date.today()
+    cur_month = today.strftime("%Y-%m")
+    nxt_month = f"{today.year + 1}-01" if today.month == 12 else f"{today.year}-{today.month + 1:02d}"
+
+    user_type = payload.get("user_type", "agency")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        if user_type == "staff":
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+
+            # 管轄代理店コードリストを取得する
+            if role_id == 1:
+                agency_codes = [r["agency_code"] for r in cur.execute(
+                    "SELECT agency_code FROM agencies"
+                ).fetchall()]
+            else:
+                agency_codes = [r["agency_code"] for r in cur.execute(
+                    "SELECT agency_code FROM agencies WHERE buka_code = ?", (buka_code,)
+                ).fetchall()]
+
+            def aggregate_staff(month: str) -> dict:
+                """管轄代理店全体のステータス別件数を集計して返す"""
+                if not agency_codes:
+                    return {"month": month, "completed": 0, "pending": 0, "total": 0, "rate": 0}
+                placeholders = ",".join("?" * len(agency_codes))
+                cur.execute(f"""
+                    SELECT status, COUNT(*) AS cnt
+                    FROM contracts
+                    WHERE agency_code IN ({placeholders}) AND renewal_month = ?
+                    GROUP BY status
+                """, (*agency_codes, month))
+                rows  = {r["status"]: r["cnt"] for r in cur.fetchall()}
+                done  = rows.get("completed", 0)
+                pend  = rows.get("pending",   0)
+                total = done + pend
+                return {
+                    "month":     month,
+                    "completed": done,
+                    "pending":   pend,
+                    "total":     total,
+                    "rate":      round(done / total * 100, 1) if total > 0 else 0,
+                }
+
+            return {
+                "user_type":     "staff",
+                "staff_code":    payload.get("staff_code", ""),
+                "name":          payload.get("name", ""),
+                "buka_code":     buka_code,
+                "agency_count":  len(agency_codes),
+                "current_month": aggregate_staff(cur_month),
+                "next_month":    aggregate_staff(nxt_month),
+            }
+
+        else:
+            # 代理店ユーザー（既存ロジック）
+            agency_code = payload["agency_code"]
+
+            def aggregate(month: str) -> dict:
+                """指定月のステータス別件数を集計して返す"""
+                cur.execute("""
+                    SELECT status, COUNT(*) AS cnt
+                    FROM contracts
+                    WHERE agency_code = ? AND renewal_month = ?
+                    GROUP BY status
+                """, (agency_code, month))
+                rows  = {r["status"]: r["cnt"] for r in cur.fetchall()}
+                done  = rows.get("completed", 0)
+                pend  = rows.get("pending",   0)
+                total = done + pend
+                return {
+                    "month":     month,
+                    "completed": done,
+                    "pending":   pend,
+                    "total":     total,
+                    "rate":      round(done / total * 100, 1) if total > 0 else 0,
+                }
+
+            return {
+                "user_type":     "agency",
+                "agency_code":   agency_code,
+                "login_id":      payload.get("login_id", ""),
+                "name":          payload.get("name", ""),
+                "current_month": aggregate(cur_month),
+                "next_month":    aggregate(nxt_month),
+            }
+    finally:
+        conn.close()
+
+
 @app.get("/api/maturity")
 def get_maturity(
     payload:           dict          = Depends(verify_token),
@@ -306,9 +510,10 @@ def get_maturity(
     """
     満期管理エンドポイント
 
-    group_codeで同グループの代理店契約も参照可能。
-    accidents テーブルをEXISTS検索して has_accident を算出する。
+    user_type:agency → group_codeで同グループの代理店契約を参照可能
+    user_type:staff  → role_id=1は全代理店、role_id=2,3は同一部課の代理店のみ
     """
+    user_type   = payload.get("user_type", "agency")
     group_code  = payload.get("group_code")
     agency_code = payload.get("agency_code")
     today       = datetime.date.today()
@@ -348,8 +553,15 @@ def get_maturity(
     """
     params = [date_from, date_to]
 
-    # group_codeがあれば同グループの全代理店の契約を参照可能
-    if group_code:
+    if user_type == "staff":
+        role_id   = payload.get("role_id")
+        buka_code = payload.get("buka_code")
+        if role_id != 1:
+            # 担当者・参照専用：同一部課コードの代理店のみ
+            sql += " AND ag.buka_code = ?"
+            params.append(buka_code)
+        # role_id=1（システム管理者）は全代理店を参照可能（WHERE条件なし）
+    elif group_code:
         sql += " AND ag.group_code = ?"
         params.append(group_code)
     else:
@@ -376,57 +588,5 @@ def get_maturity(
         rows = conn.execute(sql, params).fetchall()
         contracts = [dict(r) for r in rows]
         return {"contracts": contracts, "total": len(contracts)}
-    finally:
-        conn.close()
-
-
-@app.get("/api/dashboard")
-def get_dashboard(payload: dict = Depends(verify_token)):
-    """
-    ダッシュボードデータを返す
-
-    JWTトークンから代理店コードを取得し、
-    今月・翌月の更改件数をステータス別に集計して返す
-    """
-    agency_code = payload["agency_code"]
-    today       = datetime.date.today()
-    cur_month   = today.strftime("%Y-%m")
-
-    if today.month == 12:
-        nxt_month = f"{today.year + 1}-01"
-    else:
-        nxt_month = f"{today.year}-{today.month + 1:02d}"
-
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-
-        def aggregate(month: str) -> dict:
-            """指定月のステータス別件数を集計して返す"""
-            cur.execute("""
-                SELECT status, COUNT(*) AS cnt
-                FROM contracts
-                WHERE agency_code = ? AND renewal_month = ?
-                GROUP BY status
-            """, (agency_code, month))
-            rows  = {r["status"]: r["cnt"] for r in cur.fetchall()}
-            done  = rows.get("completed", 0)
-            pend  = rows.get("pending",   0)
-            total = done + pend
-            return {
-                "month":     month,
-                "completed": done,
-                "pending":   pend,
-                "total":     total,
-                "rate":      round(done / total * 100, 1) if total > 0 else 0,
-            }
-
-        return {
-            "agency_code":   agency_code,
-            "login_id":      payload.get("login_id", ""),
-            "name":          payload.get("name", ""),
-            "current_month": aggregate(cur_month),
-            "next_month":    aggregate(nxt_month),
-        }
     finally:
         conn.close()

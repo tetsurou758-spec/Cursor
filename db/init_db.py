@@ -7,29 +7,36 @@ from datetime import date, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "users.sqlite")
 
-# ── 代理店マスタ ─────────────────────────────────────────────────
+# ── 代理店マスタ（buka_code追加）─────────────────────────────────
 AGENCIES = [
     dict(agency_id=1, agency_code="A001", agency_name="AXエージェント東京本店",
-         address="東京都千代田区丸の内1-1-1",    tel="03-1111-0001", email="a001@ax-agent.jp", group_code="A"),
+         address="東京都千代田区丸の内1-1-1",      tel="03-1111-0001", email="a001@ax-agent.jp", group_code="A", buka_code="X001"),
     dict(agency_id=2, agency_code="A002", agency_name="AXエージェント東京支店1",
-         address="東京都新宿区西新宿2-2-2",      tel="03-1111-0002", email="a002@ax-agent.jp", group_code="A"),
+         address="東京都新宿区西新宿2-2-2",        tel="03-1111-0002", email="a002@ax-agent.jp", group_code="A", buka_code="X001"),
     dict(agency_id=3, agency_code="A003", agency_name="AXエージェント東京支店2",
-         address="東京都渋谷区道玄坂3-3-3",     tel="03-1111-0003", email="a003@ax-agent.jp", group_code="A"),
+         address="東京都渋谷区道玄坂3-3-3",       tel="03-1111-0003", email="a003@ax-agent.jp", group_code="A", buka_code="X001"),
     dict(agency_id=4, agency_code="B001", agency_name="BXエージェント大阪本店",
-         address="大阪府大阪市北区梅田1-1-1",   tel="06-2222-0001", email="b001@bx-agent.jp", group_code="B"),
+         address="大阪府大阪市北区梅田1-1-1",     tel="06-2222-0001", email="b001@bx-agent.jp", group_code="B", buka_code="Y001"),
     dict(agency_id=5, agency_code="B002", agency_name="BXエージェント大阪支店1",
-         address="大阪府大阪市中央区本町2-2-2", tel="06-2222-0002", email="b002@bx-agent.jp", group_code="B"),
+         address="大阪府大阪市中央区本町2-2-2",   tel="06-2222-0002", email="b002@bx-agent.jp", group_code="B", buka_code="X001"),
     dict(agency_id=6, agency_code="C001", agency_name="CXエージェント名古屋本店",
-         address="愛知県名古屋市中村区名駅1-1-1", tel="052-3333-0001", email="c001@cx-agent.jp", group_code="C"),
+         address="愛知県名古屋市中村区名駅1-1-1", tel="052-3333-0001", email="c001@cx-agent.jp", group_code="C", buka_code="Z001"),
     dict(agency_id=7, agency_code="C003", agency_name="CXエージェント名古屋支店1",
-         address="愛知県名古屋市栄2-2-2",       tel="052-3333-0003", email="c003@cx-agent.jp", group_code="C"),
+         address="愛知県名古屋市栄2-2-2",         tel="052-3333-0003", email="c003@cx-agent.jp", group_code="C", buka_code="X001"),
 ]
 
-# ── ロールマスタ ─────────────────────────────────────────────────
+# ── 代理店向けロールマスタ ───────────────────────────────────────
 ROLES = [
     dict(role_id=1, role_name="管理者",   description="全機能にアクセス可能な管理者ロール"),
     dict(role_id=2, role_name="一般担当", description="保険金支払状況参照を除く通常業務ロール"),
     dict(role_id=3, role_name="閲覧専用", description="限定的な参照のみ可能なロール"),
+]
+
+# ── 社員向けロールマスタ ─────────────────────────────────────────
+STAFF_ROLES = [
+    dict(role_id=1, role_name="システム管理者", description="全部課・全代理店・全権限"),
+    dict(role_id=2, role_name="代理店担当者",   description="同一部課コードの代理店のみ・編集可"),
+    dict(role_id=3, role_name="参照専用社員",   description="同一部課コードの代理店のみ・参照のみ"),
 ]
 
 # ── 機能マスタ ───────────────────────────────────────────────────
@@ -42,21 +49,25 @@ FEATURES = [
 ]
 
 # ── ロール×機能マッピング ─────────────────────────────────────────
-# 管理者：全機能OK
-# 一般担当：PAYMENT_VIEW以外OK
-# 閲覧専用：MATURITY_VIEW・REPORT_VIEW・CUSTOMER_EDITはNG
 ROLE_PERMISSIONS = [
     (1, "PAYMENT_VIEW"), (1, "CUSTOMER_EDIT"), (1, "MATURITY_VIEW"), (1, "REPORT_VIEW"), (1, "USER_ADMIN"),
     (2, "CUSTOMER_EDIT"), (2, "MATURITY_VIEW"), (2, "REPORT_VIEW"), (2, "USER_ADMIN"),
     (3, "PAYMENT_VIEW"), (3, "USER_ADMIN"),
 ]
 
-# ── ユーザーデータ ──────────────────────────────────────────────
+# ── 代理店ユーザーデータ ─────────────────────────────────────────
 DUMMY_USERS = [
     dict(agency_code="A001", agency_id=1, role_id=1, login_id="admin",  password="password123", name="管理者 太郎", is_active=1),
     dict(agency_code="A001", agency_id=1, role_id=2, login_id="staff1", password="pass001",     name="担当 一郎",   is_active=1),
     dict(agency_code="B002", agency_id=5, role_id=2, login_id="agent1", password="pass456",     name="代理店 次郎", is_active=1),
     dict(agency_code="C003", agency_id=7, role_id=3, login_id="user1",  password="pass789",     name="利用者 三郎", is_active=1),
+]
+
+# ── 社員ユーザーデータ ────────────────────────────────────────────
+STAFF_USERS = [
+    dict(staff_code="S001", password="staff123", name="山田太郎", buka_code="X001", role_id=1, is_active=1),
+    dict(staff_code="S002", password="staff456", name="鈴木花子", buka_code="X001", role_id=2, is_active=1),
+    dict(staff_code="S003", password="staff789", name="佐藤次郎", buka_code="Y001", role_id=3, is_active=1),
 ]
 
 # ── 事故データ（A001配下の契約2件）─────────────────────────────
@@ -272,10 +283,11 @@ def init_db():
 
         # テーブルを全削除（依存関係の逆順）
         for tbl in ("maturity_notices", "accidents", "role_permissions",
-                    "contracts", "users", "features", "roles", "agencies"):
+                    "contracts", "users", "features", "roles",
+                    "staff_users", "staff_roles", "agencies"):
             cur.execute(f"DROP TABLE IF EXISTS {tbl}")
 
-        # ── 代理店マスタ ──────────────────────────────────────
+        # ── 代理店マスタ（buka_code追加）─────────────────────────
         cur.execute("""
             CREATE TABLE agencies (
                 agency_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -285,17 +297,53 @@ def init_db():
                 tel         TEXT,
                 email       TEXT,
                 group_code  TEXT     NOT NULL,
+                buka_code   TEXT,
                 created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         for a in AGENCIES:
             cur.execute("""
-                INSERT INTO agencies (agency_id, agency_code, agency_name, address, tel, email, group_code)
-                VALUES (:agency_id,:agency_code,:agency_name,:address,:tel,:email,:group_code)
+                INSERT INTO agencies (agency_id, agency_code, agency_name, address, tel, email, group_code, buka_code)
+                VALUES (:agency_id,:agency_code,:agency_name,:address,:tel,:email,:group_code,:buka_code)
             """, a)
         print(f"  代理店: {len(AGENCIES)}件")
 
-        # ── ロールマスタ ──────────────────────────────────────
+        # ── 社員ロールマスタ ─────────────────────────────────────
+        cur.execute("""
+            CREATE TABLE staff_roles (
+                role_id     INTEGER PRIMARY KEY,
+                role_name   TEXT    NOT NULL,
+                description TEXT
+            )
+        """)
+        for sr in STAFF_ROLES:
+            cur.execute("INSERT INTO staff_roles VALUES (:role_id,:role_name,:description)", sr)
+        print(f"  社員ロール: {len(STAFF_ROLES)}件")
+
+        # ── 社員ユーザーテーブル ──────────────────────────────────
+        cur.execute("""
+            CREATE TABLE staff_users (
+                staff_id    INTEGER  PRIMARY KEY AUTOINCREMENT,
+                staff_code  TEXT     NOT NULL UNIQUE,
+                password    TEXT     NOT NULL,
+                name        TEXT     NOT NULL,
+                buka_code   TEXT     NOT NULL,
+                role_id     INTEGER  NOT NULL,
+                is_active   INTEGER  DEFAULT 1,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (role_id) REFERENCES staff_roles(role_id)
+            )
+        """)
+        for su in STAFF_USERS:
+            hashed = bcrypt.hashpw(su["password"].encode(), bcrypt.gensalt()).decode()
+            cur.execute("""
+                INSERT INTO staff_users (staff_code, password, name, buka_code, role_id, is_active)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (su["staff_code"], hashed, su["name"], su["buka_code"], su["role_id"], su["is_active"]))
+            role_name = STAFF_ROLES[su["role_id"] - 1]["role_name"]
+            print(f"  社員ユーザー: {su['staff_code']} {su['name']} ({role_name})")
+
+        # ── 代理店ロールマスタ ───────────────────────────────────
         cur.execute("""
             CREATE TABLE roles (
                 role_id     INTEGER PRIMARY KEY,
@@ -305,9 +353,9 @@ def init_db():
         """)
         for r in ROLES:
             cur.execute("INSERT INTO roles VALUES (:role_id,:role_name,:description)", r)
-        print(f"  ロール: {len(ROLES)}件")
+        print(f"  代理店ロール: {len(ROLES)}件")
 
-        # ── 機能マスタ ────────────────────────────────────────
+        # ── 機能マスタ ────────────────────────────────────────────
         cur.execute("""
             CREATE TABLE features (
                 feature_code TEXT PRIMARY KEY,
@@ -319,7 +367,7 @@ def init_db():
             cur.execute("INSERT INTO features VALUES (:feature_code,:feature_name,:description)", f)
         print(f"  機能: {len(FEATURES)}件")
 
-        # ── ロール×機能 ───────────────────────────────────────
+        # ── ロール×機能 ───────────────────────────────────────────
         cur.execute("""
             CREATE TABLE role_permissions (
                 role_id      INTEGER NOT NULL,
@@ -333,7 +381,7 @@ def init_db():
             cur.execute("INSERT INTO role_permissions VALUES (?, ?)", rp)
         print(f"  権限マッピング: {len(ROLE_PERMISSIONS)}件")
 
-        # ── usersテーブル（agency_id・role_id・is_active追加）──
+        # ── 代理店ユーザーテーブル ───────────────────────────────
         cur.execute("""
             CREATE TABLE users (
                 id            INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -358,9 +406,9 @@ def init_db():
             """, (u["agency_code"], u["agency_id"], u["role_id"],
                   u["login_id"], hashed, u["name"], u["is_active"]))
             role_name = ROLES[u["role_id"] - 1]["role_name"]
-            print(f"  ユーザー: [{u['agency_code']}] {u['login_id']} ({role_name})")
+            print(f"  代理店ユーザー: [{u['agency_code']}] {u['login_id']} ({role_name})")
 
-        # ── contractsテーブル ─────────────────────────────────
+        # ── contractsテーブル ─────────────────────────────────────
         cur.execute("""
             CREATE TABLE contracts (
                 id                    INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -390,7 +438,7 @@ def init_db():
             )
         """)
 
-        # ── maturity_noticesテーブル ──────────────────────────
+        # ── maturity_noticesテーブル ──────────────────────────────
         cur.execute("""
             CREATE TABLE maturity_notices (
                 notice_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -402,7 +450,7 @@ def init_db():
             )
         """)
 
-        # ── 事故情報テーブル ──────────────────────────────────
+        # ── 事故情報テーブル ──────────────────────────────────────
         cur.execute("""
             CREATE TABLE accidents (
                 accident_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
