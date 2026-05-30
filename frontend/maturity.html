@@ -398,8 +398,8 @@
     const token = requireAuth();
     if (!token) return;
 
-    document.getElementById('hdr-agency').textContent = (localStorage.getItem('agency_code') || '') + ' ';
-    document.getElementById('hdr-name').textContent   = localStorage.getItem('login_id') || localStorage.getItem('staff_code') || '';
+    document.getElementById('hdr-agency').textContent = (sessionStorage.getItem('agency_code') || '') + ' ';
+    document.getElementById('hdr-name').textContent   = sessionStorage.getItem('login_id') || sessionStorage.getItem('staff_code') || '';
 
     document.getElementById('btn-logout').addEventListener('click', doLogout);
 
@@ -417,7 +417,7 @@
 
   // ─── 検索実行 ─────────────────────────────────────────────
   async function doSearch() {
-    const token    = localStorage.getItem('token');
+    const token    = sessionStorage.getItem('token');
     const params   = new URLSearchParams();
     const dateFrom = document.getElementById('date-from').value;
     const dateTo   = document.getElementById('date-to').value;

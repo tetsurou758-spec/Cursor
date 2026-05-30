@@ -415,6 +415,7 @@
       padding: 14px 16px;
     }
   </style>
+  <script src="js/session.js"></script>
 </head>
 <body>
 
@@ -565,7 +566,7 @@
         },
       });
       if (res.status === 401) {
-        localStorage.clear();
+        sessionStorage.clear(); localStorage.clear();
         window.location.href = 'login.html';
       }
       return res;
@@ -721,9 +722,9 @@
 
     // ── 初期化 ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
-      token      = localStorage.getItem('token');
-      agencyCode = localStorage.getItem('agency_code');
-      loginId    = localStorage.getItem('login_id');
+      token      = sessionStorage.getItem('token');
+      agencyCode = sessionStorage.getItem('agency_code');
+      loginId    = sessionStorage.getItem('login_id');
 
       if (!token) {
         window.location.href = 'login.html';
@@ -753,7 +754,7 @@
 
       // ログアウト
       document.getElementById('btn-logout').addEventListener('click', () => {
-        localStorage.clear();
+        sessionStorage.clear(); localStorage.clear();
         window.location.href = 'login.html';
       });
 

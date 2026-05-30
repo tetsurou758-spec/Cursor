@@ -2,10 +2,24 @@
 データベース初期化スクリプト
 全テーブルを再作成し、サンプルデータを登録する
 """
-import sqlite3, os, bcrypt
+import sqlite3, os, bcrypt, random
 from datetime import date, timedelta
 
+random.seed(42)  # 再実行しても同じデータを生成する
+
 DB_PATH = os.path.join(os.path.dirname(__file__), "users.sqlite")
+
+# ── ランダムデータ生成用定数 ─────────────────────────────────────
+POLICY_TYPES    = ['自動車', '火災', '傷害', 'その他']
+STAFF_CODES_ALL = ['S001', 'S002', 'S003', 'S004', 'S005']
+NOTICE_TYPES_ALL = ['はがき', '冊子']
+
+def rand_contact():
+    """連絡手段と連絡先のダミーデータを返す"""
+    if random.choice([True, False]):
+        return 'TEL', f"090-{random.randint(1000,9999)}-{random.randint(1000,9999)}"
+    else:
+        return 'メール', f"user{random.randint(100,999)}@example.com"
 
 # ── 代理店マスタ（buka_code追加）─────────────────────────────────
 AGENCIES = [
@@ -97,8 +111,8 @@ def make_name(n):
     return LAST_NAMES[n % len(LAST_NAMES)] + " " + FIRST_NAMES[(n // len(LAST_NAMES)) % len(FIRST_NAMES)]
 
 def notice_date(expiry_str):
-    """満期日から60日前を満期案内発送予定日として返す"""
-    return (date.fromisoformat(expiry_str) - timedelta(days=60)).isoformat()
+    """満期日から90日前（約3ヶ月）を満期案内発送予定日として返す"""
+    return (date.fromisoformat(expiry_str) - timedelta(days=90)).isoformat()
 
 # ── 満期管理用 サンプル契約データ（各代理店5件）──────────────
 MATURITY_CONTRACTS = [
@@ -480,8 +494,9 @@ def init_db():
         print(f"  事故データ: {len(ACCIDENTS)}件")
 
         # ── ダッシュボード用 既存サンプル契約（1449件）──────────
-        # expiry_dateとrenewal_statusを設定してダッシュボード集計APIに対応する
+        # 各フィールドをランダムで埋めて満期管理一覧にも表示できるようにする
         total_dash = 0
+        total_notices = 0
         for agency_code, month, completed, pending in CONTRACT_CONFIG:
             seq = 0
             for sts, cnt, r_sts, fc_sts in [
@@ -490,16 +505,30 @@ def init_db():
             ]:
                 for _ in range(cnt):
                     expiry_date = f"{month}-15"
+                    method, info = rand_contact()
+                    premium = random.choice(range(45000, 201000, 1000))
+                    p_type  = random.choice(POLICY_TYPES)
+                    s_code  = random.choice(STAFF_CODES_ALL)
+                    n_type  = random.choice(NOTICE_TYPES_ALL)
+                    n_date  = notice_date(expiry_date)
                     cur.execute("""
                         INSERT INTO contracts
                         (agency_code, contract_no, customer_name, renewal_month, status,
-                         expiry_date, renewal_status, followcall_status)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                         expiry_date, renewal_status, followcall_status,
+                         policy_type, staff_code, contact_method, contact_info, annual_premium)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (agency_code, f"{agency_code}-{month}-{seq:04d}", make_name(seq),
-                          month, sts, expiry_date, r_sts, fc_sts))
+                          month, sts, expiry_date, r_sts, fc_sts,
+                          p_type, s_code, method, info, premium))
+                    cid = cur.lastrowid
+                    cur.execute("""
+                        INSERT INTO maturity_notices (contract_id, notice_date, notice_type)
+                        VALUES (?, ?, ?)
+                    """, (cid, n_date, n_type))
+                    total_notices += 1
                     seq += 1
             total_dash += completed + pending
-        print(f"  契約（ダッシュボード用）: {total_dash}件")
+        print(f"  契約（ダッシュボード用）: {total_dash}件 + notices: {total_notices}件")
 
         # ── 満期管理用 サンプル契約（15件）──────────────────────
         for mc in MATURITY_CONTRACTS:

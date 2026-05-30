@@ -411,10 +411,10 @@
     const token = requireStaffAuth();
     if (!token) return;
 
-    const staffCode = localStorage.getItem('staff_code')      || '';
-    const staffName = localStorage.getItem('staff_name')      || '';
-    const roleName  = localStorage.getItem('staff_role_name') || '';
-    const bukaCode  = localStorage.getItem('staff_buka_code') || '';
+    const staffCode = sessionStorage.getItem('staff_code')      || '';
+    const staffName = sessionStorage.getItem('staff_name')      || '';
+    const roleName  = sessionStorage.getItem('staff_role_name') || '';
+    const bukaCode  = sessionStorage.getItem('staff_buka_code') || '';
 
     document.getElementById('hdr-code').textContent = staffCode + ' ';
     document.getElementById('hdr-name').textContent = staffName;
@@ -437,7 +437,7 @@
 
   // ─── 検索実行 ─────────────────────────────────────────────
   async function doSearch() {
-    const token    = localStorage.getItem('staff_token');
+    const token    = sessionStorage.getItem('staff_token');
     const params   = new URLSearchParams();
     const dateFrom = document.getElementById('date-from').value;
     const dateTo   = document.getElementById('date-to').value;

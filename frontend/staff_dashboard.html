@@ -841,12 +841,12 @@
       const token = requireStaffAuth();
       if (!token) return;
 
-      const staffCode = localStorage.getItem('staff_code')        || '';
-      const staffName = localStorage.getItem('staff_name')        || '';
-      const roleId    = parseInt(localStorage.getItem('staff_role_id') || '0');
-      const roleName  = localStorage.getItem('staff_role_name')   || '';
-      const bukaCode  = localStorage.getItem('staff_buka_code')   || '';
-      const permsRaw  = localStorage.getItem('staff_permissions');
+      const staffCode = sessionStorage.getItem('staff_code')        || '';
+      const staffName = sessionStorage.getItem('staff_name')        || '';
+      const roleId    = parseInt(sessionStorage.getItem('staff_role_id') || '0');
+      const roleName  = sessionStorage.getItem('staff_role_name')   || '';
+      const bukaCode  = sessionStorage.getItem('staff_buka_code')   || '';
+      const permsRaw  = sessionStorage.getItem('staff_permissions');
 
       // ヘッダー情報を表示する
       document.getElementById('hdr-code').textContent = (staffCode || '') + ' ';
@@ -862,7 +862,7 @@
       // ログアウト処理
       document.getElementById('btn-logout').addEventListener('click', doLogout);
 
-      // localStorageの権限リストをナビボタンに適用する
+      // sessionStorageの権限リストをナビボタンに適用する
       try {
         const permissions = permsRaw ? JSON.parse(permsRaw) : [];
         applyPermissions(permissions);

@@ -823,8 +823,8 @@
       const token = requireAgencyAuth();
       if (!token) return;
 
-      const agencyCode = localStorage.getItem('agency_code') || '';
-      const loginId    = localStorage.getItem('login_id')    || '';
+      const agencyCode = sessionStorage.getItem('agency_code') || '';
+      const loginId    = sessionStorage.getItem('login_id')    || '';
 
       // ヘッダーの基本情報を表示（権限取得前の仮表示）
       document.getElementById('hdr-agency').textContent = (agencyCode || '') + ' ';
