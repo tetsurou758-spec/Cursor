@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ダッシュボード｜AX損害保険株式会社</title>
+  <script src="js/session.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -819,24 +820,18 @@
       chartCurrent = buildDonut('chart-current', '#0d2b5e');
       chartNext    = buildDonut('chart-next',    '#c9a84c');
 
-      const token      = localStorage.getItem('token');
-      const agencyCode = localStorage.getItem('agency_code');
-      const loginId    = localStorage.getItem('login_id');
+      const token = requireAgencyAuth();
+      if (!token) return;
 
-      if (!token) {
-        window.location.href = 'login.html';
-        return;
-      }
+      const agencyCode = localStorage.getItem('agency_code') || '';
+      const loginId    = localStorage.getItem('login_id')    || '';
 
       // ヘッダーの基本情報を表示（権限取得前の仮表示）
       document.getElementById('hdr-agency').textContent = (agencyCode || '') + ' ';
       document.getElementById('hdr-name').textContent   = loginId || '';
 
       // ログアウト
-      document.getElementById('btn-logout').addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = 'login.html';
-      });
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
 
       // 権限情報を取得してUI制御する
       try {
@@ -868,8 +863,7 @@
         });
 
         if (res.status === 401) {
-          localStorage.clear();
-          window.location.href = 'login.html';
+          doLogout();
           return;
         }
 

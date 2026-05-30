@@ -232,6 +232,7 @@
       .system-name { font-size: 1rem; }
     }
   </style>
+  <script src="js/session.js"></script>
 </head>
 <body>
 
@@ -332,14 +333,12 @@
         const data = await res.json();
 
         if (res.ok) {
-          // 認証成功：社員情報をlocalStorageに保存してスタッフダッシュボードへ遷移
-          localStorage.setItem('staff_token',       data.access_token);
-          localStorage.setItem('staff_code',        data.staff_code);
-          localStorage.setItem('staff_name',        data.name);
-          localStorage.setItem('staff_role_id',     String(data.role_id));
-          localStorage.setItem('staff_role_name',   data.role_name);
-          localStorage.setItem('staff_buka_code',   data.buka_code);
-          localStorage.setItem('staff_permissions', JSON.stringify(data.permissions));
+          // 認証成功：セッション情報を共通関数で保存してスタッフダッシュボードへ遷移
+          saveStaffSession(
+            data.access_token, data.staff_code, data.name,
+            data.role_id, data.role_name, data.buka_code,
+            data.permissions || [], data.managed_agencies || []
+          );
           window.location.href = 'staff_dashboard.html';
         } else {
           errDiv.textContent = data.detail || 'ログインに失敗しました';

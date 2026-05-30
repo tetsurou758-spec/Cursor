@@ -158,11 +158,12 @@
     .sort-icon {
       display:inline-block; margin-left:4px;
       font-size:0.8rem; font-style:normal;
-      color:rgba(255,255,255,0.5);
-      transition:color 0.15s, font-weight 0.15s;
+      color:#FF1493;
+      font-weight:700;
+      transition:color 0.15s;
       vertical-align:middle;
     }
-    thead th.sort-active .sort-icon { color:#FFB6C1; font-weight:700; }
+    thead th.sort-active .sort-icon { color:#FF1493; font-weight:700; }
 
     tbody tr.main-row { transition:background 0.15s; }
     tbody tr.main-row:hover { background:#fff0f7; }
@@ -258,6 +259,7 @@
       .detail-inner { grid-template-columns:repeat(2,1fr); }
     }
   </style>
+  <script src="js/session.js"></script>
 </head>
 <body>
 
@@ -285,7 +287,7 @@
       <span class="badge-role" id="hdr-role"></span>
       <span class="badge-buka" id="hdr-buka"></span>
     </div>
-    <a href="staff_dashboard.html" class="btn-back">← ダッシュボード</a>
+    <a href="#" class="btn-back" onclick="goToDashboard(); return false;">← ダッシュボード</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
 </header>
@@ -406,11 +408,11 @@
 
   // ─── 初期化 ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('staff_token');
-    if (!token) { window.location.href = 'staff_login.html'; return; }
+    const token = requireStaffAuth();
+    if (!token) return;
 
-    const staffCode = localStorage.getItem('staff_code') || '';
-    const staffName = localStorage.getItem('staff_name') || '';
+    const staffCode = localStorage.getItem('staff_code')      || '';
+    const staffName = localStorage.getItem('staff_name')      || '';
     const roleName  = localStorage.getItem('staff_role_name') || '';
     const bukaCode  = localStorage.getItem('staff_buka_code') || '';
 
@@ -419,11 +421,7 @@
     document.getElementById('hdr-role').textContent = roleName ? '｜' + roleName : '';
     document.getElementById('hdr-buka').textContent = bukaCode ? `[${bukaCode}]` : '';
 
-    document.getElementById('btn-logout').addEventListener('click', () => {
-      ['staff_token','staff_code','staff_name','staff_role_id',
-       'staff_role_name','staff_buka_code','staff_permissions'].forEach(k => localStorage.removeItem(k));
-      window.location.href = 'staff_login.html';
-    });
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
 
     // 初期日付範囲を設定する（満期3カ月前〜翌3カ月）
     const today = new Date();
@@ -458,9 +456,7 @@
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 401) {
-        ['staff_token','staff_code','staff_name','staff_role_id',
-         'staff_role_name','staff_buka_code','staff_permissions'].forEach(k => localStorage.removeItem(k));
-        window.location.href = 'staff_login.html';
+        doLogout();
         return;
       }
       const data = await res.json();

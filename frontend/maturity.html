@@ -158,8 +158,9 @@
     .sort-icon {
       display:inline-block; margin-left:4px;
       font-size:0.8rem; font-style:normal;
-      color:rgba(255,255,255,0.4);
-      transition:color 0.15s, font-weight 0.15s;
+      color:#00CED1;
+      font-weight:700;
+      transition:color 0.15s;
       vertical-align:middle;
     }
     thead th.sort-active .sort-icon { color:#00CED1; font-weight:700; }
@@ -258,6 +259,7 @@
       .detail-inner { grid-template-columns:repeat(2,1fr); }
     }
   </style>
+  <script src="js/session.js"></script>
 </head>
 <body>
 
@@ -280,7 +282,7 @@
   <div class="header-right">
     <span class="page-badge">満期管理</span>
     <div class="user-badge"><span id="hdr-agency">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
-    <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <a href="#" class="btn-back" onclick="goToDashboard(); return false;">← ダッシュボード</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
 </header>
@@ -393,16 +395,13 @@
 
   // ─── 初期化 ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = 'login.html'; return; }
+    const token = requireAuth();
+    if (!token) return;
 
     document.getElementById('hdr-agency').textContent = (localStorage.getItem('agency_code') || '') + ' ';
-    document.getElementById('hdr-name').textContent   = localStorage.getItem('login_id') || '';
+    document.getElementById('hdr-name').textContent   = localStorage.getItem('login_id') || localStorage.getItem('staff_code') || '';
 
-    document.getElementById('btn-logout').addEventListener('click', () => {
-      localStorage.clear();
-      window.location.href = 'login.html';
-    });
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
 
     // 初期日付範囲を設定する（満期3カ月前〜翌3カ月）
     const today = new Date();
@@ -436,7 +435,7 @@
       const res = await fetch(`${API_BASE}/api/maturity?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+      if (res.status === 401) { doLogout(); return; }
       const data = await res.json();
       originalData = data.contracts || [];
       currentData  = [...originalData];

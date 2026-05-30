@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>社員ダッシュボード｜AX損害保険株式会社</title>
+  <script src="js/session.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -837,18 +838,15 @@
       chartCurrent = buildDonut('chart-current', '#FF1493');
       chartNext    = buildDonut('chart-next',    '#FF69B4');
 
-      const token     = localStorage.getItem('staff_token');
-      const staffCode = localStorage.getItem('staff_code');
-      const staffName = localStorage.getItem('staff_name');
-      const roleId    = parseInt(localStorage.getItem('staff_role_id') || '0');
-      const roleName  = localStorage.getItem('staff_role_name') || '';
-      const bukaCode  = localStorage.getItem('staff_buka_code') || '';
-      const permsRaw  = localStorage.getItem('staff_permissions');
+      const token = requireStaffAuth();
+      if (!token) return;
 
-      if (!token) {
-        window.location.href = 'staff_login.html';
-        return;
-      }
+      const staffCode = localStorage.getItem('staff_code')        || '';
+      const staffName = localStorage.getItem('staff_name')        || '';
+      const roleId    = parseInt(localStorage.getItem('staff_role_id') || '0');
+      const roleName  = localStorage.getItem('staff_role_name')   || '';
+      const bukaCode  = localStorage.getItem('staff_buka_code')   || '';
+      const permsRaw  = localStorage.getItem('staff_permissions');
 
       // ヘッダー情報を表示する
       document.getElementById('hdr-code').textContent = (staffCode || '') + ' ';
@@ -862,11 +860,7 @@
       }
 
       // ログアウト処理
-      document.getElementById('btn-logout').addEventListener('click', () => {
-        ['staff_token','staff_code','staff_name','staff_role_id',
-         'staff_role_name','staff_buka_code','staff_permissions'].forEach(k => localStorage.removeItem(k));
-        window.location.href = 'staff_login.html';
-      });
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
 
       // localStorageの権限リストをナビボタンに適用する
       try {
@@ -883,9 +877,7 @@
         });
 
         if (res.status === 401) {
-          ['staff_token','staff_code','staff_name','staff_role_id',
-           'staff_role_name','staff_buka_code','staff_permissions'].forEach(k => localStorage.removeItem(k));
-          window.location.href = 'staff_login.html';
+          doLogout();
           return;
         }
 

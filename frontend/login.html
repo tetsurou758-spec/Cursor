@@ -236,6 +236,7 @@
       .system-name { font-size: 1rem; }
     }
   </style>
+  <script src="js/session.js"></script>
 </head>
 <body>
 
@@ -362,11 +363,11 @@
         const data = await res.json();
 
         if (res.ok) {
-          // 認証成功：トークンとユーザー情報をlocalStorageに保存してダッシュボードへ遷移
-          localStorage.setItem('token',       data.access_token);
-          localStorage.setItem('agency_code', payload.agency_code);
-          localStorage.setItem('login_id',    payload.login_id);
-          localStorage.setItem('name',        data.name);
+          // 認証成功：セッション情報を共通関数で保存してダッシュボードへ遷移
+          saveAgencySession(
+            data.access_token, payload.agency_code, payload.login_id,
+            data.name, data.role_id, data.role_name, data.group_code || '', data.permissions || []
+          );
           window.location.href = 'dashboard.html';
         } else {
           // 認証失敗：エラーメッセージを表示する
