@@ -65,8 +65,8 @@ class UserUpdateRequest(BaseModel):
 
 
 def get_db_connection() -> sqlite3.Connection:
-    """SQLite接続を取得する"""
-    conn = sqlite3.connect(DB_PATH)
+    """SQLite接続を取得する（check_same_thread=Falseでスレッド間共有を許可）"""
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -317,7 +317,11 @@ def create_user(request: UserCreateRequest, payload: dict = Depends(require_admi
         conn.commit()
         return {"message": "ユーザーを登録しました", "login_id": request.login_id}
     except sqlite3.IntegrityError:
+        conn.rollback()
         raise HTTPException(status_code=409, detail="そのログインIDは既に使用されています")
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -353,6 +357,11 @@ def update_user(user_id: int, request: UserUpdateRequest,
         conn.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", params)
         conn.commit()
         return {"message": "ユーザー情報を更新しました"}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -371,6 +380,11 @@ def delete_user(user_id: int, payload: dict = Depends(require_admin)):
         conn.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
         conn.commit()
         return {"message": "ユーザーを無効化しました"}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
