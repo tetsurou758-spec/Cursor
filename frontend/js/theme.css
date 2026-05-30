@@ -1,0 +1,53 @@
+/* theme.css - user_typeによる動的テーマ定義 */
+
+:root[data-theme="agency"] {
+    --primary:       #1a2d5a;
+    --primary-dark:  #0f1d3d;
+    --primary-light: #2a3d6a;
+    --accent:        #FFD700;
+    --accent-light:  #FFF0A0;
+    --btn-primary:   #1a2d5a;
+    --btn-hover:     #0f1d3d;
+    --header-bg:     #1a2d5a;
+    --badge-bg:      #1a2d5a;
+    --graph-color1:  #1a2d5a;
+    --graph-color2:  #C9A84C;
+    --link-color:    #1a2d5a;
+    --highlight-row: #fffbe6;
+    /* グレー・テキスト系 */
+    --gray-bg:     #f0f2f7;
+    --gray-card:   #f7f9fc;
+    --gray-border: #e0e5f0;
+    --text-main:   #1a1a2e;
+    --text-sub:    #5a6480;
+    --accent-border:     rgba(201,168,76,0.4);
+    --accent-border-btn: rgba(201,168,76,0.6);
+    --primary-shadow:    rgba(9,30,69,0.35);
+    --card-shadow:       rgba(13,43,94,0.08);
+}
+
+:root[data-theme="staff"] {
+    --primary:       #FF1493;
+    --primary-dark:  #C71585;
+    --primary-light: #FF69B4;
+    --accent:        #FF69B4;
+    --accent-light:  #FFE4F0;
+    --btn-primary:   #FF1493;
+    --btn-hover:     #C71585;
+    --header-bg:     #FF1493;
+    --badge-bg:      #FF1493;
+    --graph-color1:  #FF1493;
+    --graph-color2:  #FFB6C1;
+    --link-color:    #C71585;
+    --highlight-row: #fff0f5;
+    /* グレー・テキスト系 */
+    --gray-bg:     #fff0f7;
+    --gray-card:   #fff5fa;
+    --gray-border: #ffd6ec;
+    --text-main:   #2e001a;
+    --text-sub:    #884466;
+    --accent-border:     rgba(255,105,180,0.4);
+    --accent-border-btn: rgba(255,105,180,0.6);
+    --primary-shadow:    rgba(204,0,119,0.35);
+    --card-shadow:       rgba(255,20,147,0.08);
+}

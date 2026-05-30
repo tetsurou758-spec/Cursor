@@ -232,7 +232,9 @@
       .system-name { font-size: 1rem; }
     }
   </style>
+  <link rel="stylesheet" href="js/theme.css">
   <script src="js/session.js"></script>
+  <script>document.documentElement.setAttribute('data-theme','staff')</script>
 </head>
 <body>
 
@@ -339,7 +341,7 @@
             data.role_id, data.role_name, data.buka_code,
             data.permissions || [], data.managed_agencies || []
           );
-          window.location.href = 'staff_dashboard.html';
+          window.location.href = 'dashboard.html';
         } else {
           errDiv.textContent = data.detail || 'ログインに失敗しました';
           errDiv.className   = 'error-msg show';

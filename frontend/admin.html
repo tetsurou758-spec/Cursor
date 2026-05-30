@@ -4,26 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ユーザー管理｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:      #0d2b5e;
-      --navy-dark: #091e45;
-      --navy-mid:  #1a3a72;
-      --navy-light:#2d4f8e;
-      --gold:      #c9a84c;
-      --gold-light:#e2c47a;
-      --white:     #ffffff;
-      --gray-bg:   #f0f2f7;
-      --gray-card: #f7f9fc;
-      --gray-border:#e0e5f0;
-      --text-main: #1a1a2e;
-      --text-sub:  #5a6480;
-      --red:       #c0392b;
-      --red-bg:    #fdf0f0;
-      --green:     #1e7e34;
-      --green-bg:  #d4edda;
+      --white:   #ffffff;
+      --red:     #c0392b;
+      --red-bg:  #fdf0f0;
+      --green:   #1e7e34;
+      --green-bg:#d4edda;
     }
 
     body {
@@ -35,7 +27,7 @@
 
     /* ════════════════════════ HEADER ════════════════════════════════════════════ */
     .site-header {
-      background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 100%);
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
       padding: 0 24px;
       height: 60px;
       display: flex;
@@ -44,7 +36,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 2px 12px rgba(9,30,69,0.35);
+      box-shadow: 0 2px 12px var(--primary-shadow);
     }
 
     .header-logo {
@@ -70,11 +62,11 @@
     }
 
     .header-back-link {
-      color: var(--gold-light);
+      color: var(--accent-light);
       font-size: 0.78rem;
       font-weight: 600;
       text-decoration: none;
-      border: 1px solid rgba(201,168,76,0.5);
+      border: 1px solid var(--accent-border);
       border-radius: 4px;
       padding: 4px 10px;
       letter-spacing: 0.04em;
@@ -85,21 +77,21 @@
 
     .user-badge {
       background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(201,168,76,0.4);
+      border: 1px solid var(--accent-border);
       border-radius: 20px;
       padding: 4px 14px;
       font-size: 0.8rem;
       letter-spacing: 0.04em;
     }
 
-    .user-badge .badge-agency { color: var(--gold-light); font-weight: 700; margin-right: 2px; }
+    .user-badge .badge-agency { color: var(--accent-light); font-weight: 700; margin-right: 2px; }
     .user-badge .badge-login  { color: #fff; font-weight: 400; }
-    .user-badge .badge-role   { color: var(--gold-light); font-weight: 600; margin-left: 2px; }
+    .user-badge .badge-role   { color: var(--accent-light); font-weight: 600; margin-left: 2px; }
 
     .btn-logout {
       background: transparent;
-      border: 1.5px solid rgba(201,168,76,0.6);
-      color: var(--gold-light);
+      border: 1.5px solid var(--accent-border-btn);
+      color: var(--accent-light);
       border-radius: 4px;
       padding: 5px 14px;
       font-size: 0.78rem;
@@ -109,11 +101,11 @@
       letter-spacing: 0.06em;
     }
 
-    .btn-logout:hover { background: var(--gold); color: var(--navy-dark); border-color: var(--gold); }
+    .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
 
     .gold-bar {
       height: 3px;
-      background: linear-gradient(90deg, var(--navy-dark) 0%, var(--gold) 50%, var(--navy-dark) 100%);
+      background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%);
     }
 
     /* ════════════════════════ MAIN ══════════════════════════════════════════════ */
@@ -135,7 +127,7 @@
       display: inline-block;
       width: 3px;
       height: 14px;
-      background: var(--gold);
+      background: var(--accent);
       border-radius: 2px;
     }
 
@@ -148,7 +140,7 @@
     }
 
     .btn-add {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
       color: var(--white);
       border: none;
       border-radius: 6px;
@@ -158,7 +150,7 @@
       cursor: pointer;
       letter-spacing: 0.04em;
       transition: opacity 0.2s, transform 0.15s;
-      box-shadow: 0 2px 8px rgba(13,43,94,0.25);
+      box-shadow: 0 2px 8px var(--card-shadow);
     }
 
     .btn-add:hover { opacity: 0.88; transform: translateY(-1px); }
@@ -167,7 +159,7 @@
     .card {
       background: var(--white);
       border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(13,43,94,0.08);
+      box-shadow: 0 2px 12px var(--card-shadow);
       overflow: hidden;
       margin-bottom: 32px;
     }
@@ -180,7 +172,7 @@
       font-size: 0.85rem;
     }
 
-    thead { background: var(--navy); color: var(--white); }
+    thead { background: var(--primary); color: var(--white); }
 
     thead th {
       padding: 12px 16px;
@@ -223,7 +215,7 @@
       font-weight: 700;
     }
 
-    .role-1 { background: #e8edf8; color: var(--navy); }
+    .role-1 { background: #e8edf8; color: var(--primary); }
     .role-2 { background: #fff8e6; color: #8a6820; }
     .role-3 { background: #f3f3f3; color: #555; }
 
@@ -238,7 +230,7 @@
       transition: opacity 0.2s;
     }
 
-    .btn-edit   { background: var(--navy-light); color: var(--white); margin-right: 6px; }
+    .btn-edit   { background: var(--primary-light); color: var(--white); margin-right: 6px; }
     .btn-delete { background: var(--red); color: var(--white); }
 
     .btn-edit:hover, .btn-delete:hover { opacity: 0.82; }
@@ -248,13 +240,13 @@
 
     .matrix-table { font-size: 0.8rem; }
 
-    .matrix-table th { background: var(--navy); color: var(--white); text-align: center; }
+    .matrix-table th { background: var(--primary); color: var(--white); text-align: center; }
 
     .matrix-table th:first-child { text-align: left; }
 
     .matrix-table td { text-align: center; }
 
-    .matrix-table td:first-child { text-align: left; font-weight: 600; color: var(--navy); }
+    .matrix-table td:first-child { text-align: left; font-weight: 600; color: var(--primary); }
 
     .check-ok  { color: var(--green); font-size: 1rem; }
     .check-ng  { color: #ccc; font-size: 0.9rem; }
@@ -276,12 +268,12 @@
       border-radius: 10px;
       width: 100%;
       max-width: 440px;
-      box-shadow: 0 8px 32px rgba(9,30,69,0.28);
+      box-shadow: 0 8px 32px var(--primary-shadow);
       overflow: hidden;
     }
 
     .modal-header {
-      background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 100%);
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
       padding: 16px 20px;
       display: flex;
       align-items: center;
@@ -315,7 +307,7 @@
       display: block;
       font-size: 0.78rem;
       font-weight: 600;
-      color: var(--navy);
+      color: var(--primary);
       margin-bottom: 6px;
       letter-spacing: 0.04em;
     }
@@ -335,7 +327,7 @@
 
     .form-group input:focus,
     .form-group select:focus {
-      border-color: var(--navy);
+      border-color: var(--primary);
     }
 
     .form-group input:disabled {
@@ -366,7 +358,7 @@
     .btn-cancel:hover { background: var(--gray-card); }
 
     .btn-save {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
       border: none;
       border-radius: 5px;
       padding: 8px 24px;
@@ -407,7 +399,7 @@
 
     /* ════════════════════════ FOOTER ════════════════════════════════════════════ */
     .site-footer {
-      background: var(--navy-dark);
+      background: var(--primary-dark);
       color: rgba(255,255,255,0.45);
       text-align: center;
       font-size: 0.7rem;
@@ -415,7 +407,6 @@
       padding: 14px 16px;
     }
   </style>
-  <script src="js/session.js"></script>
 </head>
 <body>
 
@@ -424,11 +415,11 @@
     <div class="header-logo">
       <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
-              fill="none" stroke="#FFD700" stroke-width="3" stroke-linejoin="round"/>
+              fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
         <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
-              fill="rgba(255,215,0,0.35)"/>
+              fill="rgba(255,255,255,0.15)"/>
         <polyline points="22,32 29,39 43,25"
-                  stroke="#FFD700" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <div class="header-logo-text">
         <div class="company">AX損害保険株式会社</div>
@@ -722,13 +713,17 @@
 
     // ── 初期化 ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
-      token      = sessionStorage.getItem('token');
-      agencyCode = sessionStorage.getItem('agency_code');
-      loginId    = sessionStorage.getItem('login_id');
+      token = requireAuth();
+      if (!token) return;
 
-      if (!token) {
-        window.location.href = 'login.html';
-        return;
+      const userType = _ssGet('user_type') || 'agency';
+
+      if (userType === 'staff') {
+        agencyCode = _ssGet('staff_code');
+        loginId    = _ssGet('staff_name');
+      } else {
+        agencyCode = _ssGet('agency_code');
+        loginId    = _ssGet('login_id');
       }
 
       // 権限チェック：管理者以外はダッシュボードにリダイレクト
@@ -752,11 +747,13 @@
       document.getElementById('hdr-name').textContent   = loginId || '';
       document.getElementById('hdr-role').textContent   = '｜' + permData.role_name;
 
+      // タイトル・ダッシュボードリンクをuser_typeで切り替える
+      if (userType === 'staff') {
+        document.querySelector('.header-logo-text .system').textContent = '社員専用システム｜ユーザー管理';
+      }
+
       // ログアウト
-      document.getElementById('btn-logout').addEventListener('click', () => {
-        sessionStorage.clear(); localStorage.clear();
-        window.location.href = 'login.html';
-      });
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
 
       // モーダルイベント
       document.getElementById('btn-add-user').addEventListener('click', openAdd);

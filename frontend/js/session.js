@@ -114,20 +114,23 @@ function getToken() {
 }
 
 /**
- * ユーザー種別に応じたダッシュボードへ遷移する。
- * agency → dashboard.html
- * staff  → staff_dashboard.html
- * 不明   → login.html
+ * data-theme属性をdocument.documentElementに設定してテーマを適用する。
+ * theme.cssのCSS変数定義と連動する。
+ */
+function applyTheme() {
+  const userType = sessionStorage.getItem('user_type');
+  document.documentElement.setAttribute(
+    'data-theme',
+    userType === 'staff' ? 'staff' : 'agency'
+  );
+}
+
+/**
+ * ダッシュボードへ遷移する。統合後はdashboard.htmlに一本化。
+ * user_typeの判定はdashboard.html側で行う。
  */
 function goToDashboard() {
-  const userType = _ssGet(KEY.USER_TYPE);
-  if (userType === 'staff') {
-    window.location.href = 'staff_dashboard.html';
-  } else if (userType === 'agency') {
-    window.location.href = 'dashboard.html';
-  } else {
-    window.location.href = 'login.html';
-  }
+  window.location.href = 'dashboard.html';
 }
 
 /**
