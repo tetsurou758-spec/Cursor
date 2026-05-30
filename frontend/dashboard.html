@@ -68,6 +68,24 @@
       gap: 12px;
     }
 
+    /* ユーザー管理リンク（管理者のみ表示） */
+    .header-admin-link {
+      color: var(--gold-light);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid rgba(201,168,76,0.5);
+      border-radius: 4px;
+      padding: 4px 10px;
+      letter-spacing: 0.04em;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .header-admin-link:hover {
+      background: rgba(201,168,76,0.15);
+      color: #FFD700;
+    }
+
     .user-badge {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(201,168,76,0.4);
@@ -78,7 +96,9 @@
       letter-spacing: 0.04em;
     }
 
-    .user-badge span { color: var(--gold-light); font-weight: 700; margin-right: 6px; }
+    .user-badge .badge-agency { color: var(--gold-light); font-weight: 700; margin-right: 2px; }
+    .user-badge .badge-login  { color: #fff; font-weight: 400; }
+    .user-badge .badge-role   { color: var(--gold-light); font-weight: 600; margin-left: 2px; }
 
     .btn-logout {
       background: transparent;
@@ -244,6 +264,7 @@
       gap: 14px;
       box-shadow: 0 2px 8px rgba(13,43,94,0.06);
       transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      position: relative;
     }
 
     .nav-btn:hover {
@@ -272,6 +293,50 @@
       color: var(--navy);
       transition: color 0.2s;
     }
+
+    /* 権限なしボタン：グレーアウト＋クリック不可 */
+    .nav-btn.no-permission {
+      background: var(--gray-card);
+      border-color: var(--gray-border);
+      color: var(--text-sub);
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .nav-btn.no-permission:hover {
+      background: var(--gray-card);
+      border-color: var(--gray-border);
+      color: var(--text-sub);
+      box-shadow: 0 2px 8px rgba(13,43,94,0.06);
+      transform: none;
+    }
+
+    .nav-btn.no-permission .nav-icon { stroke: var(--text-sub); }
+    .nav-btn.no-permission:hover .nav-icon { stroke: var(--text-sub); }
+    .nav-btn.no-permission .nav-label { color: var(--text-sub); }
+    .nav-btn.no-permission:hover .nav-label { color: var(--text-sub); }
+
+    /* ツールチップ（権限なし表示） */
+    .nav-btn.no-permission::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20,20,40,0.82);
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-btn.no-permission:hover::after { opacity: 1; }
 
     /* ═══════════════════════════ BOTTOM SECTION ════════════════════════════════ */
     .bottom-section { }
@@ -458,8 +523,10 @@
       </div>
     </div>
     <div class="header-user">
+      <!-- 管理者のみ表示（JSで制御） -->
+      <a href="admin.html" class="header-admin-link" id="admin-link" style="display:none">ユーザー管理</a>
       <div class="user-badge">
-        <span id="hdr-agency">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span>
+        <span class="badge-agency" id="hdr-agency">--</span><span class="badge-login" id="hdr-name">--</span><span class="badge-role" id="hdr-role"></span>
       </div>
       <button class="btn-logout" id="btn-logout">ログアウト</button>
     </div>
@@ -518,8 +585,7 @@
       <div class="section-title">メニュー</div>
       <div class="nav-grid">
 
-        <a href="#" class="nav-btn">
-          <!-- 人物アイコン -->
+        <a href="#" class="nav-btn" data-feature="CUSTOMER_EDIT" data-tooltip="権限がありません">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="7" r="4"/>
@@ -528,8 +594,7 @@
           <span class="nav-label">顧客管理システム</span>
         </a>
 
-        <a href="maturity.html" class="nav-btn">
-          <!-- 時計アイコン -->
+        <a href="maturity.html" class="nav-btn" data-feature="MATURITY_VIEW" data-tooltip="権限がありません">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"/>
@@ -538,8 +603,7 @@
           <span class="nav-label">満期管理システム</span>
         </a>
 
-        <a href="#" class="nav-btn">
-          <!-- 書類アイコン -->
+        <a href="#" class="nav-btn" data-feature="REPORT_VIEW" data-tooltip="権限がありません">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -550,8 +614,7 @@
           <span class="nav-label">契約照会システム</span>
         </a>
 
-        <a href="#" class="nav-btn">
-          <!-- 円マークアイコン -->
+        <a href="#" class="nav-btn" data-feature="PAYMENT_VIEW" data-tooltip="権限がありません">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"/>
@@ -683,9 +746,6 @@
   <script>
     const API_BASE = 'http://127.0.0.1:8000';
 
-    // ────────────────────────────────────────────────────
-    // Chart.js インスタンス（後で update するため保持）
-    // ────────────────────────────────────────────────────
     let chartCurrent, chartNext;
 
     function buildDonut(canvasId, color) {
@@ -719,26 +779,20 @@
       return `${y}年 ${parseInt(m)}月`;
     }
 
-    // ────────────────────────────────────────────────────
-    // ダッシュボードデータを画面に反映する
-    // ────────────────────────────────────────────────────
     function renderDashboard(data) {
       const cm = data.current_month;
       const nm = data.next_month;
 
-      // 今月グラフ
       document.getElementById('cur-month-label').textContent = fmtMonth(cm.month);
       document.getElementById('cur-count').textContent = cm.completed;
       document.getElementById('cur-rate').textContent   = cm.rate + '%';
       updateDonut(chartCurrent, cm.completed, cm.total);
 
-      // 翌月グラフ
       document.getElementById('nxt-month-label').textContent = fmtMonth(nm.month);
       document.getElementById('nxt-count').textContent = nm.completed;
       document.getElementById('nxt-rate').textContent   = nm.rate + '%';
       updateDonut(chartNext, nm.completed, nm.total);
 
-      // TODOバー
       const curPct = cm.total > 0 ? Math.round(cm.pending / cm.total * 100) : 0;
       const nxtPct = nm.total > 0 ? Math.round(nm.pending / nm.total * 100) : 0;
       document.getElementById('todo-cur-cnt').textContent = cm.pending + ' 件';
@@ -749,34 +803,63 @@
       }, 100);
     }
 
-    // ────────────────────────────────────────────────────
-    // 初期化処理
-    // ────────────────────────────────────────────────────
+    // feature_codeリストに基づいてナビボタンの活性・非活性を制御する
+    function applyPermissions(permissions) {
+      document.querySelectorAll('.nav-btn[data-feature]').forEach(btn => {
+        const feature = btn.dataset.feature;
+        if (!permissions.includes(feature)) {
+          btn.classList.add('no-permission');
+          btn.addEventListener('click', e => e.preventDefault(), { capture: true });
+        }
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
 
-      // グラフを先に生成（プレースホルダー状態）
       chartCurrent = buildDonut('chart-current', '#0d2b5e');
       chartNext    = buildDonut('chart-next',    '#c9a84c');
 
-      // トークン確認：なければログインへ戻す
-      const token       = localStorage.getItem('token');
-      const agencyCode  = localStorage.getItem('agency_code');
-      const loginId     = localStorage.getItem('login_id');
+      const token      = localStorage.getItem('token');
+      const agencyCode = localStorage.getItem('agency_code');
+      const loginId    = localStorage.getItem('login_id');
 
       if (!token) {
         window.location.href = 'login.html';
         return;
       }
 
-      // ヘッダーのユーザー情報を表示する
+      // ヘッダーの基本情報を表示（権限取得前の仮表示）
       document.getElementById('hdr-agency').textContent = (agencyCode || '') + ' ';
       document.getElementById('hdr-name').textContent   = loginId || '';
 
-      // ログアウトボタン
+      // ログアウト
       document.getElementById('btn-logout').addEventListener('click', () => {
         localStorage.clear();
         window.location.href = 'login.html';
       });
+
+      // 権限情報を取得してUI制御する
+      try {
+        const permRes = await fetch(`${API_BASE}/api/permissions`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (permRes.ok) {
+          const permData = await permRes.json();
+
+          // ヘッダーにロール名を表示：「A001 admin｜管理者」形式
+          document.getElementById('hdr-role').textContent = '｜' + permData.role_name;
+
+          // 管理者のみユーザー管理リンクを表示
+          if (permData.role_id === 1) {
+            document.getElementById('admin-link').style.display = '';
+          }
+
+          // ボタンの権限制御
+          applyPermissions(permData.permissions);
+        }
+      } catch (err) {
+        console.error('権限情報の取得に失敗しました:', err);
+      }
 
       // ダッシュボードデータを取得する
       try {
@@ -785,7 +868,6 @@
         });
 
         if (res.status === 401) {
-          // トークン期限切れの場合はログインへ戻す
           localStorage.clear();
           window.location.href = 'login.html';
           return;
