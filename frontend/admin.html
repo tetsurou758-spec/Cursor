@@ -634,7 +634,8 @@
       const showDelete = (userType === 'staff');
 
       tbody.innerHTML = users.map(u => {
-        const ut = u.user_type || 'staff';
+        // user_type未設定時: 代理店管理者画面は全件代理店ユーザー、社員管理者画面はAPIが明示的に返す
+        const ut = u.user_type || (userType === 'staff' ? 'staff' : 'agency');
         const utLabel = ut === 'agency' ? '代理店' : '社員';
         const utClass = ut === 'agency' ? 'utype-agency' : 'utype-staff';
         // 代理店ユーザーの場合は代理店コードをログインIDに併記
