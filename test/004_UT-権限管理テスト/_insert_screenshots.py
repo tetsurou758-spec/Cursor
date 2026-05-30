@@ -1,182 +1,213 @@
 """
-権限管理テスト証跡.xlsx に「スクリーンショット証跡」シートを追加し、
-テストケースごとにスクリーンショットを貼り付けるスクリプト
+権限管理テスト証跡.xlsx に UT-AUTH-001〜017 の個別シートを追加し、
+UT-003 と同一フォーマットでスクリーンショットを貼り付けるスクリプト
 """
 import io, pathlib
 from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
 EXCEL_PATH = pathlib.Path(__file__).parent / "権限管理テスト証跡.xlsx"
 SS_DIR     = pathlib.Path(__file__).parent / "screenshots"
 
-# ── テストケース × スクリーンショット マッピング ─────────────
-# (試験番号, 確認内容ラベル, 使用するスクリーンショットファイル名)
-CASE_SCREENSHOTS = [
-    ("UT-AUTH-001", "login.html　ログイン画面表示確認",
-     "01_login.png"),
-    ("UT-AUTH-002", "staff1 ログイン → ダッシュボード遷移・ロール「一般担当」表示確認",
-     "02_dashboard_staff1.png"),
-    ("UT-AUTH-003", "保険金支払状況ボタン グレーアウト・他3ボタン活性確認",
-     "03_dashboard_staff1_permission.png"),
-    ("UT-AUTH-004", "グレーアウトボタン ホバー時「権限がありません」ツールチップ確認",
-     "04_tooltip_no_permission.png"),
-    ("UT-AUTH-005", "staff1 ログイン時 ヘッダーに「ユーザー管理」リンク非表示確認",
-     "03_dashboard_staff1_permission.png"),
-    ("UT-AUTH-006", "「ログアウト」クリック → login.html 復帰確認",
-     "05_logout_back_to_login.png"),
-    ("UT-AUTH-007", "admin ログイン → ダッシュボード遷移・ロール「管理者」表示確認",
-     "06_dashboard_admin.png"),
-    ("UT-AUTH-008", "全メニューボタン活性状態確認（admin・保険金支払状況も活性）",
-     "07_dashboard_admin_permission.png"),
-    ("UT-AUTH-009", "ヘッダーに「ユーザー管理」リンク表示確認（admin）",
-     "07_dashboard_admin_permission.png"),
-    ("UT-AUTH-010", "「ユーザー管理」リンク → admin.html 遷移確認",
-     "08_admin_page.png"),
-    ("UT-AUTH-011", "ユーザー一覧テーブル（admin・staff1の2件）・ロールチップ・操作ボタン確認",
-     "09_admin_user_list.png"),
-    ("UT-AUTH-012", "「＋ユーザー追加」ボタン → 追加モーダル表示確認",
-     "10_admin_add_modal.png"),
-    ("UT-AUTH-013", "ロール別権限マトリクス表示確認（管理者=全権限、一般担当・閲覧専用=制限あり）",
-     "11_admin_permission_matrix.png"),
-    ("UT-AUTH-014", "GET /api/permissions (staff1) → 一般担当権限制御がダッシュボードに反映されていることで確認",
-     "03_dashboard_staff1_permission.png"),
-    ("UT-AUTH-015", "GET /api/users (staff1=role_id:2) → 403応答。ユーザー管理リンク非表示・管理画面アクセス不可で確認",
-     "03_dashboard_staff1_permission.png"),
-    ("UT-AUTH-016", "GET /api/users (admin=role_id:1) → A001ユーザー一覧2件返却確認",
-     "09_admin_user_list.png"),
-    ("UT-AUTH-017", "staff1 で admin.html 直接アクセス → dashboard.html リダイレクト確認",
-     "03_dashboard_staff1_permission.png"),
+# ── UT-003 と同一の画像サイズ ─────────────────────────────────
+IMG_W = 1400
+IMG_H = 860
+
+# ── テストケース定義 ──────────────────────────────────────────
+# (シート名, 行1タイトル, 行2確認内容, 使用スクリーンショット)
+CASES = [
+    (
+        "UT-AUTH-001",
+        "UT-AUTH-001　ログイン画面表示確認",
+        "確認内容：ブラウザで login.html を開き、ログイン画面（代理店コード・ログインID・パスワード入力欄・ログインボタン）が表示されることを確認",
+        "01_login.png",
+    ),
+    (
+        "UT-AUTH-002",
+        "UT-AUTH-002　staff1 ログイン → ロール表示確認",
+        "確認内容：A001/staff1 でログインし dashboard.html へ遷移。ヘッダーバッジに「A001 staff1｜一般担当」と表示されることを確認",
+        "02_dashboard_staff1.png",
+    ),
+    (
+        "UT-AUTH-003",
+        "UT-AUTH-003　保険金支払状況ボタン グレーアウト確認",
+        "確認内容：staff1（PAYMENT_VIEW権限なし）ログイン後、「保険金支払状況」ボタンがグレーアウト・クリック不可で、他3ボタンが活性状態であることを確認",
+        "03_dashboard_staff1_permission.png",
+    ),
+    (
+        "UT-AUTH-004",
+        "UT-AUTH-004　権限なしボタン ツールチップ確認",
+        "確認内容：グレーアウトされた「保険金支払状況」ボタンにホバーし「権限がありません」ツールチップが表示されることを確認",
+        "04_tooltip_no_permission.png",
+    ),
+    (
+        "UT-AUTH-005",
+        "UT-AUTH-005　ユーザー管理リンク 非表示確認（staff1）",
+        "確認内容：staff1 ログイン時、ヘッダー右上に「ユーザー管理」リンクが表示されない（display:none）ことを確認",
+        "03_dashboard_staff1_permission.png",
+    ),
+    (
+        "UT-AUTH-006",
+        "UT-AUTH-006　ログアウト → ログイン画面復帰確認",
+        "確認内容：staff1 ログイン後、「ログアウト」ボタンをクリックし localStorage がクリアされて login.html に戻ることを確認",
+        "05_logout_back_to_login.png",
+    ),
+    (
+        "UT-AUTH-007",
+        "UT-AUTH-007　admin ログイン → 管理者ロール表示確認",
+        "確認内容：A001/admin でログインし dashboard.html へ遷移。ヘッダーバッジに「A001 admin｜管理者」と表示されることを確認",
+        "06_dashboard_admin.png",
+    ),
+    (
+        "UT-AUTH-008",
+        "UT-AUTH-008　全メニューボタン 活性確認（admin）",
+        "確認内容：admin ログイン後、顧客管理・満期管理・契約照会・保険金支払状況 の全4ボタンがグレーアウトなし・活性状態であることを確認",
+        "07_dashboard_admin_permission.png",
+    ),
+    (
+        "UT-AUTH-009",
+        "UT-AUTH-009　ユーザー管理リンク 表示確認（admin）",
+        "確認内容：admin ログイン後、ヘッダー右上に「ユーザー管理」リンクが表示されることを確認",
+        "07_dashboard_admin_permission.png",
+    ),
+    (
+        "UT-AUTH-010",
+        "UT-AUTH-010　ユーザー管理リンク → admin.html 遷移確認",
+        "確認内容：admin ログイン後、ヘッダーの「ユーザー管理」リンクをクリックし admin.html へ遷移・ユーザー管理画面が表示されることを確認",
+        "08_admin_page.png",
+    ),
+    (
+        "UT-AUTH-011",
+        "UT-AUTH-011　ユーザー一覧テーブル 表示確認",
+        "確認内容：ユーザー管理画面にて admin（管理者）・staff1（一般担当）の2件がロールチップ・有効バッジ・編集/削除ボタンとともに表示されることを確認",
+        "09_admin_user_list.png",
+    ),
+    (
+        "UT-AUTH-012",
+        "UT-AUTH-012　ユーザー追加モーダル 表示確認",
+        "確認内容：「＋ユーザー追加」ボタンをクリックし、ログインID・パスワード・ロール・有効フラグの入力欄を持つ追加モーダルが表示されることを確認",
+        "10_admin_add_modal.png",
+    ),
+    (
+        "UT-AUTH-013",
+        "UT-AUTH-013　ロール別権限マトリクス 表示確認",
+        "確認内容：画面下部のロール別権限一覧（管理者=全権限✓、一般担当=保険金支払状況参照のみ—、閲覧専用=制限あり）が読み取り専用で表示されることを確認",
+        "11_admin_permission_matrix.png",
+    ),
+    (
+        "UT-AUTH-014",
+        "UT-AUTH-014　GET /api/permissions (staff1) 権限リスト返却確認",
+        "確認内容：staff1 の JWT で /api/permissions を呼び出し、role_id:2・role_name:一般担当・permissions:[CUSTOMER_EDIT, MATURITY_VIEW, REPORT_VIEW, USER_ADMIN] が返ることをダッシュボードの権限制御表示で確認",
+        "03_dashboard_staff1_permission.png",
+    ),
+    (
+        "UT-AUTH-015",
+        "UT-AUTH-015　GET /api/users (staff1) → 403応答確認",
+        "確認内容：staff1（role_id:2）で /api/users を呼び出すと HTTP 403 が返り、ユーザー管理リンク非表示・管理画面アクセス不可により確認",
+        "03_dashboard_staff1_permission.png",
+    ),
+    (
+        "UT-AUTH-016",
+        "UT-AUTH-016　GET /api/users (admin) → ユーザー一覧返却確認",
+        "確認内容：admin（role_id:1）で /api/users を呼び出し、A001 代理店のユーザー2件（admin・staff1）が返ることをユーザー一覧画面表示で確認",
+        "09_admin_user_list.png",
+    ),
+    (
+        "UT-AUTH-017",
+        "UT-AUTH-017　非管理者の admin.html 直接アクセス → リダイレクト確認",
+        "確認内容：staff1 ログイン状態で admin.html に直接 URL アクセスした際、role_id:2 と判定されて dashboard.html にリダイレクトされることを確認",
+        "03_dashboard_staff1_permission.png",
+    ),
 ]
 
-# ── レイアウト定数 ─────────────────────────────────────────────
-# Excel 画像表示サイズ（ピクセル）
-IMG_W = 800   # 表示幅
-IMG_H = 500   # 表示高さ
+# ── スタイル定数（UT-003 と同一）──────────────────────────────
+NAVY     = "000D2B5E"
+GOLD_BG  = "00FFF8E6"
+WHITE    = "00FFFFFF"
+GRAY_TXT = "005A6480"
+NAVY_TXT = "000D2B5E"
+EXEC_INFO = "テスト実施日：2026/05/30　　環境：ローカルファイル（file://）　　ブラウザ：Chromium (Playwright headless)"
 
-# Excel行高さ(pt) → ピクセル換算: 1pt ≈ 1.333px (96dpi)
-ROW_H_PT      = 14.0
-PX_PER_PT     = 96 / 72          # ≈ 1.333
-IMG_ROW_COUNT = int(IMG_H / (ROW_H_PT * PX_PER_PT)) + 2   # ≈ 27行
-HEADER_ROW_H  = 30.0
-GAP_ROWS      = 2
 
-# 1ケース当たりの行数
-ROWS_PER_CASE = 1 + IMG_ROW_COUNT + GAP_ROWS   # header + image + gap
-
-# ── カラー定義 ─────────────────────────────────────────────────
-NAVY      = "000D2B5E"
-NAVY_MID  = "001A3A72"
-GOLD      = "00C9A84C"
-WHITE     = "00FFFFFF"
-LIGHT     = "00F0F2F7"
-
-def thin_border():
-    s = Side(style="thin", color="FFCCCCCC")
-    return Border(left=s, right=s, top=s, bottom=s)
-
-def resize_image(img_path: pathlib.Path, width: int, height: int) -> io.BytesIO:
-    """PIL でリサイズして BytesIO に PNG 保存して返す"""
+def resize_to_buf(img_path: pathlib.Path, w: int, h: int) -> io.BytesIO:
     with PILImage.open(img_path) as im:
         im = im.convert("RGB")
-        im = im.resize((width, height), PILImage.LANCZOS)
+        im = im.resize((w, h), PILImage.LANCZOS)
         buf = io.BytesIO()
         im.save(buf, format="PNG", optimize=True)
         buf.seek(0)
     return buf
 
 
-def add_screenshot_sheet():
+def build_case_sheet(wb, sheet_name, row1_title, row2_content, img_path):
+    ws = wb.create_sheet(sheet_name)
+
+    # カラム幅（UT-003 準拠）
+    ws.column_dimensions["A"].width = 18.0
+
+    # ── 行1：タイトル（navy背景・白太字）────────────────────
+    ws.row_dimensions[1].height = 28.0
+    ws.merge_cells("A1:H1")
+    c1 = ws["A1"]
+    c1.value = row1_title
+    c1.font  = Font(bold=True, size=12, color=WHITE, name="Meiryo")
+    c1.fill  = PatternFill(fill_type="solid", fgColor=NAVY)
+    c1.alignment = Alignment(horizontal="center", vertical="center")
+
+    # ── 行2：確認内容（薄黄背景・紺文字）────────────────────
+    ws.row_dimensions[2].height = 20.0
+    ws.merge_cells("A2:H2")
+    c2 = ws["A2"]
+    c2.value = row2_content
+    c2.font  = Font(bold=False, size=10, color=NAVY_TXT, name="Meiryo")
+    c2.fill  = PatternFill(fill_type="solid", fgColor=GOLD_BG)
+    c2.alignment = Alignment(horizontal="left", vertical="center")
+
+    # ── 行3：実施情報（グレー文字・背景なし）────────────────
+    ws.row_dimensions[3].height = 16.0
+    ws.merge_cells("A3:H3")
+    c3 = ws["A3"]
+    c3.value = EXEC_INFO
+    c3.font  = Font(bold=False, size=9, color=GRAY_TXT, name="Meiryo")
+    c3.alignment = Alignment(horizontal="left", vertical="center")
+
+    # ── 行4〜：スクリーンショット（col=0, row=4 = A5セル相当）
+    buf    = resize_to_buf(img_path, IMG_W, IMG_H)
+    xl_img = XLImage(buf)
+    xl_img.width  = IMG_W
+    xl_img.height = IMG_H
+    # UT-003 と同じアンカー：col=0, row=4 (0-indexed)
+    ws.add_image(xl_img, "A5")
+
+    return ws
+
+
+def main():
     wb = load_workbook(EXCEL_PATH)
 
-    # 既に存在するなら削除して作り直す
+    # 前回追加した「スクリーンショット証跡」シートを削除
     if "スクリーンショット証跡" in wb.sheetnames:
         del wb["スクリーンショット証跡"]
+        print("  既存の「スクリーンショット証跡」シートを削除")
 
-    ws = wb.create_sheet("スクリーンショット証跡")
+    # 既存の個別ケースシートも削除（再実行対応）
+    for case_id, *_ in CASES:
+        if case_id in wb.sheetnames:
+            del wb[case_id]
 
-    # ── カラム幅設定 ─────────────────────────────────────────
-    # A列: ラベル（狭め）/ B列: 画像エリア（広め）
-    # Excel列幅 1unit ≈ 7px
-    ws.column_dimensions["A"].width = 18
-    ws.column_dimensions["B"].width = int(IMG_W / 7) + 2   # ≈ 116
-
-    # ── シートタイトル行（行1）────────────────────────────────
-    ws.row_dimensions[1].height = 36
-    ws.merge_cells("A1:B1")
-    c = ws["A1"]
-    c.value = "権限管理テスト　スクリーンショット証跡"
-    c.font  = Font(bold=True, size=15, color=WHITE, name="Meiryo")
-    c.fill  = PatternFill(fill_type="solid", fgColor=NAVY)
-    c.alignment = Alignment(horizontal="center", vertical="center")
-
-    ws.row_dimensions[2].height = 20
-    ws.merge_cells("A2:B2")
-    ws["A2"].value = "テストID：UT-AUTH-001 〜 UT-AUTH-017　　テスト実施日：2026/05/30"
-    ws["A2"].font  = Font(size=10, color=WHITE, name="Meiryo")
-    ws["A2"].fill  = PatternFill(fill_type="solid", fgColor=NAVY_MID)
-    ws["A2"].alignment = Alignment(horizontal="left", vertical="center")
-
-    ws.row_dimensions[3].height = 8   # 区切り空白
-
-    # ── テストケースごとに貼り付け ──────────────────────────
-    current_row = 4
-
-    for idx, (case_id, label, img_name) in enumerate(CASE_SCREENSHOTS):
+    # 各テストケースシートを追加
+    for sheet_name, row1, row2, img_name in CASES:
         img_path = SS_DIR / img_name
-        print(f"  [{idx+1:02d}/{len(CASE_SCREENSHOTS)}] {case_id} ← {img_name}")
+        build_case_sheet(wb, sheet_name, row1, row2, img_path)
+        print(f"  [{sheet_name}] ← {img_name}")
 
-        # ── ヘッダー行（ケースID・説明）────────────────────
-        ws.row_dimensions[current_row].height = HEADER_ROW_H
-
-        # A列：試験番号
-        c_id = ws.cell(row=current_row, column=1, value=case_id)
-        c_id.font  = Font(bold=True, size=10, color=WHITE, name="Meiryo")
-        c_id.fill  = PatternFill(fill_type="solid", fgColor=NAVY)
-        c_id.alignment = Alignment(horizontal="center", vertical="center")
-        c_id.border = thin_border()
-
-        # B列：確認内容ラベル
-        c_lb = ws.cell(row=current_row, column=2, value=label)
-        c_lb.font  = Font(bold=True, size=10, color=WHITE, name="Meiryo")
-        c_lb.fill  = PatternFill(fill_type="solid", fgColor=NAVY)
-        c_lb.alignment = Alignment(horizontal="left", vertical="center")
-        c_lb.border = thin_border()
-
-        img_start_row = current_row + 1
-
-        # ── 画像エリアの行高さを設定 ────────────────────────
-        for r in range(img_start_row, img_start_row + IMG_ROW_COUNT):
-            ws.row_dimensions[r].height = ROW_H_PT
-            # A列・B列に背景色（薄いグレー）
-            for col in [1, 2]:
-                cell = ws.cell(row=r, column=col)
-                cell.fill = PatternFill(fill_type="solid", fgColor=LIGHT)
-
-        # ── 画像をリサイズして挿入 ──────────────────────────
-        buf = resize_image(img_path, IMG_W, IMG_H)
-        xl_img = XLImage(buf)
-        xl_img.width  = IMG_W
-        xl_img.height = IMG_H
-
-        # B列の開始行にアンカー
-        anchor_cell = f"B{img_start_row}"
-        ws.add_image(xl_img, anchor_cell)
-
-        # ── ギャップ行 ────────────────────────────────────
-        current_row = img_start_row + IMG_ROW_COUNT
-        for r in range(current_row, current_row + GAP_ROWS):
-            ws.row_dimensions[r].height = 10
-
-        current_row += GAP_ROWS
-
-    # ── 保存 ─────────────────────────────────────────────────
     wb.save(EXCEL_PATH)
     print(f"\n保存完了: {EXCEL_PATH}")
-    print(f"総テストケース数: {len(CASE_SCREENSHOTS)}")
+    print(f"シート構成: {wb.sheetnames}")
 
 
 if __name__ == "__main__":
-    add_screenshot_sheet()
+    main()
