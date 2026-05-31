@@ -338,17 +338,17 @@
     return `<div class="detail-grid">${basic}</div>${amounts}${quake}${options}`;
   }
 
-  // 自賠責
+  // 自賠責（jibai_coverage_limitはTEXTなのでval()を使用）
   function renderJibai(c) {
     return `<div class="detail-grid">
       ${item('車名', val(esc(c.jibai_car_name)))}
       ${item('型式', val(esc(c.jibai_car_model)))}
       ${item('ナンバープレート', val(esc(c.jibai_plate_no)))}
-      ${item('保険金限度額', yen(c.jibai_coverage_limit))}
+      ${item('保険金限度額', val(esc(c.jibai_coverage_limit)))}
     </div>`;
   }
 
-  // 傷害
+  // 傷害（inj_surgery_benefitはTEXTなのでval()を使用）
   function renderInjury(c) {
     return `<div class="detail-grid">
       ${item('商品名', val(esc(c.product_name)))}
@@ -356,33 +356,33 @@
       ${item('死亡保険金額', yen(c.inj_death_amount))}
       ${item('後遺障害保険金額', yen(c.inj_disability_amount))}
       ${item('入院保険金日額', yen(c.inj_hospital_daily))}
-      ${item('手術保険金', yen(c.inj_surgery_benefit))}
+      ${item('手術保険金', val(esc(c.inj_surgery_benefit)))}
       ${item('通院保険金日額', yen(c.inj_outpatient_daily))}
     </div>`;
   }
 
-  // 賠償責任
+  // 賠償責任（liab_coverage_limitはTEXTなのでval()を使用）
   function renderLiability(c) {
     const deductibleVal = (c.liab_deductible === 0 || c.liab_deductible === '0' || c.liab_deductible === null)
       ? 'なし'
-      : val(esc(String(c.liab_deductible)));
+      : yen(c.liab_deductible);
     return `<div class="detail-grid">
       ${item('商品名', val(esc(c.product_name)))}
       ${item('補償範囲', val(esc(c.liab_coverage_scope)))}
-      ${item('賠償責任保険金額限度額', yen(c.liab_coverage_limit))}
+      ${item('賠償責任保険金額限度額', val(esc(c.liab_coverage_limit)))}
       ${item('免責金額', deductibleVal)}
       ${item('示談交渉サービス', flag(c.liab_jidan_flg))}
     </div>`;
   }
 
-  // サイバーリスク
+  // サイバーリスク（cyber_*はTEXTなのでval()を使用）
   function renderCyber(c) {
     return `<div class="detail-grid">
       ${item('商品名', val(esc(c.product_name)))}
-      ${item('年間売上高', yen(c.cyber_annual_revenue))}
-      ${item('第三者賠償責任限度額', yen(c.cyber_3rd_limit))}
-      ${item('情報漏えい対応費用限度額', yen(c.cyber_leak_limit))}
-      ${item('システム復旧費用限度額', yen(c.cyber_restore_limit))}
+      ${item('年間売上高', val(esc(c.cyber_annual_revenue)))}
+      ${item('第三者賠償責任限度額', val(esc(c.cyber_3rd_limit)))}
+      ${item('情報漏えい対応費用限度額', val(esc(c.cyber_leak_limit)))}
+      ${item('システム復旧費用限度額', val(esc(c.cyber_restore_limit)))}
       ${item('営業中断損失補償', flag(c.cyber_biz_interruption_flg))}
     </div>`;
   }
