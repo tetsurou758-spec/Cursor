@@ -416,7 +416,7 @@
 
     // ── カード1: 契約基本情報 ──
     document.getElementById('card-basic').innerHTML = `
-      ${item('契約番号', val(esc(c.contract_no)))}
+      ${item('証券番号', val(esc(c.contract_no)))}
       ${item('代理店コード', val(esc(c.agency_code)))}
       ${item('代理店名', val(esc(c.agency_name)))}
       ${item('種目', val(esc(c.policy_type)))}
@@ -425,7 +425,7 @@
       ${item('担当者コード', val(esc(c.staff_code)))}
       ${item('更改STS', renewalBadge(c.renewal_status))}
       ${item('フォローコールSTS', followcallBadge(c.followcall_status))}
-      ${item('証券番号', val(esc(c.policy_number)))}
+      ${item('保険会社証券番号', val(esc(c.policy_number)))}
     `;
 
     // ── カード2: 被保険者/契約者情報 ──
@@ -481,7 +481,7 @@
     // contract_no パラメータがない場合はエラー表示
     if (!_contractNo) {
       document.getElementById('alert-area').innerHTML =
-        '<div class="info-alert">契約番号を指定してください（URLパラメータ: ?contract_no=XXXX）</div>';
+        '<div class="info-alert">証券番号を指定してください（URLパラメータ: ?contract_no=XXXX）</div>';
       return;
     }
 
@@ -498,7 +498,7 @@
 
       if (res.status === 404) {
         document.getElementById('alert-area').innerHTML =
-          `<div class="info-alert">契約番号 <strong>${esc(_contractNo)}</strong> の契約が見つかりません。</div>`;
+          `<div class="info-alert">証券番号 <strong>${esc(_contractNo)}</strong> の契約が見つかりません。</div>`;
         return;
       }
 

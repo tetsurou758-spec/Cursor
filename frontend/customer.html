@@ -586,7 +586,7 @@
     const contractRows = contracts.map(ct => `
       <tr>
         <td>${ct.policy_type || '—'}</td>
-        <td>${ct.contract_no || '—'}</td>
+        <td>${ct.contract_no ? `<a href="contract_detail.html?contract_no=${encodeURIComponent(ct.contract_no)}" style="color:var(--primary);font-weight:600;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${ct.contract_no}</a>` : '—'}</td>
         <td>${ct.agency_code || '—'}</td>
         <td>${ct.expiry_date || '—'}</td>
         <td style="text-align:right">${ct.annual_premium ? ct.annual_premium.toLocaleString() + '円' : '—'}</td>
@@ -610,7 +610,7 @@
         <table class="contract-table">
           <thead>
             <tr>
-              <th>種目</th><th>契約番号</th><th>代理店</th><th>満期日</th>
+              <th>種目</th><th>証券番号</th><th>代理店</th><th>満期日</th>
               <th style="text-align:right">年換算保険料</th><th>担当者</th><th>更改STS</th>
             </tr>
           </thead>
