@@ -54,7 +54,7 @@
     .type-other { background: #f0e8fd; color: #4a1272; }
 
     /* ═══ PAYMENT TABLE ═════════════════════════════════════════ */
-    .payment-table-wrap { overflow: hidden; }
+    .payment-table-wrap { overflow: clip; }
     table.payment-table { width: 100%; border-collapse: collapse; }
     table.payment-table thead th { background: var(--primary); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 10px 14px; text-align: center; letter-spacing: 0.03em; }
     table.payment-table tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
@@ -154,14 +154,20 @@
 
 <script>
   const API_BASE = 'http://127.0.0.1:8000';
+  let _token = null;
 
   /* ─── セッション ───────────────────────────────────────────── */
-  const _sess = getSession();
-  if (!_sess) { location.replace('login.html'); }
+  document.addEventListener('DOMContentLoaded', () => {
+    _token = requireAuth();
+    if (!_token) return;
 
-  document.getElementById('hdr-code').textContent = _sess.agency_code || _sess.staff_code || '—';
-  document.getElementById('hdr-name').textContent = _sess.name || '—';
-  document.getElementById('btn-logout').addEventListener('click', () => { clearSession(); location.replace('login.html'); });
+    const isStaff = _ssGet('user_type') === 'staff';
+    document.getElementById('hdr-code').textContent = isStaff ? (_ssGet('staff_code') || '—') : (_ssGet('agency_code') || '—');
+    document.getElementById('hdr-name').textContent = isStaff ? (_ssGet('staff_name') || '—') : (_ssGet('login_id') || '—');
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+    loadData();
+  });
 
   /* ─── URLパラメータ ────────────────────────────────────────── */
   const _p          = new URLSearchParams(location.search);
@@ -222,8 +228,8 @@
     }
 
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${_sess.token}` } });
-      if (res.status === 401) { clearSession(); location.replace('login.html'); return; }
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${_token}` } });
+      if (res.status === 401) { doLogout(); return; }
       if (res.status === 404) {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('alert-area').innerHTML =
@@ -298,8 +304,6 @@
     document.getElementById('detail-content').style.display = 'block';
   }
 
-  /* ─── 初期ロード ──────────────────────────────────────────── */
-  loadData();
 </script>
 </body>
 </html>

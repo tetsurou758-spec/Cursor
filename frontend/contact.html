@@ -36,7 +36,7 @@
     .result-bar span { font-weight: 700; color: var(--primary); font-size: 15px; }
 
     /* ── テーブル ── */
-    .table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow-x: auto; }
+    .table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: auto; max-height: calc(100vh - 200px); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
     thead th { background: var(--primary); color: #fff; padding: 10px 12px; text-align: left; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
     tbody tr { border-bottom: 1px solid #f0f0f0; transition: background .15s; cursor: pointer; }

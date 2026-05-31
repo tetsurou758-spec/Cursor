@@ -56,7 +56,7 @@
     .result-info strong { color: var(--primary); font-size: 1rem; }
 
     /* ═══ TABLE ══════════════════════════════════════════════════ */
-    .table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px var(--card-shadow); overflow: hidden; }
+    .table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px var(--card-shadow); overflow: clip; }
     table { width: 100%; border-collapse: collapse; }
     thead th { background: var(--primary); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 10px 10px; text-align: center; white-space: nowrap; letter-spacing: 0.03em; position: sticky; top: 60px; z-index: 10; }
     thead th:first-child { border-radius: 0; }
@@ -187,14 +187,20 @@
 
 <script>
   const API_BASE = 'http://127.0.0.1:8000';
+  let _token = null;
 
   /* ─── セッション ───────────────────────────────────────────── */
-  const _sess = getSession();
-  if (!_sess) { location.replace('login.html'); }
+  document.addEventListener('DOMContentLoaded', () => {
+    _token = requireAuth();
+    if (!_token) return;
 
-  document.getElementById('hdr-code').textContent = _sess.agency_code || _sess.staff_code || '—';
-  document.getElementById('hdr-name').textContent = _sess.name || '—';
-  document.getElementById('btn-logout').addEventListener('click', () => { clearSession(); location.replace('login.html'); });
+    const isStaff = _ssGet('user_type') === 'staff';
+    document.getElementById('hdr-code').textContent = isStaff ? (_ssGet('staff_code') || '—') : (_ssGet('agency_code') || '—');
+    document.getElementById('hdr-name').textContent = isStaff ? (_ssGet('staff_name') || '—') : (_ssGet('login_id') || '—');
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+    search();
+  });
 
   /* ─── ユーティリティ ──────────────────────────────────────── */
   function esc(s) {
@@ -230,9 +236,9 @@
 
     try {
       const res = await fetch(`${API_BASE}/api/accidents?${params}`, {
-        headers: { Authorization: `Bearer ${_sess.token}` }
+        headers: { Authorization: `Bearer ${_token}` }
       });
-      if (res.status === 401) { clearSession(); location.replace('login.html'); return; }
+      if (res.status === 401) { doLogout(); return; }
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       renderTable(data.accidents || []);
@@ -289,8 +295,6 @@
     table.style.display = 'table';
   }
 
-  /* ─── 初期ロード ──────────────────────────────────────────── */
-  search();
 </script>
 </body>
 </html>
