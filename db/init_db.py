@@ -860,13 +860,14 @@ def init_db():
                 upsell_status         TEXT     DEFAULT 'なし',
                 lapse_status          INTEGER  DEFAULT 0,
                 created_at            DATETIME DEFAULT CURRENT_TIMESTAMP,
-                linked_customer_id    INTEGER  REFERENCES customers(customer_id),
-                contractor_last_name  TEXT,
-                contractor_first_name TEXT,
-                contractor_gender     TEXT,
-                contractor_birth_date TEXT,
-                contractor_address    TEXT,
-                contractor_tel        TEXT
+                linked_customer_id        INTEGER  REFERENCES customers(customer_id),
+                contractor_last_name      TEXT,
+                contractor_first_name     TEXT,
+                contractor_first_name_raw TEXT,
+                contractor_gender         TEXT,
+                contractor_birth_date     TEXT,
+                contractor_address        TEXT,
+                contractor_tel            TEXT
             )
         """)
 
@@ -1002,16 +1003,16 @@ def init_db():
                          contact_method, contact_info, followcall_status, renewal_status,
                          upsell_status, lapse_status,
                          linked_customer_id,
-                         contractor_last_name, contractor_first_name,
+                         contractor_last_name, contractor_first_name, contractor_first_name_raw,
                          contractor_gender, contractor_birth_date,
                          contractor_address, contractor_tel)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (ct["agency_code"], contract_no, customer_display_name,
                           renewal_month, "pending",
                           ct["policy_type"], ct["expiry_date"], ct["annual_premium"], ct["staff_code"],
                           "TEL", c["tel"], "未実施", "未対応", "なし", 0,
                           cust_db_id,
-                          c["last_name"], first_name,
+                          c["last_name"], first_name, c["first_name_raw"],
                           c["gender"], c["birth_date"],
                           c["address"], c["tel"]))
                     total_cust_contracts += 1
