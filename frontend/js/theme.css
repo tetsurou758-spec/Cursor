@@ -26,6 +26,7 @@
     --card-shadow:       rgba(13,43,94,0.08);
     --label-color:       #C9A84C;
     --held-color:        var(--accent);
+    --detail-label-color: #1E293B;
 }
 
 :root[data-theme="staff"] {
@@ -54,4 +55,5 @@
     --card-shadow:       rgba(255,20,147,0.08);
     --label-color:       #FF69B4;
     --held-color:        var(--primary);
+    --detail-label-color: #FF69B4;
 }
