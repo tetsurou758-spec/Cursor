@@ -24,6 +24,7 @@
     --accent-border-btn: rgba(201,168,76,0.6);
     --primary-shadow:    rgba(9,30,69,0.35);
     --card-shadow:       rgba(13,43,94,0.08);
+    --label-color:       #C9A84C;
 }
 
 :root[data-theme="staff"] {
@@ -50,4 +51,5 @@
     --accent-border-btn: rgba(255,105,180,0.6);
     --primary-shadow:    rgba(204,0,119,0.35);
     --card-shadow:       rgba(255,20,147,0.08);
+    --label-color:       #FF69B4;
 }

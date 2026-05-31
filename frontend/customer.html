@@ -94,8 +94,8 @@
     /* ── 保険加入状況 ── */
     .policy-status { display: flex; gap: 2px; }
     .ps-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-    .ps-label { font-size: 9px; color: #999; }
-    .ps-val { font-size: 13px; font-weight: 700; }
+    .ps-label { font-size: 11px; color: #999; font-weight: bold; }
+    .ps-val { font-size: 16px; font-weight: 700; }
     .ps-val.held { color: var(--accent); }
     .ps-val.none { color: #ccc; }
 
@@ -113,7 +113,7 @@
     .detail-cell { padding: 12px 16px 14px 40px; }
     .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 24px; margin-bottom: 12px; }
     .detail-item { font-size: 12px; }
-    .detail-label { color: #888; font-size: 11px; }
+    .detail-label { color: var(--label-color); font-size: 12px; font-weight: bold; border-bottom: 1px solid var(--gray-border); padding-bottom: 3px; margin-bottom: 4px; }
     .detail-value { font-weight: 600; color: #333; }
     .contract-list { margin-top: 10px; }
     .contract-list-title { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
