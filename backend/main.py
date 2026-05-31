@@ -1533,6 +1533,7 @@ def get_dashboard_contacts(payload: dict = Depends(verify_token)):
             if not groups:
                 return {"contacts": []}
             ph = ",".join("?" * len(groups))
+            # agency_id が NULL の場合は顧客の group_code で代替判定
             sql = f"""
                 SELECT ct.id, ct.contact_datetime, ct.contact_type, ct.memo,
                        ct.created_by, ct.agency_id,
@@ -1542,13 +1543,17 @@ def get_dashboard_contacts(payload: dict = Depends(verify_token)):
                 LEFT JOIN agencies ag ON ag.agency_id = ct.agency_id
                 WHERE ct.contact_type != 'その他'
                   AND ct.contact_datetime >= ?
-                  AND (ag.group_code IN ({ph}) OR ct.agency_id IS NULL)
+                  AND (
+                    ag.group_code IN ({ph})
+                    OR (ct.agency_id IS NULL AND c.group_code IN ({ph}))
+                  )
                 ORDER BY ct.contact_datetime DESC
                 LIMIT 10
             """
-            rows = conn.execute(sql, [since] + groups).fetchall()
+            rows = conn.execute(sql, [since] + groups + groups).fetchall()
         else:
             # 代理店：同じgroup_codeの代理店が登録した履歴
+            # agency_id が NULL の場合は顧客の group_code で代替判定
             sql = """
                 SELECT ct.id, ct.contact_datetime, ct.contact_type, ct.memo,
                        ct.created_by, ct.agency_id,
@@ -1558,11 +1563,14 @@ def get_dashboard_contacts(payload: dict = Depends(verify_token)):
                 LEFT JOIN agencies ag ON ag.agency_id = ct.agency_id
                 WHERE ct.contact_type != 'その他'
                   AND ct.contact_datetime >= ?
-                  AND ag.group_code = ?
+                  AND (
+                    ag.group_code = ?
+                    OR (ct.agency_id IS NULL AND c.group_code = ?)
+                  )
                 ORDER BY ct.contact_datetime DESC
                 LIMIT 10
             """
-            rows = conn.execute(sql, [since, group_code]).fetchall()
+            rows = conn.execute(sql, [since, group_code, group_code]).fetchall()
 
         return {"contacts": [dict(r) for r in rows]}
     finally:
