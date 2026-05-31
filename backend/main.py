@@ -724,10 +724,20 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 ).fetchall()]
 
             def aggregate_staff(month: str) -> dict:
-                """管轄代理店全体の当月/翌月更改ステータス別件数を集計して返す"""
+                """管轄代理店全体の先月/当月/翌月更改ステータス別件数を集計して返す"""
                 if not agency_codes:
                     return {"month": month, "completed": 0, "pending": 0, "total": 0, "rate": 0, "total_contracts": 0}
                 placeholders = ",".join("?" * len(agency_codes))
+
+                # 該当月の満期契約総件数（renewal_status・落ち問わず）
+                month_total = cur.execute(
+                    f"SELECT COUNT(*) FROM contracts"
+                    f" WHERE agency_code IN ({placeholders})"
+                    f"   AND strftime('%Y-%m', expiry_date) = ?",
+                    (*agency_codes, month)
+                ).fetchone()[0]
+
+                # renewal_status 別件数
                 cur.execute(f"""
                     SELECT renewal_status, COUNT(*) AS cnt
                     FROM contracts
@@ -735,21 +745,17 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                       AND strftime('%Y-%m', expiry_date) = ?
                     GROUP BY renewal_status
                 """, (*agency_codes, month))
-                rows  = {r["renewal_status"]: r["cnt"] for r in cur.fetchall()}
-                done  = rows.get("更改済", 0)
-                pend  = rows.get("未対応", 0) + rows.get("対応中", 0)
-                total = done + pend
-                all_cnt = cur.execute(
-                    f"SELECT COUNT(*) FROM contracts WHERE agency_code IN ({placeholders})",
-                    tuple(agency_codes)
-                ).fetchone()[0]
+                rows = {r["renewal_status"]: r["cnt"] for r in cur.fetchall()}
+                done = rows.get("更改済", 0)
+                pend = rows.get("未対応", 0) + rows.get("対応中", 0)
+
                 return {
                     "month":           month,
                     "completed":       done,
                     "pending":         pend,
-                    "total":           total,
-                    "rate":            round(done / total * 100, 1) if total > 0 else 0,
-                    "total_contracts": all_cnt,
+                    "total":           month_total,
+                    "rate":            round(done / month_total * 100, 1) if month_total > 0 else 0,
+                    "total_contracts": month_total,
                 }
 
             return {
@@ -768,7 +774,17 @@ def get_dashboard(payload: dict = Depends(verify_token)):
             agency_code = payload["agency_code"]
 
             def aggregate(month: str) -> dict:
-                """自代理店の当月/翌月更改ステータス別件数を集計して返す"""
+                """自代理店の先月/当月/翌月更改ステータス別件数を集計して返す"""
+
+                # 該当月の満期契約総件数（renewal_status・落ち問わず）
+                month_total = cur.execute(
+                    "SELECT COUNT(*) FROM contracts"
+                    " WHERE agency_code = ?"
+                    "   AND strftime('%Y-%m', expiry_date) = ?",
+                    (agency_code, month)
+                ).fetchone()[0]
+
+                # renewal_status 別件数
                 cur.execute("""
                     SELECT renewal_status, COUNT(*) AS cnt
                     FROM contracts
@@ -779,17 +795,14 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 rows  = {r["renewal_status"]: r["cnt"] for r in cur.fetchall()}
                 done  = rows.get("更改済", 0)
                 pend  = rows.get("未対応", 0) + rows.get("対応中", 0)
-                total = done + pend
-                all_cnt = cur.execute(
-                    "SELECT COUNT(*) FROM contracts WHERE agency_code = ?", (agency_code,)
-                ).fetchone()[0]
+
                 return {
                     "month":           month,
                     "completed":       done,
                     "pending":         pend,
-                    "total":           total,
-                    "rate":            round(done / total * 100, 1) if total > 0 else 0,
-                    "total_contracts": all_cnt,
+                    "total":           month_total,
+                    "rate":            round(done / month_total * 100, 1) if month_total > 0 else 0,
+                    "total_contracts": month_total,
                 }
 
             return {
