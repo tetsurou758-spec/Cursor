@@ -1141,3 +1141,233 @@ def get_maturity(
         return {"contracts": contracts, "total": len(contracts)}
     finally:
         conn.close()
+
+
+@app.get("/api/contracts/search")
+def search_contracts(
+    payload:       dict          = Depends(verify_token),
+    q:             Optional[str] = Query(default=None,  description="汎用検索（証券番号/顧客名/電話番号）"),
+    policy_no:     Optional[str] = Query(default=None,  description="証券番号（部分一致）"),
+    customer_name: Optional[str] = Query(default=None,  description="顧客名（部分一致）"),
+    customer_tel:  Optional[str] = Query(default=None,  description="電話番号（部分一致）"),
+    policy_type:   Optional[str] = Query(default=None,  description="保険種目"),
+    agency_code_q: Optional[str] = Query(default=None,  alias="agency_code", description="代理店コード（社員絞込）"),
+    page:          int           = Query(default=1,  ge=1),
+    limit:         int           = Query(default=50, ge=1, le=200),
+    sort_by:       str           = Query(default="expiry_date"),
+    sort_order:    str           = Query(default="asc"),
+):
+    """
+    契約検索一覧（ページング・ソート対応）
+
+    代理店ユーザー：自グループの契約のみ
+    社員ユーザー：role_id=1は全件、2/3は同一buka_codeの代理店のみ
+    """
+    user_type  = payload.get("user_type", "agency")
+    group_code = payload.get("group_code")
+    own_agency = payload.get("agency_code")
+
+    valid_cols = {"expiry_date", "contract_no", "policy_type", "customer_name", "annual_premium"}
+    sort_col   = sort_by if sort_by in valid_cols else "expiry_date"
+    sort_dir   = "ASC" if sort_order.lower() == "asc" else "DESC"
+
+    conn = get_db_connection()
+    try:
+        sql = """
+            SELECT c.id, c.contract_no, c.agency_code, c.customer_name,
+                   c.contractor_last_name, c.contractor_first_name,
+                   c.contractor_tel,
+                   c.policy_type, c.policy_number, c.expiry_date,
+                   c.annual_premium, c.renewal_status, c.linked_customer_id,
+                   ag.agency_name
+            FROM contracts c
+            JOIN agencies ag ON ag.agency_code = c.agency_code
+            WHERE 1=1
+        """
+        params = []
+
+        if user_type == "staff":
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+            if role_id != 1:
+                sql += " AND ag.buka_code = ?"
+                params.append(buka_code)
+            if agency_code_q:
+                sql += " AND c.agency_code = ?"
+                params.append(agency_code_q)
+        elif group_code:
+            sql += " AND ag.group_code = ?"
+            params.append(group_code)
+        else:
+            sql += " AND c.agency_code = ?"
+            params.append(own_agency)
+
+        if q:
+            sql += " AND (c.contract_no LIKE ? OR c.customer_name LIKE ? OR c.contractor_tel LIKE ?)"
+            params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
+        if policy_no:
+            sql += " AND c.contract_no LIKE ?"
+            params.append(f"%{policy_no}%")
+        if customer_name:
+            sql += " AND c.customer_name LIKE ?"
+            params.append(f"%{customer_name}%")
+        if customer_tel:
+            sql += " AND c.contractor_tel LIKE ?"
+            params.append(f"%{customer_tel}%")
+        if policy_type:
+            sql += " AND c.policy_type = ?"
+            params.append(policy_type)
+
+        count_sql = f"SELECT COUNT(*) FROM ({sql})"
+        total = conn.execute(count_sql, params).fetchone()[0]
+
+        sql += f" ORDER BY c.{sort_col} {sort_dir} LIMIT ? OFFSET ?"
+        params.extend([limit, (page - 1) * limit])
+
+        rows = conn.execute(sql, params).fetchall()
+        return {"total": total, "page": page, "limit": limit, "contracts": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+@app.get("/api/contracts/direct-search")
+def direct_search_contracts(
+    payload: dict = Depends(verify_token),
+    q:       str  = Query(..., description="検索クエリ"),
+):
+    """
+    ダイレクト検索（入力値を自動判定して振り分け）
+
+    数字始まり → 電話番号検索（contractor_tel）
+    全角文字始まり → 顧客名検索（customer_name）
+    それ以外 → 証券番号検索（contract_no）
+
+    0件 → {redirect: "none", count: 0}
+    1件 → {redirect: "detail", contract_no: "XXXX", count: 1}
+    2件以上 → {redirect: "list", q: "XXXX", count: N}
+    """
+    if not q:
+        return {"redirect": "none", "count": 0}
+
+    user_type  = payload.get("user_type", "agency")
+    group_code = payload.get("group_code")
+    agency_code = payload.get("agency_code")
+
+    first_char = q[0]
+    if first_char.isdigit():
+        search_type = "tel"
+    elif ord(first_char) > 127:
+        search_type = "name"
+    else:
+        search_type = "contract"
+
+    conn = get_db_connection()
+    try:
+        if search_type == "tel":
+            cond = "c.contractor_tel LIKE ?"
+        elif search_type == "name":
+            cond = "c.customer_name LIKE ?"
+        else:
+            cond = "c.contract_no LIKE ?"
+
+        sql = f"""
+            SELECT c.contract_no FROM contracts c
+            JOIN agencies ag ON ag.agency_code = c.agency_code
+            WHERE {cond}
+        """
+        params = [f"%{q}%"]
+
+        if user_type == "staff":
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+            if role_id != 1:
+                sql += " AND ag.buka_code = ?"
+                params.append(buka_code)
+        elif group_code:
+            sql += " AND ag.group_code = ?"
+            params.append(group_code)
+        else:
+            sql += " AND c.agency_code = ?"
+            params.append(agency_code)
+
+        sql += " LIMIT 51"
+        rows = conn.execute(sql, params).fetchall()
+        count = len(rows)
+
+        if count == 0:
+            return {"redirect": "none", "count": 0}
+        elif count == 1:
+            return {"redirect": "detail", "contract_no": rows[0]["contract_no"], "count": 1}
+        else:
+            return {"redirect": "list", "q": q, "count": min(count, 50)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/contracts/{contract_no}")
+def get_contract_detail(contract_no: str, payload: dict = Depends(verify_token)):
+    """
+    契約詳細を返す（contract_details LEFT OUTER JOIN）
+
+    アクセス制御：
+    - agency ユーザー → 自分のgroup_codeに属する代理店の契約のみ
+    - staff ユーザー → role_id=1は全件、2/3は同一buka_codeの代理店のみ
+    """
+    user_type   = payload.get("user_type", "agency")
+    group_code  = payload.get("group_code")
+    agency_code = payload.get("agency_code")
+
+    conn = get_db_connection()
+    try:
+        sql = """
+            SELECT
+                c.*,
+                ag.buka_code, ag.agency_name, ag.group_code AS ag_group_code,
+                cd.product_name, cd.coverage_target,
+                cd.auto_taininsho, cd.auto_taibutsusho, cd.auto_jinshin,
+                cd.auto_toshasho, cd.auto_vehicle_amount, cd.auto_vehicle_type,
+                cd.auto_deductible, cd.auto_nfl_grade, cd.auto_age_condition,
+                cd.auto_driver_limit, cd.auto_use_purpose,
+                cd.auto_car_name, cd.auto_car_model, cd.auto_plate_no,
+                cd.fire_building_amount, cd.fire_household_amount,
+                cd.fire_structure, cd.fire_location,
+                cd.fire_quake_flg, cd.fire_quake_amount,
+                cd.fire_flood_flg, cd.fire_deductible,
+                cd.jibai_car_name, cd.jibai_car_model,
+                cd.jibai_plate_no, cd.jibai_coverage_limit,
+                cd.inj_death_amount, cd.inj_disability_amount,
+                cd.inj_hospital_daily, cd.inj_surgery_benefit,
+                cd.inj_outpatient_daily, cd.inj_coverage_scope,
+                cd.liab_coverage_limit, cd.liab_deductible,
+                cd.liab_jidan_flg, cd.liab_coverage_scope,
+                cd.cyber_3rd_limit, cd.cyber_leak_limit,
+                cd.cyber_restore_limit, cd.cyber_biz_interruption_flg,
+                cd.cyber_annual_revenue
+            FROM contracts c
+            JOIN agencies ag ON ag.agency_code = c.agency_code
+            LEFT OUTER JOIN contract_details cd ON cd.contract_id = c.id
+            WHERE c.contract_no = ?
+        """
+        params = [contract_no]
+
+        # アクセス制御
+        if user_type == "staff":
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+            if role_id != 1:
+                sql += " AND ag.buka_code = ?"
+                params.append(buka_code)
+        elif group_code:
+            sql += " AND ag.group_code = ?"
+            params.append(group_code)
+        else:
+            sql += " AND c.agency_code = ?"
+            params.append(agency_code)
+
+        row = conn.execute(sql, params).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="契約が見つかりません")
+
+        return {"contract": dict(row)}
+    finally:
+        conn.close()

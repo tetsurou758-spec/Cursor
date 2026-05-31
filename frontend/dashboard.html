@@ -393,7 +393,7 @@
             placeholder="名前 / 証券番号（POL-... / CUST-...） / 電話番号（10〜11桁）"
             onblur="detectSearchType()" oninput="detectSearchType()">
           <button class="btn-go btn-go-customer" onclick="goToCustomer()">顧客へ Go!</button>
-          <button class="btn-go btn-go-maturity" onclick="goToMaturity()">契約へ Go!</button>
+          <button class="btn-go btn-go-maturity" onclick="goToMaturity()">契約照会へ Go!</button>
         </div>
         <div class="direct-search-hint" id="direct-search-hint"></div>
       </div>
@@ -599,12 +599,29 @@
       location.href = `customer.html?${map[type]}=${encodeURIComponent(val)}`;
     }
 
-    function goToMaturity() {
-      const val  = document.getElementById('direct-search-input').value.trim();
+    async function goToMaturity() {
+      const val = document.getElementById('direct-search-input').value.trim();
       if (!val) return;
-      const type = getSearchType(val);
-      const map  = { name: 'customer_name', tel: 'tel', contract: 'contract_no' };
-      location.href = `maturity.html?${map[type]}=${encodeURIComponent(val)}`;
+      const hint = document.getElementById('direct-search-hint');
+      hint.textContent = '検索中...';
+      const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/contracts/direct-search?q=${encodeURIComponent(val)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        if (data.redirect === 'detail') {
+          location.href = `contract_detail.html?contract_no=${encodeURIComponent(data.contract_no)}`;
+        } else if (data.redirect === 'list') {
+          location.href = `contract.html?q=${encodeURIComponent(val)}`;
+        } else {
+          hint.textContent = '該当する契約が見つかりませんでした';
+        }
+      } catch (e) {
+        hint.textContent = 'エラーが発生しました';
+      }
     }
 
     // ── チャートクリック → 満期管理遷移 ───────────────────────────

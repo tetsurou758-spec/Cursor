@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>契約詳細｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+    .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+    .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); }
+    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: #fff; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .page-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
+      color: var(--accent-light); border-radius: 4px; padding: 3px 10px;
+      font-size: 0.75rem; font-weight: 700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
+      border-radius: 20px; padding: 4px 14px; color: #fff; font-size: 0.8rem;
+    }
+    .user-badge span { color: var(--accent); font-weight: 700; margin-right: 6px; }
+    .btn-logout {
+      background: transparent; border: 1.5px solid var(--accent-border-btn);
+      color: var(--accent-light); border-radius: 4px; padding: 5px 14px;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
+    .btn-back {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; border-radius: 4px; padding: 5px 12px;
+      font-size: 0.75rem; cursor: pointer; text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.18); }
+    .accent-bar { height: 3px; background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    .page-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--primary);
+      margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .page-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: var(--accent); border-radius: 2px; }
+
+    /* ═══ DETAIL CARDS ══════════════════════════════════════════ */
+    .detail-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px var(--card-shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+      padding-left: 10px;
+      border-left: 4px solid var(--accent);
+      letter-spacing: 0.04em;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .detail-item label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-sub);
+      font-weight: 600;
+      margin-bottom: 3px;
+      letter-spacing: 0.03em;
+    }
+    .detail-item .val {
+      font-weight: 700;
+      color: #333;
+      font-size: 0.88rem;
+    }
+    .detail-item.full-width { grid-column: 1 / -1; }
+
+    /* ═══ DETAIL SECTION ════════════════════════════════════════ */
+    .detail-section {
+      margin-top: 16px;
+    }
+    .section-title {
+      display: inline-block;
+      background: rgba(26,45,90,0.08);
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+    }
+    /* staffテーマではセクションタイトルの背景色を調整 */
+    :root[data-theme="staff"] .section-title {
+      background: rgba(255,20,147,0.08);
+    }
+
+    /* ═══ FLAG ══════════════════════════════════════════════════ */
+    .flag-yes { color: #16a34a; font-weight: 700; }
+    .flag-no  { color: #dc2626; font-weight: 700; }
+
+    /* ═══ INFO ALERT ════════════════════════════════════════════ */
+    .info-alert {
+      background: #fffbe6;
+      border: 1px solid #f0c040;
+      border-radius: 6px;
+      padding: 14px 18px;
+      color: #7a5800;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    /* ═══ BADGE ═════════════════════════════════════════════════ */
+    .badge { display: inline-block; border-radius: 12px; padding: 2px 9px; font-size: 0.7rem; font-weight: 700; }
+    .badge-red    { background: #f8d7da; color: #721c24; }
+    .badge-orange { background: #fff3cd; color: #856404; }
+    .badge-green  { background: #d4edda; color: #155724; }
+    .badge-gray   { background: #e9ecef; color: #495057; }
+
+    .type-badge { display: inline-block; border-radius: 3px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700; }
+    .type-auto  { background: #e8f4fd; color: #0c5460; }
+    .type-fire  { background: #fde8e8; color: #721c24; }
+    .type-acc   { background: #e8fde8; color: #155724; }
+    .type-other { background: #f0e8fd; color: #4a1272; }
+
+    /* ═══ FOOTER ════════════════════════════════════════════════ */
+    .site-footer {
+      background: var(--primary-dark);
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      padding: 14px 16px;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 600px) {
+      .detail-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+            fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+            fill="rgba(255,255,255,0.15)"/>
+      <polyline points="22,32 29,39 43,25" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo-text">
+      <div class="company">AX損害保険株式会社</div>
+      <div class="system">契約詳細</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="page-badge">契約詳細</span>
+    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <a href="maturity.html" class="btn-back">← 満期管理に戻る</a>
+    <button class="btn-logout" id="btn-logout">ログアウト</button>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<div class="main-content">
+  <div class="page-title" id="page-title">契約詳細</div>
+
+  <!-- アラートエリア -->
+  <div id="alert-area"></div>
+
+  <!-- 契約詳細コンテンツ -->
+  <div id="detail-content" style="display:none">
+
+    <!-- カード1: 契約基本情報 -->
+    <div class="detail-card">
+      <div class="card-title">契約基本情報</div>
+      <div class="detail-grid" id="card-basic"></div>
+    </div>
+
+    <!-- カード2: 被保険者/契約者情報 -->
+    <div class="detail-card">
+      <div class="card-title">被保険者 / 契約者情報</div>
+      <div id="card-person"></div>
+    </div>
+
+    <!-- カード3: 種目別詳細情報 -->
+    <div class="detail-card">
+      <div class="card-title" id="card3-title">種目別詳細情報</div>
+      <div id="card-detail"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+  const _params = new URLSearchParams(location.search);
+  const _contractNo = _params.get('contract_no') || '';
+
+  /* ─── ユーティリティ ─────────────────────────────────────── */
+
+  // 金額フォーマット（¥ + 3桁カンマ）
+  function yen(v) { return v != null ? '¥' + Number(v).toLocaleString() : '—'; }
+
+  // フラグ表示（✓あり / ✕なし）
+  function flag(v) {
+    return v
+      ? '<span class="flag-yes">✓ あり</span>'
+      : '<span class="flag-no">✕ なし</span>';
+  }
+
+  // null安全表示
+  function val(v) { return (v !== null && v !== undefined && v !== '') ? v : '—'; }
+
+  // HTMLエスケープ
+  function esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // detail-item HTML生成
+  function item(label, value, full) {
+    return `<div class="detail-item${full ? ' full-width' : ''}">
+      <label>${esc(label)}</label>
+      <div class="val">${value}</div>
+    </div>`;
+  }
+
+  // セクション見出しHTML生成
+  function section(title, gridHtml) {
+    return `<div class="detail-section">
+      <div class="section-title">${esc(title)}</div>
+      <div class="detail-grid">${gridHtml}</div>
+    </div>`;
+  }
+
+  // 更改STS バッジ
+  function renewalBadge(s) {
+    if (!s) return '—';
+    const cls = {'未対応':'badge-red','対応中':'badge-orange','更改済':'badge-green','落ち':'badge-gray'}[s] || 'badge-gray';
+    return `<span class="badge ${cls}">${esc(s)}</span>`;
+  }
+
+  // FC-STS バッジ
+  function followcallBadge(s) {
+    if (!s) return '—';
+    return `<span class="badge ${s === '未実施' ? 'badge-red' : 'badge-green'}">${esc(s)}</span>`;
+  }
+
+  /* ─── 種目別レンダリング ─────────────────────────────────── */
+
+  // 自動車
+  function renderAuto(c) {
+    const vehicle = `
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('使用目的', val(esc(c.auto_use_purpose)))}
+      ${item('車名', val(esc(c.auto_car_name)))}
+      ${item('型式', val(esc(c.auto_car_model)))}
+      ${item('ナンバープレート', val(esc(c.auto_plate_no)))}
+    `;
+    const coverage = section('補償内容', `
+      ${item('対人賠償', val(esc(c.auto_taininsho)))}
+      ${item('対物賠償', val(esc(c.auto_taibutsusho)))}
+      ${item('人身傷害', val(esc(c.auto_jinshin)))}
+      ${item('搭乗者傷害', val(esc(c.auto_toshasho)))}
+    `);
+    const vehicleInsAmt = c.auto_vehicle_amount != null
+      ? yen(c.auto_vehicle_amount)
+      : 'なし';
+    const vehicleIns = section('車両保険', `
+      ${item('車両保険金額', vehicleInsAmt)}
+      ${item('車両保険種類', c.auto_vehicle_amount != null ? val(esc(c.auto_vehicle_type)) : '—')}
+      ${item('免責金額', c.auto_vehicle_amount != null ? val(esc(c.auto_deductible)) : '—')}
+    `);
+    const conditions = section('契約条件', `
+      ${item('ノンフリート等級', val(esc(c.auto_nfl_grade)))}
+      ${item('年齢条件', val(esc(c.auto_age_condition)))}
+      ${item('運転者限定', val(esc(c.auto_driver_limit)))}
+    `);
+    return `<div class="detail-grid">${vehicle}</div>${coverage}${vehicleIns}${conditions}`;
+  }
+
+  // 火災
+  function renderFire(c) {
+    const basic = `
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('建物構造', val(esc(c.fire_structure)))}
+      ${item('建物所在地', val(esc(c.fire_location)), true)}
+    `;
+    const amounts = section('保険金額', `
+      ${item('建物保険金額', yen(c.fire_building_amount))}
+      ${item('家財保険金額', yen(c.fire_household_amount))}
+    `);
+    const quakeExtra = c.fire_quake_flg
+      ? item('地震保険金額', yen(c.fire_quake_amount))
+      : '';
+    const quake = section('地震保険', `
+      ${item('地震保険', flag(c.fire_quake_flg))}
+      ${quakeExtra}
+    `);
+    const deductibleVal = (c.fire_deductible === 0 || c.fire_deductible === '0' || c.fire_deductible === null)
+      ? 'なし'
+      : val(esc(String(c.fire_deductible)));
+    const options = section('補償オプション', `
+      ${item('水災補償', flag(c.fire_flood_flg))}
+      ${item('免責金額', deductibleVal)}
+    `);
+    return `<div class="detail-grid">${basic}</div>${amounts}${quake}${options}`;
+  }
+
+  // 自賠責
+  function renderJibai(c) {
+    return `<div class="detail-grid">
+      ${item('車名', val(esc(c.jibai_car_name)))}
+      ${item('型式', val(esc(c.jibai_car_model)))}
+      ${item('ナンバープレート', val(esc(c.jibai_plate_no)))}
+      ${item('保険金限度額', yen(c.jibai_coverage_limit))}
+    </div>`;
+  }
+
+  // 傷害
+  function renderInjury(c) {
+    return `<div class="detail-grid">
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('補償範囲', val(esc(c.inj_coverage_scope)))}
+      ${item('死亡保険金額', yen(c.inj_death_amount))}
+      ${item('後遺障害保険金額', yen(c.inj_disability_amount))}
+      ${item('入院保険金日額', yen(c.inj_hospital_daily))}
+      ${item('手術保険金', yen(c.inj_surgery_benefit))}
+      ${item('通院保険金日額', yen(c.inj_outpatient_daily))}
+    </div>`;
+  }
+
+  // 賠償責任
+  function renderLiability(c) {
+    const deductibleVal = (c.liab_deductible === 0 || c.liab_deductible === '0' || c.liab_deductible === null)
+      ? 'なし'
+      : val(esc(String(c.liab_deductible)));
+    return `<div class="detail-grid">
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('補償範囲', val(esc(c.liab_coverage_scope)))}
+      ${item('賠償責任保険金額限度額', yen(c.liab_coverage_limit))}
+      ${item('免責金額', deductibleVal)}
+      ${item('示談交渉サービス', flag(c.liab_jidan_flg))}
+    </div>`;
+  }
+
+  // サイバーリスク
+  function renderCyber(c) {
+    return `<div class="detail-grid">
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('年間売上高', yen(c.cyber_annual_revenue))}
+      ${item('第三者賠償責任限度額', yen(c.cyber_3rd_limit))}
+      ${item('情報漏えい対応費用限度額', yen(c.cyber_leak_limit))}
+      ${item('システム復旧費用限度額', yen(c.cyber_restore_limit))}
+      ${item('営業中断損失補償', flag(c.cyber_biz_interruption_flg))}
+    </div>`;
+  }
+
+  // その他・未知種目
+  function renderOther(c) {
+    return `<div class="detail-grid">
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('保険の目的', val(esc(c.coverage_target)))}
+    </div>`;
+  }
+
+  // 種目別詳細ディスパッチャ
+  function renderDetailBlock(c) {
+    switch (c.policy_type) {
+      case '自動車':       return renderAuto(c);
+      case '火災':         return renderFire(c);
+      case '自賠責':       return renderJibai(c);
+      case '傷害':         return renderInjury(c);
+      case '賠償責任':     return renderLiability(c);
+      case 'サイバーリスク': return renderCyber(c);
+      default:             return renderOther(c);
+    }
+  }
+
+  /* ─── ページレンダリング ─────────────────────────────────── */
+
+  function renderPage(c) {
+    // ページタイトル更新
+    document.getElementById('page-title').textContent = `契約詳細 ─ ${c.contract_no || ''}`;
+
+    // ── カード1: 契約基本情報 ──
+    document.getElementById('card-basic').innerHTML = `
+      ${item('契約番号', val(esc(c.contract_no)))}
+      ${item('代理店コード', val(esc(c.agency_code)))}
+      ${item('代理店名', val(esc(c.agency_name)))}
+      ${item('種目', val(esc(c.policy_type)))}
+      ${item('満期年月日', val(esc(c.expiry_date)))}
+      ${item('年換算保険料', yen(c.annual_premium))}
+      ${item('担当者コード', val(esc(c.staff_code)))}
+      ${item('更改STS', renewalBadge(c.renewal_status))}
+      ${item('フォローコールSTS', followcallBadge(c.followcall_status))}
+      ${item('証券番号', val(esc(c.policy_number)))}
+    `;
+
+    // ── カード2: 被保険者/契約者情報 ──
+    const hasContractor = c.contractor_last_name || c.contractor_first_name;
+    let personHtml = `<div class="detail-grid">`;
+    personHtml += item('顧客名（被保険者）', val(esc(c.customer_name)));
+    if (hasContractor) {
+      personHtml += item('契約者姓', val(esc(c.contractor_last_name)));
+      personHtml += item('契約者名', val(esc(c.contractor_first_name)));
+      personHtml += item('生年月日', val(esc(c.contractor_birth_date)));
+      personHtml += item('性別', val(esc(c.contractor_gender)));
+      personHtml += item('住所', val(esc(c.contractor_address)), true);
+      personHtml += item('電話番号', val(esc(c.contractor_tel)));
+    }
+    personHtml += `</div>`;
+    document.getElementById('card-person').innerHTML = personHtml;
+
+    // ── カード3: 種目別詳細情報 ──
+    document.getElementById('card3-title').textContent = `種目別詳細情報（${c.policy_type || '不明'}）`;
+    document.getElementById('card-detail').innerHTML = renderDetailBlock(c);
+
+    // コンテンツ表示
+    document.getElementById('detail-content').style.display = '';
+  }
+
+  /* ─── 初期化 ─────────────────────────────────────────────── */
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    // 認証ガード
+    const token = requireAuth();
+    if (!token) return;
+
+    // テーマ適用（head で一度実行済みだが念のため）
+    applyTheme();
+
+    // ヘッダーユーザー情報表示
+    const isStaff = (_ssGet('user_type') === 'staff');
+    if (isStaff) {
+      const staffCode = _ssGet('staff_code') || '';
+      const staffName = _ssGet('staff_name') || '';
+      document.getElementById('hdr-code').textContent = staffCode + ' ';
+      document.getElementById('hdr-name').textContent = staffName;
+    } else {
+      const agencyCode = _ssGet('agency_code') || '';
+      const loginId    = _ssGet('login_id')    || '';
+      document.getElementById('hdr-code').textContent = agencyCode + ' ';
+      document.getElementById('hdr-name').textContent = loginId;
+    }
+
+    // ログアウトボタン
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+    // contract_no パラメータがない場合はエラー表示
+    if (!_contractNo) {
+      document.getElementById('alert-area').innerHTML =
+        '<div class="info-alert">契約番号を指定してください（URLパラメータ: ?contract_no=XXXX）</div>';
+      return;
+    }
+
+    // API コール
+    try {
+      const res = await fetch(`${API_BASE}/api/contracts/${encodeURIComponent(_contractNo)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.status === 401) {
+        doLogout();
+        return;
+      }
+
+      if (res.status === 404) {
+        document.getElementById('alert-area').innerHTML =
+          `<div class="info-alert">契約番号 <strong>${esc(_contractNo)}</strong> の契約が見つかりません。</div>`;
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      renderPage(data.contract);
+
+    } catch (e) {
+      document.getElementById('alert-area').innerHTML =
+        '<div class="info-alert">データの取得中にエラーが発生しました。サーバーの状態を確認してください。</div>';
+      console.error('契約詳細取得エラー:', e);
+    }
+  });
+</script>
+</body>
+</html>
