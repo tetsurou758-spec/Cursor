@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>保険金支払状況｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--gray-bg); font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; color: var(--text-main); font-size: 13px; }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 12px var(--primary-shadow); }
+    .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+    .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); }
+    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: #fff; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .page-badge { background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border); color: var(--accent-light); border-radius: 4px; padding: 3px 10px; font-size: 0.75rem; font-weight: 700; }
+    .user-badge { background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border); border-radius: 20px; padding: 4px 14px; color: #fff; font-size: 0.8rem; }
+    .user-badge span { color: var(--accent); font-weight: 700; margin-right: 6px; }
+    .btn-logout { background: transparent; border: 1.5px solid var(--accent-border-btn); color: var(--accent-light); border-radius: 4px; padding: 5px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
+    .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
+    .btn-back { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; padding: 5px 12px; font-size: 0.75rem; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+    .btn-back:hover { background: rgba(255,255,255,0.18); }
+    .accent-bar { height: 3px; background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+    .page-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .page-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: var(--accent); border-radius: 2px; }
+
+    /* ═══ DETAIL CARDS ══════════════════════════════════════════ */
+    .detail-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px var(--card-shadow); padding: 20px; margin-bottom: 20px; }
+    .card-title { color: var(--primary); font-weight: 700; font-size: 0.95rem; margin-bottom: 16px; padding-left: 10px; border-left: 4px solid var(--accent); letter-spacing: 0.04em; }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .detail-item label { display: block; font-size: 0.7rem; color: var(--text-sub); font-weight: 600; margin-bottom: 3px; letter-spacing: 0.03em; }
+    .detail-item .val { font-weight: 700; color: #333; font-size: 0.88rem; }
+    .detail-item.full { grid-column: 1 / -1; }
+
+    /* ═══ STATUS BADGE ══════════════════════════════════════════ */
+    .badge { display: inline-block; border-radius: 10px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; }
+    .badge-done    { background: #d4edda; color: #155724; }
+    .badge-ongoing { background: #fff3cd; color: #856404; }
+    .badge-other   { background: #e9ecef; color: #495057; }
+
+    .type-badge { display: inline-block; border-radius: 3px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700; }
+    .type-auto  { background: #e8f4fd; color: #0c5460; }
+    .type-fire  { background: #fde8e8; color: #721c24; }
+    .type-inj   { background: #fff8e1; color: #7a5800; }
+    .type-acc   { background: #e8fde8; color: #155724; }
+    .type-other { background: #f0e8fd; color: #4a1272; }
+
+    /* ═══ PAYMENT TABLE ═════════════════════════════════════════ */
+    .payment-table-wrap { overflow: hidden; }
+    table.payment-table { width: 100%; border-collapse: collapse; }
+    table.payment-table thead th { background: var(--primary); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 10px 14px; text-align: center; letter-spacing: 0.03em; }
+    table.payment-table tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
+    table.payment-table tbody tr:last-child { border-bottom: none; }
+    table.payment-table tbody tr:hover { background: var(--row-hover); }
+    table.payment-table tbody td { padding: 12px 14px; font-size: 0.85rem; text-align: center; vertical-align: middle; }
+    table.payment-table .td-left { text-align: left; }
+
+    /* 支払状況マーク */
+    .mark-paid   { font-size: 1.2rem; color: #16a34a; font-weight: 700; }
+    .mark-unpaid { font-size: 1.2rem; color: #9ca3af; font-weight: 700; }
+
+    /* 金額 */
+    .amount { font-weight: 700; font-size: 0.92rem; }
+    .amount-paid   { color: #16a34a; }
+    .amount-unpaid { color: #9ca3af; }
+
+    /* 空 */
+    .empty-payment { text-align: center; color: var(--text-sub); padding: 32px; font-size: 0.88rem; }
+
+    /* ローディング・エラー */
+    #loading { text-align: center; padding: 60px; color: var(--text-sub); font-size: 0.88rem; }
+    .info-alert { background: #fffbe6; border: 1px solid #f0c040; border-radius: 6px; padding: 14px 18px; color: #7a5800; font-size: 0.9rem; font-weight: 600; margin-bottom: 20px; }
+
+    @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="header-logo" href="dashboard.html">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+            fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+            fill="rgba(255,255,255,0.15)"/>
+      <polyline points="22,32 29,39 43,25" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo-text">
+      <div class="company">AX損害保険株式会社</div>
+      <div class="system">保険金支払状況</div>
+    </div>
+  </a>
+  <div class="header-right">
+    <span class="page-badge">保険金支払状況</span>
+    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name">--</span></div>
+    <a id="btn-back" href="claim.html" class="btn-back">← 事故契約一覧へ</a>
+    <button class="btn-logout" id="btn-logout">ログアウト</button>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<div class="main-content">
+  <div class="page-title">保険金支払状況</div>
+
+  <div id="loading">読み込み中...</div>
+  <div id="alert-area"></div>
+
+  <div id="detail-content" style="display:none">
+
+    <!-- カード1: 事故基本情報 -->
+    <div class="detail-card">
+      <div class="card-title">事故情報</div>
+      <div class="detail-grid" id="card-accident"></div>
+    </div>
+
+    <!-- カード2: 契約情報 -->
+    <div class="detail-card">
+      <div class="card-title">契約情報</div>
+      <div class="detail-grid" id="card-contract"></div>
+    </div>
+
+    <!-- カード3: 保険金支払一覧 -->
+    <div class="detail-card">
+      <div class="card-title">保険金支払一覧</div>
+      <div class="payment-table-wrap">
+        <table class="payment-table">
+          <thead>
+            <tr>
+              <th>保険金種別</th>
+              <th>支払状況</th>
+              <th>支払金額</th>
+              <th>支払日</th>
+            </tr>
+          </thead>
+          <tbody id="payment-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer style="background:var(--primary-dark);color:rgba(255,255,255,.45);text-align:center;font-size:.7rem;letter-spacing:.06em;padding:14px 16px;margin-top:40px;">
+  &copy; 2026 AX損害保険株式会社. All Rights Reserved.
+</footer>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+
+  /* ─── セッション ───────────────────────────────────────────── */
+  const _sess = getSession();
+  if (!_sess) { location.replace('login.html'); }
+
+  document.getElementById('hdr-code').textContent = _sess.agency_code || _sess.staff_code || '—';
+  document.getElementById('hdr-name').textContent = _sess.name || '—';
+  document.getElementById('btn-logout').addEventListener('click', () => { clearSession(); location.replace('login.html'); });
+
+  /* ─── URLパラメータ ────────────────────────────────────────── */
+  const _p          = new URLSearchParams(location.search);
+  const _accidentId  = _p.get('accident_id');
+  const _contractNo  = _p.get('contract_no');
+  const _from        = _p.get('from') || '';
+
+  // 遷移元に応じて「戻るボタン」を切り替え
+  const FROM_MAP = {
+    maturity: { href: 'maturity.html',  label: '← 満期管理に戻る' },
+    contract: { href: 'contract_detail.html?' + (_contractNo ? 'contract_no=' + encodeURIComponent(_contractNo) + '&from=contract' : ''), label: '← 契約詳細に戻る' },
+    claim:    { href: 'claim.html',     label: '← 事故契約一覧へ' },
+  };
+  const _back = FROM_MAP[_from] || FROM_MAP.claim;
+  const _btnBack = document.getElementById('btn-back');
+  _btnBack.href        = _back.href;
+  _btnBack.textContent = _back.label;
+
+  /* ─── ユーティリティ ──────────────────────────────────────── */
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function val(v) { return (v !== null && v !== undefined && v !== '') ? v : '—'; }
+  function yen(v) { return v != null && v > 0 ? '¥' + Number(v).toLocaleString() : '—'; }
+
+  function item(label, value, full) {
+    return `<div class="detail-item${full ? ' full' : ''}">
+      <label>${esc(label)}</label>
+      <div class="val">${value}</div>
+    </div>`;
+  }
+
+  function statusBadge(s) {
+    const map = { '処理完了':'badge-done', '対応中':'badge-ongoing' };
+    const cls = map[s] || 'badge-other';
+    return `<span class="badge ${cls}">${esc(s)||'—'}</span>`;
+  }
+
+  function typeBadge(t) {
+    const map = { '自動車':'type-auto','火災':'type-fire','傷害':'type-inj','自賠責':'type-acc' };
+    const cls = map[t] || 'type-other';
+    return `<span class="type-badge ${cls}">${esc(t)||'—'}</span>`;
+  }
+
+  /* ─── データ取得 ──────────────────────────────────────────── */
+  async function loadData() {
+    let url;
+    if (_accidentId) {
+      url = `${API_BASE}/api/accidents/${_accidentId}`;
+    } else if (_contractNo) {
+      url = `${API_BASE}/api/accidents/by-contract/${encodeURIComponent(_contractNo)}`;
+    } else {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('alert-area').innerHTML =
+        '<div class="info-alert">事故IDまたは契約番号が指定されていません。</div>';
+      return;
+    }
+
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${_sess.token}` } });
+      if (res.status === 401) { clearSession(); location.replace('login.html'); return; }
+      if (res.status === 404) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('alert-area').innerHTML =
+          '<div class="info-alert">該当する事故情報が見つかりません。</div>';
+        return;
+      }
+      if (res.status === 403) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('alert-area').innerHTML =
+          '<div class="info-alert">この事故情報を参照する権限がありません。</div>';
+        return;
+      }
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      render(data);
+    } catch(e) {
+      document.getElementById('loading').textContent = 'データ取得に失敗しました: ' + e.message;
+    }
+  }
+
+  /* ─── 画面描画 ────────────────────────────────────────────── */
+  function render(d) {
+    document.getElementById('loading').style.display = 'none';
+
+    // 事故情報カード
+    document.getElementById('card-accident').innerHTML = `
+      ${item('事故ID',     val(d.accident_id))}
+      ${item('事故種別',   val(esc(d.accident_type)))}
+      ${item('事故発生日', val(d.accident_date))}
+      ${item('報告日',     val(d.report_date))}
+      ${item('ステータス', statusBadge(d.status))}
+      ${item('事故内容',   val(esc(d.description)), true)}
+    `;
+
+    // 契約情報カード
+    document.getElementById('card-contract').innerHTML = `
+      ${item('代理店コード',  val(esc(d.agency_code)))}
+      ${item('代理店名',      val(esc(d.agency_name)))}
+      ${item('証券番号',      val(esc(d.contract_no)))}
+      ${item('顧客名',        val(esc(d.customer_name)))}
+      ${item('保険種目',      typeBadge(d.policy_type))}
+      ${item('証券番号（証書）', val(esc(d.policy_number)))}
+    `;
+
+    // 保険金支払一覧
+    const payments = d.payments || [];
+    const tbody = document.getElementById('payment-tbody');
+    if (!payments.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-payment">保険金支払データがありません</td></tr>';
+    } else {
+      tbody.innerHTML = payments.map(p => {
+        const isPaid   = p.payment_status === '支払済';
+        const markHtml = isPaid
+          ? '<span class="mark-paid">○</span>'
+          : '<span class="mark-unpaid">－</span>';
+        const amtHtml = isPaid
+          ? `<span class="amount amount-paid">${yen(p.payment_amount)}</span>`
+          : '<span class="amount amount-unpaid">—</span>';
+        const paidBadge = isPaid
+          ? '<span class="badge badge-done">支払済</span>'
+          : '<span class="badge badge-other">未払</span>';
+        return `
+          <tr>
+            <td class="td-left" style="font-weight:600">${esc(p.payment_type)||'—'}</td>
+            <td>${markHtml}&ensp;${paidBadge}</td>
+            <td>${amtHtml}</td>
+            <td>${p.payment_date || '—'}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('detail-content').style.display = 'block';
+  }
+
+  /* ─── 初期ロード ──────────────────────────────────────────── */
+  loadData();
+</script>
+</body>
+</html>

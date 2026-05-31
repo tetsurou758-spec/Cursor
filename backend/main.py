@@ -1620,6 +1620,151 @@ def delete_contact(contact_id: int, payload: dict = Depends(verify_token)):
         conn.close()
 
 
+def _check_accident_access(payload: dict, acc: dict):
+    """事故情報の参照権限チェック（参照不可の場合は403）"""
+    user_type = payload.get("user_type", "agency")
+    if user_type == "staff":
+        role_id   = payload.get("role_id")
+        buka_code = payload.get("buka_code")
+        if role_id != 1 and acc.get("buka_code") != buka_code:
+            raise HTTPException(status_code=403, detail="参照権限がありません")
+    else:
+        group_code  = payload.get("group_code")
+        agency_code = payload.get("agency_code")
+        if group_code and acc.get("group_code") != group_code:
+            raise HTTPException(status_code=403, detail="参照権限がありません")
+        elif not group_code and acc.get("agency_code") != agency_code:
+            raise HTTPException(status_code=403, detail="参照権限がありません")
+
+
+@app.get("/api/accidents")
+def get_accidents(
+    payload:          dict          = Depends(verify_token),
+    report_date_from: Optional[str] = Query(default=None, description="事故報告日FROM (YYYY-MM-DD)"),
+    report_date_to:   Optional[str] = Query(default=None, description="事故報告日TO (YYYY-MM-DD)"),
+    accident_type:    Optional[str] = Query(default=None, description="事故種別"),
+):
+    """
+    事故契約一覧（参照制限あり）
+
+    代理店ユーザー → 同参照Gコードの契約のみ
+    社員ユーザー   → role_id=1は全件、role_id=2,3は同一部課の代理店のみ
+    """
+    user_type   = payload.get("user_type", "agency")
+    group_code  = payload.get("group_code")
+    agency_code = payload.get("agency_code")
+
+    sql = """
+        SELECT
+            a.accident_id, a.contract_no, a.accident_date, a.report_date,
+            a.accident_type, a.description, a.status,
+            c.customer_name, c.policy_type, c.policy_number, c.agency_code,
+            ag.agency_name, ag.buka_code, ag.group_code,
+            (SELECT COUNT(*) FROM accident_payments p WHERE p.accident_id = a.accident_id) AS payment_count,
+            (SELECT COUNT(*) FROM accident_payments p
+              WHERE p.accident_id = a.accident_id AND p.payment_status = '支払済') AS paid_count
+        FROM accidents a
+        JOIN contracts c  ON c.contract_no  = a.contract_no
+        JOIN agencies  ag ON ag.agency_code = c.agency_code
+        WHERE 1=1
+    """
+    params = []
+
+    if report_date_from and report_date_from.strip():
+        sql += " AND a.report_date >= ?"
+        params.append(report_date_from.strip())
+    if report_date_to and report_date_to.strip():
+        sql += " AND a.report_date <= ?"
+        params.append(report_date_to.strip())
+    if accident_type and accident_type.strip():
+        sql += " AND a.accident_type = ?"
+        params.append(accident_type.strip())
+
+    if user_type == "staff":
+        role_id   = payload.get("role_id")
+        buka_code = payload.get("buka_code")
+        if role_id != 1:
+            sql += " AND ag.buka_code = ?"
+            params.append(buka_code)
+    elif group_code:
+        sql += " AND ag.group_code = ?"
+        params.append(group_code)
+    else:
+        sql += " AND c.agency_code = ?"
+        params.append(agency_code)
+
+    sql += " ORDER BY a.report_date DESC"
+
+    conn = get_db_connection()
+    try:
+        rows = conn.execute(sql, params).fetchall()
+        return {"accidents": [dict(r) for r in rows], "total": len(rows)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/accidents/by-contract/{contract_no}")
+def get_accident_by_contract(contract_no: str, payload: dict = Depends(verify_token)):
+    """契約番号から事故情報＋保険金一覧を取得（満期管理・契約詳細からの直接遷移用）"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute("""
+            SELECT a.*, c.customer_name, c.policy_type, c.policy_number, c.agency_code,
+                   ag.agency_name, ag.buka_code, ag.group_code
+            FROM accidents a
+            JOIN contracts c  ON c.contract_no  = a.contract_no
+            JOIN agencies  ag ON ag.agency_code = c.agency_code
+            WHERE a.contract_no = ?
+            ORDER BY a.accident_id DESC
+            LIMIT 1
+        """, (contract_no,)).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="事故情報が見つかりません")
+
+        acc = dict(row)
+        _check_accident_access(payload, acc)
+
+        payments = conn.execute(
+            "SELECT * FROM accident_payments WHERE accident_id = ? ORDER BY payment_id",
+            (acc["accident_id"],)
+        ).fetchall()
+        acc["payments"] = [dict(p) for p in payments]
+        return acc
+    finally:
+        conn.close()
+
+
+@app.get("/api/accidents/{accident_id}")
+def get_accident_detail(accident_id: int, payload: dict = Depends(verify_token)):
+    """事故IDから事故情報＋保険金支払一覧を取得"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute("""
+            SELECT a.*, c.customer_name, c.policy_type, c.policy_number, c.agency_code,
+                   ag.agency_name, ag.buka_code, ag.group_code
+            FROM accidents a
+            JOIN contracts c  ON c.contract_no  = a.contract_no
+            JOIN agencies  ag ON ag.agency_code = c.agency_code
+            WHERE a.accident_id = ?
+        """, (accident_id,)).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="事故情報が見つかりません")
+
+        acc = dict(row)
+        _check_accident_access(payload, acc)
+
+        payments = conn.execute(
+            "SELECT * FROM accident_payments WHERE accident_id = ? ORDER BY payment_id",
+            (accident_id,)
+        ).fetchall()
+        acc["payments"] = [dict(p) for p in payments]
+        return acc
+    finally:
+        conn.close()
+
+
 @app.get("/api/dashboard/contacts")
 def get_dashboard_contacts(payload: dict = Depends(verify_token)):
     """

@@ -771,7 +771,7 @@
           <td>${esc(c.staff_code)||'—'}</td>
           <td class="td-left"><div class="contact-wrap"><span class="contact-method">${esc(c.contact_method)||'—'}</span><span class="contact-info">${esc(c.contact_info)||'—'}</span></div></td>
           <td class="premium">${yen(c.annual_premium)}</td>
-          <td>${c.has_accident?'<span class="icon-flag">🔴</span>':'<span class="icon-none">○</span>'}</td>
+          <td>${c.has_accident?`<a href="claim_detail.html?contract_no=${encodeURIComponent(c.contract_no)}&from=maturity" title="保険金支払状況を見る"><span class="icon-flag">🔴</span></a>`:'<span class="icon-none">○</span>'}</td>
           <td>${c.has_change?'<span class="icon-flag">📝</span>':'<span class="icon-none">○</span>'}</td>
           <td id="memo-cell-${c.id}">${memoCell}</td>
           <td>${c.notice_date||'—'}</td>

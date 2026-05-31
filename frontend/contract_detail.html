@@ -150,6 +150,17 @@
     .type-acc   { background: #e8fde8; color: #155724; }
     .type-other { background: #f0e8fd; color: #4a1272; }
 
+    /* ═══ ACCIDENT CARD ════════════════════════════════════════ */
+    .accident-info { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .accident-flag { font-size: 1.1rem; color: #dc2626; font-weight: 700; }
+    .btn-claim {
+      display: inline-block; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff; border: none; border-radius: 4px; padding: 7px 20px;
+      font-size: 0.82rem; font-weight: 700; text-decoration: none; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-claim:hover { opacity: 0.88; }
+
     /* ═══ FOOTER ════════════════════════════════════════════════ */
     .site-footer {
       background: var(--primary-dark);
@@ -216,6 +227,12 @@
     <div class="detail-card">
       <div class="card-title" id="card3-title">種目別詳細情報</div>
       <div id="card-detail"></div>
+    </div>
+
+    <!-- カード4: 事故情報（has_accident=1 のときのみ表示） -->
+    <div class="detail-card" id="card-accident" style="display:none">
+      <div class="card-title">事故情報</div>
+      <div id="card-accident-body"></div>
     </div>
 
   </div>
@@ -464,6 +481,18 @@
     // ── カード3: 種目別詳細情報 ──
     document.getElementById('card3-title').textContent = `種目別詳細情報（${c.policy_type || '不明'}）`;
     document.getElementById('card-detail').innerHTML = renderDetailBlock(c);
+
+    // ── カード4: 事故情報（has_accident=1 のときのみ表示）──
+    if (c.has_accident) {
+      const claimUrl = `claim_detail.html?contract_no=${encodeURIComponent(c.contract_no)}&from=contract`;
+      document.getElementById('card-accident-body').innerHTML = `
+        <div class="accident-info">
+          <span class="accident-flag">🔴 事故登録あり</span>
+          <a href="${claimUrl}" class="btn-claim">保険金支払状況を確認する →</a>
+        </div>
+      `;
+      document.getElementById('card-accident').style.display = '';
+    }
 
     // コンテンツ表示
     document.getElementById('detail-content').style.display = '';

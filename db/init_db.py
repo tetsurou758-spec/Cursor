@@ -84,10 +84,30 @@ STAFF_USERS = [
     dict(staff_code="S003", password="staff789", name="佐藤次郎", buka_code="Y001", role_id=3, is_active=1),
 ]
 
-# ── 事故データ（A001配下の契約2件）─────────────────────────────
+# ── 事故データ（3件：A001-001・A001-003・B002-004）──────────────
 ACCIDENTS = [
-    dict(contract_no="M-A001-001", report_date="2026-03-10", accident_type="車両事故", status="処理完了"),
-    dict(contract_no="M-A001-003", report_date="2026-05-02", accident_type="車両事故", status="対応中"),
+    dict(contract_no="M-A001-001", accident_date="2026-03-01", report_date="2026-03-10",
+         accident_type="車両事故", description="追突事故。停車中に後続車に追突された。", status="処理完了"),
+    dict(contract_no="M-A001-003", accident_date="2026-04-25", report_date="2026-05-02",
+         accident_type="車両事故", description="交差点での接触事故。相手方との示談交渉中。", status="対応中"),
+    dict(contract_no="M-B002-004", accident_date="2026-04-10", report_date="2026-04-15",
+         accident_type="対物事故", description="駐車場での単独事故。柱との接触により車体損傷。", status="対応中"),
+]
+
+# ── 保険金支払データ ────────────────────────────────────────────
+# accident_id は accidents テーブルの AUTOINCREMENT 順（1,2,3）
+ACCIDENT_PAYMENTS = [
+    # 事故1: M-A001-001（処理完了）
+    dict(accident_id=1, payment_type="車両保険金",       payment_amount=850000, payment_status="支払済", payment_date="2026-04-15"),
+    dict(accident_id=1, payment_type="対物賠償保険金",   payment_amount=120000, payment_status="支払済", payment_date="2026-04-20"),
+    dict(accident_id=1, payment_type="搭乗者傷害保険金", payment_amount=0,      payment_status="未払",  payment_date=None),
+    # 事故2: M-A001-003（対応中）
+    dict(accident_id=2, payment_type="車両保険金",      payment_amount=0, payment_status="未払", payment_date=None),
+    dict(accident_id=2, payment_type="対物賠償保険金",  payment_amount=0, payment_status="未払", payment_date=None),
+    dict(accident_id=2, payment_type="人身傷害保険金",  payment_amount=0, payment_status="未払", payment_date=None),
+    # 事故3: M-B002-004（対応中）
+    dict(accident_id=3, payment_type="対物賠償保険金",  payment_amount=0, payment_status="未払", payment_date=None),
+    dict(accident_id=3, payment_type="車両保険金",      payment_amount=0, payment_status="未払", payment_date=None),
 ]
 
 # ── ダッシュボード用 既存サンプル契約設定 ─────────────────────
@@ -791,8 +811,8 @@ def init_db():
         cur.execute("PRAGMA foreign_keys = OFF")
 
         # テーブルを全削除（依存関係の逆順）
-        for tbl in ("maturity_notices", "accidents", "role_permissions",
-                    "contracts", "customers", "policy_types",
+        for tbl in ("maturity_notices", "accident_payments", "accidents", "contacts",
+                    "role_permissions", "contracts", "customers", "policy_types",
                     "users", "features", "roles",
                     "staff_users", "staff_roles", "agencies"):
             cur.execute(f"DROP TABLE IF EXISTS {tbl}")
@@ -1008,18 +1028,40 @@ def init_db():
             CREATE TABLE accidents (
                 accident_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
                 contract_no   TEXT     NOT NULL,
+                accident_date DATE,
                 report_date   DATE     NOT NULL,
                 accident_type TEXT,
+                description   TEXT,
                 status        TEXT,
                 created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         for ac in ACCIDENTS:
             cur.execute("""
-                INSERT INTO accidents (contract_no, report_date, accident_type, status)
-                VALUES (:contract_no,:report_date,:accident_type,:status)
+                INSERT INTO accidents (contract_no, accident_date, report_date, accident_type, description, status)
+                VALUES (:contract_no,:accident_date,:report_date,:accident_type,:description,:status)
             """, ac)
         print(f"  事故データ: {len(ACCIDENTS)}件")
+
+        # ── 保険金支払テーブル ────────────────────────────────────
+        cur.execute("""
+            CREATE TABLE accident_payments (
+                payment_id     INTEGER  PRIMARY KEY AUTOINCREMENT,
+                accident_id    INTEGER  NOT NULL,
+                payment_type   TEXT     NOT NULL,
+                payment_amount INTEGER  DEFAULT 0,
+                payment_status TEXT     NOT NULL CHECK(payment_status IN ('支払済','未払')),
+                payment_date   DATE,
+                created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (accident_id) REFERENCES accidents(accident_id)
+            )
+        """)
+        for ap in ACCIDENT_PAYMENTS:
+            cur.execute("""
+                INSERT INTO accident_payments (accident_id, payment_type, payment_amount, payment_status, payment_date)
+                VALUES (:accident_id,:payment_type,:payment_amount,:payment_status,:payment_date)
+            """, ap)
+        print(f"  保険金支払データ: {len(ACCIDENT_PAYMENTS)}件")
 
         # ── コンタクト履歴テーブル ────────────────────────────────
         cur.execute("""

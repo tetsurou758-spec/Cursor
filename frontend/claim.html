@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事故契約一覧｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--gray-bg); font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; color: var(--text-main); font-size: 13px; }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 12px var(--primary-shadow); }
+    .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+    .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); }
+    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: #fff; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .page-badge { background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border); color: var(--accent-light); border-radius: 4px; padding: 3px 10px; font-size: 0.75rem; font-weight: 700; }
+    .user-badge { background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border); border-radius: 20px; padding: 4px 14px; color: #fff; font-size: 0.8rem; }
+    .user-badge span { color: var(--accent); font-weight: 700; margin-right: 6px; }
+    .btn-logout { background: transparent; border: 1.5px solid var(--accent-border-btn); color: var(--accent-light); border-radius: 4px; padding: 5px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
+    .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
+    .btn-back { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; padding: 5px 12px; font-size: 0.75rem; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+    .btn-back:hover { background: rgba(255,255,255,0.18); }
+    .accent-bar { height: 3px; background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width: 1400px; margin: 0 auto; padding: 20px 16px 40px; }
+    .page-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .page-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: var(--accent); border-radius: 2px; }
+
+    /* ═══ SEARCH CARD ════════════════════════════════════════════ */
+    .search-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px var(--card-shadow); padding: 18px 20px; margin-bottom: 16px; }
+    .search-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group label { font-size: 0.72rem; font-weight: 600; color: var(--primary); letter-spacing: 0.04em; }
+    .field-group input, .field-group select { border: 1.5px solid var(--gray-border); border-radius: 4px; padding: 6px 10px; font-size: 0.82rem; color: var(--text-main); outline: none; background: #fff; transition: border-color 0.2s; height: 32px; }
+    .field-group input:focus, .field-group select:focus { border-color: var(--primary); }
+    .field-group.date input { width: 140px; }
+    .field-group.sel select { width: 140px; }
+    .field-label-range { font-size: 0.72rem; font-weight: 600; color: var(--primary); letter-spacing: 0.04em; margin-bottom: 4px; }
+    .range-wrap { display: flex; align-items: center; gap: 6px; }
+    .range-sep { font-size: 0.8rem; color: var(--text-sub); }
+    .btn-group { display: flex; gap: 8px; align-items: flex-end; }
+    .btn-search { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: #fff; border: none; border-radius: 4px; padding: 0 20px; height: 32px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+    .btn-search:hover { opacity: 0.88; }
+    .btn-clear { background: #fff; color: var(--primary); border: 1.5px solid var(--gray-border); border-radius: 4px; padding: 0 14px; height: 32px; font-size: 0.82rem; cursor: pointer; }
+    .btn-clear:hover { border-color: var(--primary); }
+
+    /* ═══ RESULT BAR ═════════════════════════════════════════════ */
+    .result-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .result-info { font-size: 0.8rem; color: var(--text-sub); }
+    .result-info strong { color: var(--primary); font-size: 1rem; }
+
+    /* ═══ TABLE ══════════════════════════════════════════════════ */
+    .table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px var(--card-shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: var(--primary); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 10px 10px; text-align: center; white-space: nowrap; letter-spacing: 0.03em; position: sticky; top: 60px; z-index: 10; }
+    thead th:first-child { border-radius: 0; }
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
+    tbody tr:hover { background: var(--row-hover); }
+    tbody td { padding: 9px 10px; font-size: 0.82rem; text-align: center; vertical-align: middle; }
+    .td-left { text-align: left !important; }
+
+    /* ═══ BADGES ════════════════════════════════════════════════ */
+    .badge { display: inline-block; border-radius: 10px; padding: 2px 9px; font-size: 0.7rem; font-weight: 700; }
+    .badge-done    { background: #d4edda; color: #155724; }
+    .badge-ongoing { background: #fff3cd; color: #856404; }
+    .badge-other   { background: #e9ecef; color: #495057; }
+
+    .type-badge { display: inline-block; border-radius: 3px; padding: 2px 8px; font-size: 0.72rem; font-weight: 700; }
+    .type-auto  { background: #e8f4fd; color: #0c5460; }
+    .type-fire  { background: #fde8e8; color: #721c24; }
+    .type-inj   { background: #fff8e1; color: #7a5800; }
+    .type-acc   { background: #e8fde8; color: #155724; }
+    .type-other { background: #f0e8fd; color: #4a1272; }
+
+    /* ステータスリンク */
+    .status-link { cursor: pointer; text-decoration: none; color: inherit; }
+    .status-link:hover .badge { opacity: 0.8; }
+
+    /* 支払進捗 */
+    .payment-progress { font-size: 0.75rem; color: var(--text-sub); }
+    .payment-progress .paid { color: #16a34a; font-weight: 700; }
+
+    /* 空表示 */
+    .empty-row td { text-align: center; color: var(--text-sub); padding: 40px; font-size: 0.88rem; }
+
+    /* ローディング */
+    #loading { text-align: center; padding: 40px; color: var(--text-sub); font-size: 0.88rem; }
+
+    @media (max-width: 900px) { .range-wrap { flex-wrap: wrap; } }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="header-logo" href="dashboard.html">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+            fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+            fill="rgba(255,255,255,0.15)"/>
+      <polyline points="22,32 29,39 43,25" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo-text">
+      <div class="company">AX損害保険株式会社</div>
+      <div class="system">事故契約一覧</div>
+    </div>
+  </a>
+  <div class="header-right">
+    <span class="page-badge">保険金支払状況</span>
+    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name">--</span></div>
+    <a href="dashboard.html" class="btn-back">← ダッシュボードへ</a>
+    <button class="btn-logout" id="btn-logout">ログアウト</button>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<div class="main-content">
+  <div class="page-title">事故契約一覧</div>
+
+  <!-- 検索カード -->
+  <div class="search-card">
+    <div class="search-grid">
+      <div class="field-group">
+        <div class="field-label-range">事故報告日</div>
+        <div class="range-wrap">
+          <input type="date" id="date-from" placeholder="開始日">
+          <span class="range-sep">〜</span>
+          <input type="date" id="date-to" placeholder="終了日">
+        </div>
+      </div>
+      <div class="field-group sel">
+        <label for="sel-type">事故種別</label>
+        <select id="sel-type">
+          <option value="">（すべて）</option>
+          <option value="車両事故">車両事故</option>
+          <option value="対人事故">対人事故</option>
+          <option value="対物事故">対物事故</option>
+          <option value="盗難">盗難</option>
+          <option value="自然災害">自然災害</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn-search" onclick="search()">検索</button>
+        <button class="btn-clear"  onclick="clearSearch()">クリア</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果バー -->
+  <div class="result-bar">
+    <div class="result-info" id="result-info">—</div>
+  </div>
+
+  <!-- テーブル -->
+  <div class="table-wrap">
+    <div id="loading">読み込み中...</div>
+    <table id="result-table" style="display:none">
+      <thead>
+        <tr>
+          <th>代理店</th>
+          <th>証券番号</th>
+          <th>顧客名</th>
+          <th>保険種目</th>
+          <th>事故種別</th>
+          <th>事故発生日</th>
+          <th>報告日</th>
+          <th>事故内容</th>
+          <th>支払状況</th>
+          <th title="クリックで保険金支払状況へ遷移">ステータス</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer style="background:var(--primary-dark);color:rgba(255,255,255,.45);text-align:center;font-size:.7rem;letter-spacing:.06em;padding:14px 16px;margin-top:40px;">
+  &copy; 2026 AX損害保険株式会社. All Rights Reserved.
+</footer>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+
+  /* ─── セッション ───────────────────────────────────────────── */
+  const _sess = getSession();
+  if (!_sess) { location.replace('login.html'); }
+
+  document.getElementById('hdr-code').textContent = _sess.agency_code || _sess.staff_code || '—';
+  document.getElementById('hdr-name').textContent = _sess.name || '—';
+  document.getElementById('btn-logout').addEventListener('click', () => { clearSession(); location.replace('login.html'); });
+
+  /* ─── ユーティリティ ──────────────────────────────────────── */
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function typeBadge(t) {
+    const map = { '自動車':'type-auto','火災':'type-fire','傷害':'type-inj','自賠責':'type-acc' };
+    const cls = map[t] || 'type-other';
+    return `<span class="type-badge ${cls}">${esc(t)||'—'}</span>`;
+  }
+
+  function statusBadge(s) {
+    const map = { '処理完了':'badge-done', '対応中':'badge-ongoing' };
+    const cls = map[s] || 'badge-other';
+    return `<span class="badge ${cls}">${esc(s)||'—'}</span>`;
+  }
+
+  /* ─── 検索 ────────────────────────────────────────────────── */
+  async function search() {
+    const from = document.getElementById('date-from').value;
+    const to   = document.getElementById('date-to').value;
+    const type = document.getElementById('sel-type').value;
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('result-table').style.display = 'none';
+
+    const params = new URLSearchParams();
+    if (from) params.set('report_date_from', from);
+    if (to)   params.set('report_date_to',   to);
+    if (type) params.set('accident_type',     type);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/accidents?${params}`, {
+        headers: { Authorization: `Bearer ${_sess.token}` }
+      });
+      if (res.status === 401) { clearSession(); location.replace('login.html'); return; }
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      renderTable(data.accidents || []);
+    } catch(e) {
+      document.getElementById('loading').textContent = 'データ取得に失敗しました: ' + e.message;
+    }
+  }
+
+  function clearSearch() {
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value   = '';
+    document.getElementById('sel-type').value  = '';
+    search();
+  }
+
+  /* ─── テーブル描画 ────────────────────────────────────────── */
+  function renderTable(rows) {
+    document.getElementById('loading').style.display = 'none';
+    const table = document.getElementById('result-table');
+    const tbody = document.getElementById('tbody');
+    const info  = document.getElementById('result-info');
+
+    if (!rows.length) {
+      table.style.display = 'table';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="10">該当する事故契約がありません</td></tr>';
+      info.innerHTML  = '<strong>0</strong> 件';
+      return;
+    }
+
+    info.innerHTML = `<strong>${rows.length}</strong> 件`;
+    tbody.innerHTML = rows.map(r => {
+      const paymentTxt = r.payment_count > 0
+        ? `<span class="payment-progress"><span class="paid">${r.paid_count}</span>/${r.payment_count}件支払済</span>`
+        : '—';
+      return `
+        <tr>
+          <td style="font-size:.72rem">${esc(r.agency_code)||'—'}</td>
+          <td style="font-size:.72rem">${esc(r.contract_no)||'—'}</td>
+          <td class="td-left">${esc(r.customer_name)||'—'}</td>
+          <td>${typeBadge(r.policy_type)}</td>
+          <td>${esc(r.accident_type)||'—'}</td>
+          <td>${r.accident_date||'—'}</td>
+          <td>${r.report_date||'—'}</td>
+          <td class="td-left" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.description)}">${esc(r.description)||'—'}</td>
+          <td>${paymentTxt}</td>
+          <td>
+            <a class="status-link" href="claim_detail.html?accident_id=${r.accident_id}">
+              ${statusBadge(r.status)}
+            </a>
+          </td>
+        </tr>`;
+    }).join('');
+
+    table.style.display = 'table';
+  }
+
+  /* ─── 初期ロード ──────────────────────────────────────────── */
+  search();
+</script>
+</body>
+</html>
