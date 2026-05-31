@@ -1021,6 +1021,21 @@ def init_db():
             """, ac)
         print(f"  事故データ: {len(ACCIDENTS)}件")
 
+        # ── コンタクト履歴テーブル ────────────────────────────────
+        cur.execute("""
+            CREATE TABLE contacts (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id      INTEGER NOT NULL,
+                contact_datetime DATETIME NOT NULL,
+                contact_type     TEXT    NOT NULL,
+                memo             TEXT,
+                created_by       TEXT,
+                agency_id        INTEGER,
+                created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # ── ダッシュボード用 サンプル契約（1449件）────────────────
         total_dash = 0
         total_notices = 0
@@ -1153,6 +1168,94 @@ def init_db():
                     total_cust_contracts += 1
 
         print(f"  顧客マスタ: {total_customers}名 / 顧客契約: {total_cust_contracts}件")
+
+        # ── コンタクト履歴シードデータ ────────────────────────────
+        # match_key で顧客IDを逆引きして登録（ID採番順序に依存しない）
+        # batch生成顧客（27・352相当）はここで最小レコードをupsertしてからコンタクトを登録する
+        CONTACTS_SEED = [
+            {
+                "match_key":        "6c4d87ab6f385337e0bc9a030720621e9bb67b36e8f2fd044a1fb8c998f610b5",
+                "contact_datetime": "2026-06-01 01:02:00",
+                "contact_type":     "クレーム",
+                "memo":             "ぷーさんのぬいぐるみ、破汚損担保特約でカバーされない？",
+                "created_by":       "admin",
+                "agency_code":      "A001",
+                # group_A済みの命名顧客なのでINSERT不要
+                "ensure_customer":  None,
+            },
+            {
+                "match_key":        "f48ba58453bb9459e5a40b6c5aa1732dbd5dddcdbf065c08d15d28a5dd91cbad",
+                "contact_datetime": "2026-06-01 03:23:00",
+                "contact_type":     "連絡",
+                "memo":             "訪問日程確定。6/14日PM3:00～",
+                "created_by":       "admin",
+                "agency_code":      "A001",
+                # バッチ生成顧客：init単体では未存在のため最小レコードを作成
+                "ensure_customer":  {
+                    "group_code": "A", "last_name": "田中", "first_name": "○郎",
+                    "first_name_raw": "太郎", "gender": "M", "birth_date": "1953-04-23",
+                },
+            },
+            {
+                "match_key":        "f92ee2a1ee99cab2d695c81ba0813ac0fb99750fa44c701f5f7be89363d798e9",
+                "contact_datetime": "2026-06-01 03:24:00",
+                "contact_type":     "連絡",
+                "memo":             "自賠責保険についても、当社経由で契約いただけるとのことお電話あり。5/31 受：岡本",
+                "created_by":       "admin",
+                "agency_code":      "A001",
+                "ensure_customer":  None,
+            },
+            {
+                "match_key":        "8940546775e66e31839e6cc9bb7ed10433d5e2d514aa79cb32a80127a7e78491",
+                "contact_datetime": "2026-06-01 03:26:00",
+                "contact_type":     "満期落ち",
+                "memo":             "知人紹介により、保険会社を変更して、新規に契約するとのこと5/24メール連絡により、判明。5/28お電話にて継続意思の最終確認。意思変わらず、別会社契約へ",
+                "created_by":       "admin",
+                "agency_code":      "A001",
+                # バッチ生成顧客：init単体では未存在のため最小レコードを作成
+                "ensure_customer":  {
+                    "group_code": "A", "last_name": "田中", "first_name": "○子",
+                    "first_name_raw": "裕子", "gender": "F", "birth_date": "1980-07-22",
+                },
+            },
+        ]
+        contacts_inserted = 0
+        for cs in CONTACTS_SEED:
+            # バッチ生成顧客が未存在の場合は最小レコードをINSERT OR IGNORE
+            if cs["ensure_customer"]:
+                ec = cs["ensure_customer"]
+                cur.execute("""
+                    INSERT OR IGNORE INTO customers
+                    (group_code, last_name, first_name, first_name_raw, gender, birth_date, match_key)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (ec["group_code"], ec["last_name"], ec["first_name"],
+                      ec["first_name_raw"], ec["gender"], ec["birth_date"], cs["match_key"]))
+
+            cust_row = cur.execute(
+                "SELECT customer_id FROM customers WHERE match_key = ?",
+                (cs["match_key"],)
+            ).fetchone()
+            if not cust_row:
+                continue
+
+            agency_row = cur.execute(
+                "SELECT agency_id FROM agencies WHERE agency_code = ?",
+                (cs["agency_code"],)
+            ).fetchone()
+            agency_id = agency_row[0] if agency_row else None
+
+            cur.execute("""
+                INSERT INTO contacts
+                (customer_id, contact_datetime, contact_type, memo, created_by, agency_id,
+                 created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                cust_row[0], cs["contact_datetime"], cs["contact_type"],
+                cs["memo"], cs["created_by"], agency_id,
+                cs["contact_datetime"], cs["contact_datetime"],
+            ))
+            contacts_inserted += 1
+        print(f"  コンタクト履歴シード: {contacts_inserted}件")
 
         cur.execute("PRAGMA foreign_keys = ON")
         conn.commit()
