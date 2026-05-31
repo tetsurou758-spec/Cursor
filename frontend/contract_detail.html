@@ -243,9 +243,10 @@
   // null安全表示
   function val(v) { return (v !== null && v !== undefined && v !== '') ? v : '—'; }
 
-  // HTMLエスケープ
+  // HTMLエスケープ（数値など非文字列も String() で安全に変換）
   function esc(s) {
-    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // detail-item HTML生成
