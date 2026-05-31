@@ -25,7 +25,7 @@
     --primary-shadow:    rgba(9,30,69,0.35);
     --card-shadow:       rgba(13,43,94,0.08);
     --label-color:       #C9A84C;
-    --held-color:        var(--accent);
+    --held-color:        #1a1a2e;
     --detail-label-color: #1E293B;
 }
 
@@ -54,6 +54,6 @@
     --primary-shadow:    rgba(204,0,119,0.35);
     --card-shadow:       rgba(255,20,147,0.08);
     --label-color:       #FF69B4;
-    --held-color:        var(--primary);
+    --held-color:        #2e001a;
     --detail-label-color: #FF69B4;
 }
