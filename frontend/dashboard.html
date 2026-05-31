@@ -263,6 +263,46 @@
     /* ═══ FOOTER ════════════════════════════════════════════════ */
     .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
 
+    /* ═══ CHART CLICK ═══════════════════════════════════════════ */
+    .chart-card.clickable { cursor: pointer; position: relative; transition: box-shadow 0.2s, transform 0.15s; }
+    .chart-card.clickable:hover { box-shadow: 0 6px 24px var(--primary-shadow); transform: translateY(-2px); }
+    .chart-card.clickable::after {
+      content: 'クリックで更改残一覧へ';
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,40,0.82); color: #fff; padding: 5px 12px; border-radius: 4px;
+      font-size: 0.72rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.18s;
+      z-index: 10;
+    }
+    .chart-card.clickable:hover::after { opacity: 1; }
+    .chart-total-badge { font-size: 0.72rem; color: var(--text-sub); margin-left: 10px; }
+
+    /* ═══ DIRECT SEARCH ═════════════════════════════════════════ */
+    .direct-search-section { margin-bottom: 28px; }
+    .direct-search-card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 12px var(--card-shadow);
+      padding: 18px 22px;
+      border-left: 4px solid var(--primary);
+    }
+    .direct-search-title { font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .direct-search-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .direct-search-input {
+      flex: 1; min-width: 220px; height: 36px;
+      border: 1.5px solid var(--gray-border); border-radius: 6px;
+      padding: 0 12px; font-size: 0.88rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    .direct-search-input:focus { border-color: var(--primary); }
+    .btn-go {
+      height: 36px; padding: 0 18px; border: none; border-radius: 6px;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .btn-go:hover { opacity: 0.85; }
+    .btn-go-customer { background: var(--primary); color: #fff; }
+    .btn-go-maturity { background: var(--accent); color: var(--primary-dark); }
+    .direct-search-hint { font-size: 0.72rem; color: var(--text-sub); margin-top: 6px; height: 16px; }
+
     /* ═══ RESPONSIVE ════════════════════════════════════════════ */
     @media (max-width:900px) { .charts-grid { grid-template-columns:1fr; } .nav-grid { grid-template-columns:repeat(2,1fr); } .bottom-grid { grid-template-columns:1fr; } }
     @media (max-width:520px) { .nav-grid { grid-template-columns:repeat(2,1fr); } .site-header { padding:0 14px; } .header-logo-text .company { display:none; } }
@@ -309,9 +349,9 @@
     <section class="charts-section">
       <div class="section-title">更改状況インフォグラフィックス</div>
       <div class="charts-grid">
-        <div class="chart-card">
+        <div class="chart-card clickable" id="chart-card-current" onclick="goToMaturityMonth('current')">
           <div class="chart-card-title">今月更改</div>
-          <div class="chart-month-label" id="cur-month-label">-- 年 -- 月</div>
+          <div class="chart-month-label" id="cur-month-label">-- 年 -- 月<span class="chart-total-badge" id="cur-total-badge"></span></div>
           <div class="chart-wrap">
             <canvas id="chart-current"></canvas>
             <div class="chart-center">
@@ -325,9 +365,9 @@
             <span><span class="legend-dot" style="background:var(--gray-border)"></span>対応中</span>
           </div>
         </div>
-        <div class="chart-card sub">
+        <div class="chart-card sub clickable" id="chart-card-next" onclick="goToMaturityMonth('next')">
           <div class="chart-card-title">翌月更改</div>
-          <div class="chart-month-label" id="nxt-month-label">-- 年 -- 月</div>
+          <div class="chart-month-label" id="nxt-month-label">-- 年 -- 月<span class="chart-total-badge" id="nxt-total-badge"></span></div>
           <div class="chart-wrap">
             <canvas id="chart-next"></canvas>
             <div class="chart-center">
@@ -341,6 +381,21 @@
             <span><span class="legend-dot" style="background:var(--gray-border)"></span>対応中</span>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ダイレクト検索 -->
+    <section class="direct-search-section">
+      <div class="section-title">ダイレクト検索</div>
+      <div class="direct-search-card">
+        <div class="direct-search-row">
+          <input type="text" id="direct-search-input" class="direct-search-input"
+            placeholder="名前 / 証券番号（POL-... / CUST-...） / 電話番号（10〜11桁）"
+            onblur="detectSearchType()" oninput="detectSearchType()">
+          <button class="btn-go btn-go-customer" onclick="goToCustomer()">顧客へ Go!</button>
+          <button class="btn-go btn-go-maturity" onclick="goToMaturity()">契約へ Go!</button>
+        </div>
+        <div class="direct-search-hint" id="direct-search-hint"></div>
       </div>
     </section>
 
@@ -471,14 +526,27 @@
       return `${y}年 ${parseInt(m)}月`;
     }
 
+    let _curMonth = '', _nxtMonth = '';
+
     function renderDashboard(data) {
       const cm = data.current_month, nm = data.next_month;
-      document.getElementById('cur-month-label').textContent = fmtMonth(cm.month);
+      _curMonth = cm.month;
+      _nxtMonth = nm.month;
+
+      // 今月ラベル（総契約件数バッジ付き）
+      document.getElementById('cur-month-label').innerHTML =
+        fmtMonth(cm.month) + (cm.total_contracts != null
+          ? `<span class="chart-total-badge">&#x1F4CB; ${cm.total_contracts.toLocaleString()}件</span>`
+          : '');
       document.getElementById('cur-count').textContent = cm.completed;
       document.getElementById('cur-rate').textContent   = cm.rate + '%';
       updateDonut(chartCurrent, cm.completed, cm.total);
 
-      document.getElementById('nxt-month-label').textContent = fmtMonth(nm.month);
+      // 翌月ラベル
+      document.getElementById('nxt-month-label').innerHTML =
+        fmtMonth(nm.month) + (nm.total_contracts != null
+          ? `<span class="chart-total-badge">&#x1F4CB; ${nm.total_contracts.toLocaleString()}件</span>`
+          : '');
       document.getElementById('nxt-count').textContent = nm.completed;
       document.getElementById('nxt-rate').textContent   = nm.rate + '%';
       updateDonut(chartNext, nm.completed, nm.total);
@@ -505,6 +573,45 @@
           btn.addEventListener('click', e => e.preventDefault(), { capture: true });
         }
       });
+    }
+
+    // ── ダイレクト検索 ──────────────────────────────────────────────
+    function getSearchType(val) {
+      if (!val) return '';
+      if (/^\d{10,11}$/.test(val.replace(/-/g, ''))) return 'tel';
+      if (/^(POL-|CUST-)/i.test(val)) return 'contract';
+      return 'name';
+    }
+
+    function detectSearchType() {
+      const val  = document.getElementById('direct-search-input').value.trim();
+      const type = getSearchType(val);
+      const hint = document.getElementById('direct-search-hint');
+      const labels = { tel: '電話番号検索', contract: '証券番号検索', name: '名前検索', '': '' };
+      hint.textContent = type ? `▶ ${labels[type]}` : '';
+    }
+
+    function goToCustomer() {
+      const val  = document.getElementById('direct-search-input').value.trim();
+      if (!val) return;
+      const type = getSearchType(val);
+      const map  = { name: 'search_name', tel: 'search_tel', contract: 'search_contract' };
+      location.href = `customer.html?${map[type]}=${encodeURIComponent(val)}`;
+    }
+
+    function goToMaturity() {
+      const val  = document.getElementById('direct-search-input').value.trim();
+      if (!val) return;
+      const type = getSearchType(val);
+      const map  = { name: 'customer_name', tel: 'tel', contract: 'contract_no' };
+      location.href = `maturity.html?${map[type]}=${encodeURIComponent(val)}`;
+    }
+
+    // ── チャートクリック → 満期管理遷移 ───────────────────────────
+    function goToMaturityMonth(which) {
+      const month = which === 'current' ? _curMonth : _nxtMonth;
+      if (!month) return;
+      location.href = `maturity.html?renewal_status=${encodeURIComponent('未対応')}&expiry_month=${month}`;
     }
 
     document.addEventListener('DOMContentLoaded', async () => {

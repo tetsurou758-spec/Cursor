@@ -205,6 +205,10 @@
         <input type="date" id="date-to">
       </div>
       <div class="field-group text">
+        <label>顧客氏名</label>
+        <input type="text" id="customer-name" placeholder="部分一致">
+      </div>
+      <div class="field-group text">
         <label>担当者コード</label>
         <input type="text" id="staff-code" placeholder="例）S001">
       </div>
@@ -327,33 +331,47 @@
 
     document.getElementById('btn-logout').addEventListener('click', doLogout);
 
-    const today   = new Date();
-    const year    = today.getFullYear();
-    const month   = today.getMonth() + 1;
-    const lastDay = new Date(year, month, 0).getDate();
-    const pad     = n => String(n).padStart(2, '0');
-    document.getElementById('date-from').value = `${year}-${pad(month)}-01`;
-    document.getElementById('date-to').value   = `${year}-${pad(month)}-${pad(lastDay)}`;
+    // URLパラメータによる初期検索設定
+    const _up = new URLSearchParams(location.search);
+    const _upCustName    = _up.get('customer_name') || '';
+    const _upTel         = _up.get('tel')           || '';
+    const _upContractNo  = _up.get('contract_no')   || '';
+    const _upRenewal     = _up.get('renewal_status') || '';
+    const _upMonth       = _up.get('expiry_month')   || '';
 
+    if (_upCustName)   document.getElementById('customer-name').value = _upCustName;
+    if (_upRenewal)    document.getElementById('renewal-status').value = _upRenewal;
+
+    if (_upMonth) {
+      const [my, mm] = _upMonth.split('-');
+      const lastDay  = new Date(Number(my), Number(mm), 0).getDate();
+      const pad      = n => String(n).padStart(2, '0');
+      document.getElementById('date-from').value = `${my}-${pad(mm)}-01`;
+      document.getElementById('date-to').value   = `${my}-${pad(mm)}-${pad(lastDay)}`;
+    }
+
+    // 初期表示は全件（日付フィルタなし）
     doSearch();
   });
 
   async function doSearch() {
     const token   = _ssGet(isStaff ? 'staff_token' : 'token');
     const params  = new URLSearchParams();
-    const dateFrom = document.getElementById('date-from').value;
-    const dateTo   = document.getElementById('date-to').value;
-    const staff    = document.getElementById('staff-code').value.trim();
-    const ptype    = document.getElementById('policy-type').value;
-    const rsts     = document.getElementById('renewal-status').value;
-    const fcsts    = document.getElementById('followcall-status').value;
+    const dateFrom   = document.getElementById('date-from').value;
+    const dateTo     = document.getElementById('date-to').value;
+    const staff      = document.getElementById('staff-code').value.trim();
+    const ptype      = document.getElementById('policy-type').value;
+    const rsts       = document.getElementById('renewal-status').value;
+    const fcsts      = document.getElementById('followcall-status').value;
+    const custName   = document.getElementById('customer-name').value.trim();
 
-    if (dateFrom) params.set('date_from', dateFrom);
-    if (dateTo)   params.set('date_to',   dateTo);
-    if (staff)    params.set('staff_code', staff);
-    if (ptype)    params.set('policy_type', ptype);
-    if (rsts)     params.set('renewal_status', rsts);
-    if (fcsts)    params.set('followcall_status', fcsts);
+    if (dateFrom)  params.set('date_from',         dateFrom);
+    if (dateTo)    params.set('date_to',            dateTo);
+    if (staff)     params.set('staff_code',         staff);
+    if (ptype)     params.set('policy_type',        ptype);
+    if (rsts)      params.set('renewal_status',     rsts);
+    if (fcsts)     params.set('followcall_status',  fcsts);
+    if (custName)  params.set('customer_name',      custName);
 
     try {
       const res = await fetch(`${API_BASE}/api/maturity?${params}`, {
@@ -384,7 +402,7 @@
   }
 
   function clearSearch() {
-    ['date-from','date-to','staff-code','policy-type','renewal-status','followcall-status'].forEach(id => {
+    ['date-from','date-to','customer-name','staff-code','policy-type','renewal-status','followcall-status'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -392,6 +410,7 @@
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    doSearch();
   }
 
   function sortBy(col) {

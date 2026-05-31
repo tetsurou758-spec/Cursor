@@ -725,7 +725,7 @@ def get_dashboard(payload: dict = Depends(verify_token)):
             def aggregate_staff(month: str) -> dict:
                 """管轄代理店全体の当月/翌月更改ステータス別件数を集計して返す"""
                 if not agency_codes:
-                    return {"month": month, "completed": 0, "pending": 0, "total": 0, "rate": 0}
+                    return {"month": month, "completed": 0, "pending": 0, "total": 0, "rate": 0, "total_contracts": 0}
                 placeholders = ",".join("?" * len(agency_codes))
                 cur.execute(f"""
                     SELECT renewal_status, COUNT(*) AS cnt
@@ -738,12 +738,17 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 done  = rows.get("更改済", 0)
                 pend  = rows.get("未対応", 0) + rows.get("対応中", 0)
                 total = done + pend
+                all_cnt = cur.execute(
+                    f"SELECT COUNT(*) FROM contracts WHERE agency_code IN ({placeholders})",
+                    tuple(agency_codes)
+                ).fetchone()[0]
                 return {
-                    "month":     month,
-                    "completed": done,
-                    "pending":   pend,
-                    "total":     total,
-                    "rate":      round(done / total * 100, 1) if total > 0 else 0,
+                    "month":           month,
+                    "completed":       done,
+                    "pending":         pend,
+                    "total":           total,
+                    "rate":            round(done / total * 100, 1) if total > 0 else 0,
+                    "total_contracts": all_cnt,
                 }
 
             return {
@@ -773,12 +778,16 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 done  = rows.get("更改済", 0)
                 pend  = rows.get("未対応", 0) + rows.get("対応中", 0)
                 total = done + pend
+                all_cnt = cur.execute(
+                    "SELECT COUNT(*) FROM contracts WHERE agency_code = ?", (agency_code,)
+                ).fetchone()[0]
                 return {
-                    "month":     month,
-                    "completed": done,
-                    "pending":   pend,
-                    "total":     total,
-                    "rate":      round(done / total * 100, 1) if total > 0 else 0,
+                    "month":           month,
+                    "completed":       done,
+                    "pending":         pend,
+                    "total":           total,
+                    "rate":            round(done / total * 100, 1) if total > 0 else 0,
+                    "total_contracts": all_cnt,
                 }
 
             return {
@@ -805,13 +814,16 @@ class CustomerMatchRequest(BaseModel):
 
 @app.get("/api/customers")
 def get_customers(
-    payload:     dict          = Depends(verify_token),
-    last_name:   Optional[str] = Query(default=None, description="姓（部分一致）"),
-    first_name:  Optional[str] = Query(default=None, description="名（部分一致）"),
-    agency_code: Optional[str] = Query(default=None, description="代理店コード"),
-    policy_type: Optional[str] = Query(default=None, description="保有種目"),
-    staff_code:  Optional[str] = Query(default=None, description="担当者コード"),
-    group_code:  Optional[str] = Query(default=None, description="参照グループコード"),
+    payload:           dict          = Depends(verify_token),
+    last_name:         Optional[str] = Query(default=None, description="姓（部分一致）"),
+    first_name:        Optional[str] = Query(default=None, description="名（部分一致）"),
+    agency_code:       Optional[str] = Query(default=None, description="代理店コード"),
+    policy_type:       Optional[str] = Query(default=None, description="保有種目"),
+    staff_code:        Optional[str] = Query(default=None, description="担当者コード"),
+    group_code:        Optional[str] = Query(default=None, description="参照グループコード"),
+    tel:               Optional[str] = Query(default=None, description="電話番号（部分一致）"),
+    contract_no:       Optional[str] = Query(default=None, description="証券番号（部分一致）"),
+    not_insured_types: Optional[str] = Query(default=None, description="未加入種目フィルタ（カンマ区切り）"),
 ):
     """
     顧客一覧を返す
@@ -855,6 +867,23 @@ def get_customers(
         if first_name:
             sql += " AND (first_name LIKE ? OR first_name_raw LIKE ?)"
             params.extend([f"%{first_name}%", f"%{first_name}%"])
+        if tel:
+            sql += " AND tel LIKE ?"
+            params.append(f"%{tel}%")
+
+        # 証券番号から紐づく顧客IDを逆引き
+        if contract_no:
+            cno_rows = conn.execute(
+                "SELECT DISTINCT linked_customer_id FROM contracts WHERE contract_no LIKE ? AND linked_customer_id IS NOT NULL",
+                (f"%{contract_no}%",)
+            ).fetchall()
+            cno_ids = [r["linked_customer_id"] for r in cno_rows]
+            if cno_ids:
+                ph2 = ",".join("?" * len(cno_ids))
+                sql += f" AND customer_id IN ({ph2})"
+                params.extend(cno_ids)
+            else:
+                return {"customers": [], "total": 0}
 
         sql += " ORDER BY group_code, customer_id"
         customers = [dict(r) for r in conn.execute(sql, params).fetchall()]
@@ -890,6 +919,15 @@ def get_customers(
         # policy_typeフィルタがある場合、保有契約ゼロの顧客を除外
         if policy_type or agency_code or staff_code:
             customers = [c for c in customers if c["contract_count"] > 0]
+
+        # 未加入種目フィルタ（指定種目の契約を持たない顧客のみ）
+        if not_insured_types:
+            types_list = [t.strip() for t in not_insured_types.split(",") if t.strip()]
+            if types_list:
+                customers = [
+                    c for c in customers
+                    if all(not c["policy_summary"].get(t, False) for t in types_list)
+                ]
 
         return {"customers": customers, "total": len(customers)}
     finally:
@@ -1017,29 +1055,19 @@ def get_maturity(
     policy_type:       Optional[str] = Query(default=None),
     renewal_status:    Optional[str] = Query(default=None),
     followcall_status: Optional[str] = Query(default=None),
+    customer_name:     Optional[str] = Query(default=None, description="顧客氏名（部分一致）"),
+    contract_no:       Optional[str] = Query(default=None, description="証券番号（部分一致）"),
 ):
     """
     満期管理エンドポイント
 
     user_type:agency → group_codeで同グループの代理店契約を参照可能
     user_type:staff  → role_id=1は全代理店、role_id=2,3は同一部課の代理店のみ
+    date_from/date_toが空の場合はWHERE条件から除外（全期間）
     """
     user_type   = payload.get("user_type", "agency")
     group_code  = payload.get("group_code")
     agency_code = payload.get("agency_code")
-    today       = datetime.date.today()
-
-    # デフォルト検索範囲：満期3カ月前〜翌3カ月
-    if date_from is None:
-        d = today.replace(day=1)
-        for _ in range(3):
-            d = (d - datetime.timedelta(days=1)).replace(day=1)
-        date_from = d.isoformat()
-    if date_to is None:
-        m = today.month + 3
-        y = today.year + (m - 1) // 12
-        m = (m - 1) % 12 + 1
-        date_to = datetime.date(y, m, 28).isoformat()
 
     sql = """
         SELECT
@@ -1060,9 +1088,15 @@ def get_maturity(
         LEFT JOIN maturity_notices mn ON mn.contract_id = c.id
         JOIN agencies ag ON ag.agency_code = c.agency_code
         WHERE c.expiry_date IS NOT NULL
-          AND c.expiry_date BETWEEN ? AND ?
     """
-    params = [date_from, date_to]
+    params = []
+
+    if date_from and date_from.strip():
+        sql += " AND c.expiry_date >= ?"
+        params.append(date_from.strip())
+    if date_to and date_to.strip():
+        sql += " AND c.expiry_date <= ?"
+        params.append(date_to.strip())
 
     if user_type == "staff":
         role_id   = payload.get("role_id")
@@ -1091,6 +1125,12 @@ def get_maturity(
     if followcall_status:
         sql += " AND c.followcall_status = ?"
         params.append(followcall_status)
+    if customer_name and customer_name.strip():
+        sql += " AND c.customer_name LIKE ?"
+        params.append(f"%{customer_name.strip()}%")
+    if contract_no and contract_no.strip():
+        sql += " AND c.contract_no LIKE ?"
+        params.append(f"%{contract_no.strip()}%")
 
     sql += " ORDER BY c.expiry_date"
 

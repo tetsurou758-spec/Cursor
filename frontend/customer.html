@@ -41,6 +41,17 @@
     }
     .search-group input:focus, .search-group select:focus { border-color: var(--primary); }
     .staff-only { display: none; }
+
+    /* ── 未加入種目チェックボックス ── */
+    .not-insured-group { display: flex; flex-direction: column; gap: 4px; }
+    .not-insured-label-title { font-size: 11px; color: var(--label-color); font-weight: 700; }
+    .not-insured-checks { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 4px 0; }
+    .not-insured-checks label {
+      display: flex; align-items: center; gap: 3px;
+      font-size: 12px; color: #374151; cursor: pointer; white-space: nowrap;
+    }
+    .not-insured-checks input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--primary); }
+
     .btn-search {
       height: 34px; padding: 0 20px; background: var(--primary); color: #fff;
       border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 700;
@@ -195,18 +206,17 @@
         <label>代理店コード</label>
         <input type="text" id="q-agency-code" placeholder="例: A001">
       </div>
-      <div class="search-group">
-        <label>保有種目</label>
-        <select id="q-policy-type">
-          <option value="">全種目</option>
-          <option>自動車</option>
-          <option>火災</option>
-          <option>傷害</option>
-          <option>自賠責</option>
-          <option>賠償責任</option>
-          <option>サイバーリスク</option>
-          <option>所得補償</option>
-        </select>
+      <div class="not-insured-group">
+        <span class="not-insured-label-title">未加入種目で絞り込み</span>
+        <div class="not-insured-checks">
+          <label><input type="checkbox" class="not-insured-check" value="自動車"> 自動車</label>
+          <label><input type="checkbox" class="not-insured-check" value="火災"> 火災</label>
+          <label><input type="checkbox" class="not-insured-check" value="傷害"> 傷害</label>
+          <label><input type="checkbox" class="not-insured-check" value="自賠責"> 自賠責</label>
+          <label><input type="checkbox" class="not-insured-check" value="賠償責任"> 賠償責任</label>
+          <label><input type="checkbox" class="not-insured-check" value="サイバーリスク"> サイバー</label>
+          <label><input type="checkbox" class="not-insured-check" value="所得補償"> 所得補償</label>
+        </div>
       </div>
       <div class="search-group">
         <label>担当者コード</label>
@@ -308,9 +318,12 @@
   const API_BASE = 'http://127.0.0.1:8000';
 
   // URLパラメータ
-  const _urlParams    = new URLSearchParams(location.search);
+  const _urlParams     = new URLSearchParams(location.search);
   const _urlCustomerId = _urlParams.get('customer_id') ? Number(_urlParams.get('customer_id')) : null;
   const _urlExpand     = _urlParams.get('expand') === 'true';
+  const _urlSearchName     = _urlParams.get('search_name')     || '';
+  const _urlSearchTel      = _urlParams.get('search_tel')      || '';
+  const _urlSearchContract = _urlParams.get('search_contract') || '';
 
   // ── 初期化 ──────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
@@ -336,11 +349,20 @@
       btn.href        = 'maturity.html';
       btn.textContent = '← 満期管理に戻る';
 
-      // 検索フォームを非表示
       const searchCard = document.querySelector('.search-card');
       if (searchCard) searchCard.style.display = 'none';
 
       loadSingleCustomer(_urlCustomerId);
+    } else if (_urlSearchName) {
+      // ダッシュボードから名前検索で遷移
+      document.getElementById('q-last-name').value = _urlSearchName;
+      searchCustomers();
+    } else if (_urlSearchTel) {
+      // ダッシュボードから電話番号検索で遷移（tel パラメータとして送信）
+      searchCustomersByTel(_urlSearchTel);
+    } else if (_urlSearchContract) {
+      // ダッシュボードから証券番号検索で遷移
+      searchCustomersByContract(_urlSearchContract);
     } else {
       searchCustomers();
     }
@@ -382,16 +404,18 @@
     const lastName   = document.getElementById('q-last-name').value.trim();
     const firstName  = document.getElementById('q-first-name').value.trim();
     const agencyCode = document.getElementById('q-agency-code')?.value.trim() || '';
-    const policyType = document.getElementById('q-policy-type').value;
     const staffCode  = document.getElementById('q-staff-code').value.trim();
     const groupCode  = document.getElementById('q-group-code')?.value || '';
 
     if (lastName)   params.append('last_name',   lastName);
     if (firstName)  params.append('first_name',  firstName);
     if (agencyCode) params.append('agency_code', agencyCode);
-    if (policyType) params.append('policy_type', policyType);
     if (staffCode)  params.append('staff_code',  staffCode);
     if (groupCode)  params.append('group_code',  groupCode);
+
+    // 未加入種目フィルタ
+    const checkedTypes = [...document.querySelectorAll('.not-insured-check:checked')].map(el => el.value);
+    if (checkedTypes.length > 0) params.append('not_insured_types', checkedTypes.join(','));
 
     try {
       const res  = await fetch(`${API_BASE}/api/customers?${params}`, {
@@ -407,12 +431,48 @@
     }
   }
 
+  async function searchCustomersByTel(tel) {
+    const tbody = document.getElementById('customer-tbody');
+    tbody.innerHTML = '<tr><td colspan="13" class="loading">検索中...</td></tr>';
+    document.getElementById('result-count').textContent = '-';
+    const params = new URLSearchParams({ tel });
+    try {
+      const res = await fetch(`${API_BASE}/api/customers?${params}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) { showError(tbody, res.status); return; }
+      const data = await res.json();
+      document.getElementById('result-count').textContent = data.total;
+      renderTable(data.customers);
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+    }
+  }
+
+  async function searchCustomersByContract(contractNo) {
+    const tbody = document.getElementById('customer-tbody');
+    tbody.innerHTML = '<tr><td colspan="13" class="loading">検索中...</td></tr>';
+    document.getElementById('result-count').textContent = '-';
+    const params = new URLSearchParams({ contract_no: contractNo });
+    try {
+      const res = await fetch(`${API_BASE}/api/customers?${params}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) { showError(tbody, res.status); return; }
+      const data = await res.json();
+      document.getElementById('result-count').textContent = data.total;
+      renderTable(data.customers);
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+    }
+  }
+
   function resetSearch() {
     ['q-last-name','q-first-name','q-agency-code','q-staff-code'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
-    document.getElementById('q-policy-type').value = '';
+    document.querySelectorAll('.not-insured-check').forEach(el => el.checked = false);
     const gc = document.getElementById('q-group-code');
     if (gc) gc.value = '';
     searchCustomers();
