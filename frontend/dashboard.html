@@ -578,9 +578,9 @@
     // ── ダイレクト検索 ──────────────────────────────────────────────
     function getSearchType(val) {
       if (!val) return '';
-      if (/^\d{10,11}$/.test(val.replace(/-/g, ''))) return 'tel';
-      if (/^(POL-|CUST-)/i.test(val)) return 'contract';
-      return 'name';
+      if (/^\d/.test(val)) return 'tel';           // 数字始まり → 電話番号
+      if (/^[^\x00-\x7F]/.test(val)) return 'name'; // 全角文字始まり → 名前
+      return 'contract';                             // それ以外 → 証券番号・顧客番号
     }
 
     function detectSearchType() {

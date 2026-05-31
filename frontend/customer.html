@@ -219,6 +219,14 @@
         </div>
       </div>
       <div class="search-group">
+        <label>電話番号</label>
+        <input type="text" id="q-tel" placeholder="部分一致">
+      </div>
+      <div class="search-group">
+        <label>証券番号</label>
+        <input type="text" id="q-contract-no" placeholder="部分一致">
+      </div>
+      <div class="search-group">
         <label>担当者コード</label>
         <input type="text" id="q-staff-code" placeholder="例: S001">
       </div>
@@ -404,12 +412,16 @@
     const lastName   = document.getElementById('q-last-name').value.trim();
     const firstName  = document.getElementById('q-first-name').value.trim();
     const agencyCode = document.getElementById('q-agency-code')?.value.trim() || '';
+    const tel        = document.getElementById('q-tel').value.trim();
+    const contractNo = document.getElementById('q-contract-no').value.trim();
     const staffCode  = document.getElementById('q-staff-code').value.trim();
     const groupCode  = document.getElementById('q-group-code')?.value || '';
 
     if (lastName)   params.append('last_name',   lastName);
     if (firstName)  params.append('first_name',  firstName);
     if (agencyCode) params.append('agency_code', agencyCode);
+    if (tel)        params.append('tel',         tel);
+    if (contractNo) params.append('contract_no', contractNo);
     if (staffCode)  params.append('staff_code',  staffCode);
     if (groupCode)  params.append('group_code',  groupCode);
 
@@ -468,7 +480,7 @@
   }
 
   function resetSearch() {
-    ['q-last-name','q-first-name','q-agency-code','q-staff-code'].forEach(id => {
+    ['q-last-name','q-first-name','q-agency-code','q-tel','q-contract-no','q-staff-code'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
