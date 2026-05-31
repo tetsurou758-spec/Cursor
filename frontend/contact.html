@@ -76,6 +76,8 @@
     .btn-save { height: 36px; padding: 0 20px; background: var(--primary); color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 700; }
     .btn-save:hover { background: var(--primary-dark); }
     .btn-cancel { height: 36px; padding: 0 16px; background: #f3f4f6; color: #555; border: 1px solid #d1d5db; border-radius: 5px; cursor: pointer; font-size: 13px; }
+    .btn-delete { height: 36px; padding: 0 16px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .btn-delete:hover { background: #fecaca; }
 
     /* ── トースト ── */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 10px 22px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 2000; }
@@ -158,6 +160,8 @@
       </div>
     </div>
     <div class="modal-footer">
+      <button class="btn-delete" id="btn-delete" onclick="deleteContact()" style="display:none">削除</button>
+      <div style="flex:1"></div>
       <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
       <button class="btn-save" onclick="saveContact()">保存</button>
     </div>
@@ -251,6 +255,7 @@
     _editingId = ct ? ct.id : null;
     document.getElementById('modal-title').textContent =
       ct ? 'コンタクト履歴 編集' : 'コンタクト履歴 新規登録';
+    document.getElementById('btn-delete').style.display = ct ? '' : 'none';
 
     if (ct) {
       document.getElementById('f-datetime').value = toDatetimeLocal(ct.contact_datetime);
@@ -269,6 +274,27 @@
   function closeModal() {
     document.getElementById('contact-modal').classList.remove('open');
     _editingId = null;
+  }
+
+  async function deleteContact() {
+    if (!_editingId) return;
+    if (!confirm('この履歴を削除しますか？この操作は元に戻せません。')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/contacts/${_editingId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || `エラー（${res.status}）`);
+        return;
+      }
+      closeModal();
+      showToast('削除しました');
+      loadContacts();
+    } catch (e) {
+      alert('通信エラーが発生しました');
+    }
   }
 
   async function saveContact() {

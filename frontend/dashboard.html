@@ -508,10 +508,8 @@
             </svg>
             お客様コンタクト履歴
           </div>
-          <div class="widget-body">
-            <div class="contact-item"><div class="contact-meta"><span class="contact-name">田中 太郎 様</span><span class="contact-date">2026/05/28</span></div><div class="contact-content">自動車保険の更改についてご連絡。保険料の見直しを希望。</div></div>
-            <div class="contact-item"><div class="contact-meta"><span class="contact-name">鈴木 花子 様</span><span class="contact-date">2026/05/25</span></div><div class="contact-content">火災保険の保険証書再発行をご依頼。翌日対応予定。</div></div>
-            <div class="contact-item"><div class="contact-meta"><span class="contact-name">山田 次郎 様</span><span class="contact-date">2026/05/20</span></div><div class="contact-content">新規契約に向けた保険料試算をご依頼。見積書を送付済み。</div></div>
+          <div class="widget-body" id="contact-widget-body">
+            <div style="color:#bbb;font-size:12px;padding:16px 0;text-align:center">読み込み中...</div>
           </div>
         </div>
       </div>
@@ -731,7 +729,39 @@
         if (!res.ok) throw new Error('API error');
         renderDashboard(await res.json());
       } catch (e) { console.error('ダッシュボードデータの取得に失敗:', e); }
+
+      // コンタクト履歴ウィジェット（同参照Gの直近1か月・その他除く）
+      try {
+        const cRes = await fetch(`${API_BASE}/api/dashboard/contacts`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (cRes.ok) renderContactWidget((await cRes.json()).contacts || []);
+      } catch (e) { console.error('コンタクト履歴取得失敗:', e); }
     });
+
+    function renderContactWidget(contacts) {
+      const body = document.getElementById('contact-widget-body');
+      if (!contacts.length) {
+        body.innerHTML = '<div style="color:#bbb;font-size:12px;padding:16px 0;text-align:center">直近1か月のコンタクト履歴はありません</div>';
+        return;
+      }
+      const BADGE = { '連絡': '#dbeafe', 'クレーム': '#fee2e2', '満期落ち': '#fef3c7' };
+      const BADGE_TEXT = { '連絡': '#1d4ed8', 'クレーム': '#dc2626', '満期落ち': '#b45309' };
+      body.innerHTML = contacts.map(ct => {
+        const dt = (ct.contact_datetime || '').slice(0, 10).replace(/-/g, '/');
+        const bg   = BADGE[ct.contact_type]      || '#f3f4f6';
+        const col  = BADGE_TEXT[ct.contact_type] || '#6b7280';
+        const badge = `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${bg};color:${col};margin-left:6px">${ct.contact_type}</span>`;
+        const memo = ct.memo ? ct.memo.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '—';
+        return `<div class="contact-item">
+          <div class="contact-meta">
+            <span class="contact-name">${ct.customer_name} 様${badge}</span>
+            <span class="contact-date">${dt}</span>
+          </div>
+          <div class="contact-content">${memo}</div>
+        </div>`;
+      }).join('');
+    }
   </script>
 
 </body>

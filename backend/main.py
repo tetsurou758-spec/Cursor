@@ -1427,21 +1427,24 @@ def get_contacts(
 
 @app.post("/api/contacts")
 def create_contact(request: ContactCreateRequest, payload: dict = Depends(verify_token)):
-    """コンタクト履歴を新規登録する"""
+    """コンタクト履歴を新規登録する（agency_idはJWTから自動セット）"""
     allowed_types = {"連絡", "クレーム", "満期落ち", "その他"}
     if request.contact_type not in allowed_types:
         raise HTTPException(status_code=400, detail="不正な種別です")
 
     created_by = payload.get("login_id") or payload.get("staff_code") or "unknown"
+    # 代理店ユーザーはJWTのagency_id、社員はNoneを設定
+    agency_id  = payload.get("agency_id") if payload.get("user_type") != "staff" else None
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     conn = get_db_connection()
     try:
         cur = conn.execute(
-            """INSERT INTO contacts (customer_id, contact_datetime, contact_type, memo, created_by, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO contacts
+               (customer_id, contact_datetime, contact_type, memo, created_by, agency_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (request.customer_id, request.contact_datetime, request.contact_type,
-             request.memo, created_by, now, now)
+             request.memo, created_by, agency_id, now, now)
         )
         conn.commit()
         new_id = cur.lastrowid
@@ -1481,5 +1484,86 @@ def update_contact(
         conn.commit()
         updated = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
         return {"contact": dict(updated)}
+    finally:
+        conn.close()
+
+
+@app.delete("/api/contacts/{contact_id}")
+def delete_contact(contact_id: int, payload: dict = Depends(verify_token)):
+    """コンタクト履歴を削除する"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="コンタクト履歴が見つかりません")
+        conn.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
+        conn.commit()
+        return {"deleted": True, "id": contact_id}
+    finally:
+        conn.close()
+
+
+@app.get("/api/dashboard/contacts")
+def get_dashboard_contacts(payload: dict = Depends(verify_token)):
+    """
+    ダッシュボード用コンタクト履歴ウィジェット
+
+    ログインユーザーと同じ参照Gコードの代理店が登録した
+    直近1か月分（その他を除く）を新しい順に最大10件返す。
+    社員ユーザーは全グループを対象とする。
+    """
+    user_type  = payload.get("user_type", "agency")
+    group_code = payload.get("group_code")
+
+    conn = get_db_connection()
+    try:
+        since = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+
+        if user_type == "staff":
+            # 社員：アクセス可能な全group_codeを対象
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+            if role_id == 1:
+                ag_rows = conn.execute("SELECT DISTINCT group_code FROM agencies").fetchall()
+            else:
+                ag_rows = conn.execute(
+                    "SELECT DISTINCT group_code FROM agencies WHERE buka_code = ?", (buka_code,)
+                ).fetchall()
+            groups = [r["group_code"] for r in ag_rows]
+            if not groups:
+                return {"contacts": []}
+            ph = ",".join("?" * len(groups))
+            sql = f"""
+                SELECT ct.id, ct.contact_datetime, ct.contact_type, ct.memo,
+                       ct.created_by, ct.agency_id,
+                       c.last_name || ' ' || c.first_name AS customer_name
+                FROM contacts ct
+                JOIN customers c ON c.customer_id = ct.customer_id
+                LEFT JOIN agencies ag ON ag.agency_id = ct.agency_id
+                WHERE ct.contact_type != 'その他'
+                  AND ct.contact_datetime >= ?
+                  AND (ag.group_code IN ({ph}) OR ct.agency_id IS NULL)
+                ORDER BY ct.contact_datetime DESC
+                LIMIT 10
+            """
+            rows = conn.execute(sql, [since] + groups).fetchall()
+        else:
+            # 代理店：同じgroup_codeの代理店が登録した履歴
+            sql = """
+                SELECT ct.id, ct.contact_datetime, ct.contact_type, ct.memo,
+                       ct.created_by, ct.agency_id,
+                       c.last_name || ' ' || c.first_name AS customer_name
+                FROM contacts ct
+                JOIN customers c ON c.customer_id = ct.customer_id
+                LEFT JOIN agencies ag ON ag.agency_id = ct.agency_id
+                WHERE ct.contact_type != 'その他'
+                  AND ct.contact_datetime >= ?
+                  AND ag.group_code = ?
+                ORDER BY ct.contact_datetime DESC
+                LIMIT 10
+            """
+            rows = conn.execute(sql, [since, group_code]).fetchall()
+
+        return {"contacts": [dict(r) for r in rows]}
     finally:
         conn.close()
