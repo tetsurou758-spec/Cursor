@@ -1158,11 +1158,12 @@ def get_maturity(
         sql += " AND c.renewal_status = ?"
         params.append(renewal_status)
     if followcall_status:
-        # 未実施 = NULL、実施済 = 日付文字列が入っている
+        # 未実施 = NULL / '' / '未実施'（旧seed値）
+        # 実施済 = 日付文字列 or '実施済'（旧seed値）
         if followcall_status == "未実施":
-            sql += " AND (c.followcall_status IS NULL OR c.followcall_status = '')"
+            sql += " AND (c.followcall_status IS NULL OR c.followcall_status = '' OR c.followcall_status = '未実施')"
         elif followcall_status == "実施済":
-            sql += " AND c.followcall_status IS NOT NULL AND c.followcall_status != ''"
+            sql += " AND c.followcall_status IS NOT NULL AND c.followcall_status != '' AND c.followcall_status != '未実施'"
     if customer_name and customer_name.strip():
         sql += " AND c.customer_name LIKE ?"
         params.append(f"%{customer_name.strip()}%")

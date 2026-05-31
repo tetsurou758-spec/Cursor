@@ -554,9 +554,14 @@
     return `<span class="badge ${cls}">${s}</span>`;
   }
   function followcallBadge(s, contractId) {
-    // s = null/'' → 未実施（電話アイコン）、s = 日付文字列 → MM/DD済
-    if (!s) {
+    // null / '' / '未実施' → 未実施（電話アイコン）
+    // 日付文字列 (YYYY-MM-DD) → MM/DD済
+    // '実施済'（旧seed値・日付不明） → 済
+    if (!s || s === '未実施') {
       return `<span class="icon-clickable" title="フォローコール未実施" onclick="openFcPopover(event,${contractId},'')">📞</span>`;
+    }
+    if (s === '実施済') {
+      return `<span class="fc-done" title="実施済（日付不明）" onclick="openFcPopover(event,${contractId},'')">済</span>`;
     }
     const mm = s.slice(5, 7), dd = s.slice(8, 10);
     return `<span class="fc-done" title="${s} 実施済" onclick="openFcPopover(event,${contractId},'${s}')">${mm}/${dd}済</span>`;
