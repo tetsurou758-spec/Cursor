@@ -110,6 +110,63 @@ FIRST_NAMES = ["太郎","花子","一郎","二郎","三郎","直子","美咲",
 def make_name(n):
     return LAST_NAMES[n % len(LAST_NAMES)] + " " + FIRST_NAMES[(n // len(LAST_NAMES)) % len(FIRST_NAMES)]
 
+# 名前→性別マッピング（FIRST_NAMESと対応）
+_FIRST_NAME_GENDER = {
+    "太郎": "M", "花子": "F", "一郎": "M", "二郎": "M", "三郎": "M",
+    "直子": "F", "美咲": "F", "裕子": "F", "健一": "M", "幸子": "F",
+    "浩司": "M", "和子": "F", "誠":   "M", "文子": "F", "正男": "M",
+    "光子": "F", "憲一": "M", "恵子": "F", "隆":   "M", "久美子": "F",
+}
+
+# 代理店グループ→住所プレフィックス・区名リスト
+_ADDR_CONFIG = {
+    "A": ("東京都",       ["新宿区", "渋谷区", "港区", "品川区", "目黒区", "世田谷区", "中野区", "杉並区"]),
+    "B": ("大阪府大阪市", ["北区", "中央区", "西区", "浪速区", "天王寺区", "住吉区", "生野区", "福島区"]),
+    "C": ("愛知県名古屋市", ["中区", "昭和区", "瑞穂区", "守山区", "名東区", "天白区", "緑区", "港区"]),
+}
+
+def make_contractor_info(customer_name: str, agency_code: str) -> dict:
+    """
+    customer_name と agency_code から名寄せ用contractor情報を確定的に生成する。
+    同一 customer_name であれば常に同じ値を返すため、バッチで同一人物として名寄せされる。
+    """
+    import hashlib as _hl
+    parts = customer_name.split()
+    last_name  = parts[0]
+    first_name = parts[1] if len(parts) > 1 else ""
+
+    gender = _FIRST_NAME_GENDER.get(first_name, "M")
+    first_name_masked = mask_first_name(first_name)
+
+    # 氏名のハッシュで確定的に生成
+    h = int(_hl.md5((last_name + first_name).encode("utf-8")).hexdigest(), 16)
+
+    year  = 1945 + (h % 51)           # 1945–1995
+    month = 1 + ((h >> 8)  % 12)
+    day   = 1 + ((h >> 16) % 28)
+    birth_date = f"{year}-{month:02d}-{day:02d}"
+
+    tel_prefix = ["070", "080", "090"][h % 3]
+    tel = f"{tel_prefix}-{(h >> 4) % 10000:04d}-{(h >> 20) % 10000:04d}"
+
+    grp = agency_code[0]
+    city, wards = _ADDR_CONFIG.get(grp, ("東京都", ["中央区"]))
+    ward    = wards[h % len(wards)]
+    chome   = (h >> 12) % 9 + 1
+    ban     = (h >> 20) % 9 + 1
+    gou     = (h >> 28) % 9 + 1
+    address = f"{city}{ward}{chome}-{ban}-{gou}"
+
+    return {
+        "contractor_last_name":      last_name,
+        "contractor_first_name":     first_name_masked,
+        "contractor_first_name_raw": first_name,
+        "contractor_gender":         gender,
+        "contractor_birth_date":     birth_date,
+        "contractor_tel":            tel,
+        "contractor_address":        address,
+    }
+
 def notice_date(expiry_str):
     """満期日から90日前（約3ヶ月）を満期案内発送予定日として返す"""
     return (date.fromisoformat(expiry_str) - timedelta(days=90)).isoformat()
@@ -981,15 +1038,24 @@ def init_db():
                     s_code  = random.choice(STAFF_CODES_ALL)
                     n_type  = random.choice(NOTICE_TYPES_ALL)
                     n_date  = notice_date(expiry_date)
+                    cname = make_name(seq)
+                    ci    = make_contractor_info(cname, agency_code)
                     cur.execute("""
                         INSERT INTO contracts
                         (agency_code, contract_no, customer_name, renewal_month, status,
                          expiry_date, renewal_status, followcall_status,
-                         policy_type, staff_code, contact_method, contact_info, annual_premium)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (agency_code, f"{agency_code}-{month}-{seq:04d}", make_name(seq),
+                         policy_type, staff_code, contact_method, contact_info, annual_premium,
+                         contractor_last_name, contractor_first_name, contractor_first_name_raw,
+                         contractor_gender, contractor_birth_date,
+                         contractor_address, contractor_tel)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (agency_code, f"{agency_code}-{month}-{seq:04d}", cname,
                           month, sts, expiry_date, r_sts, fc_sts,
-                          p_type, s_code, method, info, premium))
+                          p_type, s_code, method, info, premium,
+                          ci["contractor_last_name"], ci["contractor_first_name"],
+                          ci["contractor_first_name_raw"], ci["contractor_gender"],
+                          ci["contractor_birth_date"], ci["contractor_address"],
+                          ci["contractor_tel"]))
                     cid = cur.lastrowid
                     cur.execute("""
                         INSERT INTO maturity_notices (contract_id, notice_date, notice_type)
