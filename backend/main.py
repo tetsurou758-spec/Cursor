@@ -793,6 +793,211 @@ def get_dashboard(payload: dict = Depends(verify_token)):
         conn.close()
 
 
+class CustomerMatchRequest(BaseModel):
+    """名寄せ判定リクエストのスキーマ"""
+    group_code: str
+    gender: str
+    birth_date: str
+    first_name: str
+    tel: Optional[str] = None
+    address: Optional[str] = None
+
+
+@app.get("/api/customers")
+def get_customers(
+    payload:     dict          = Depends(verify_token),
+    last_name:   Optional[str] = Query(default=None, description="姓（部分一致）"),
+    first_name:  Optional[str] = Query(default=None, description="名（部分一致）"),
+    agency_code: Optional[str] = Query(default=None, description="代理店コード"),
+    policy_type: Optional[str] = Query(default=None, description="保有種目"),
+    staff_code:  Optional[str] = Query(default=None, description="担当者コード"),
+    group_code:  Optional[str] = Query(default=None, description="参照グループコード"),
+):
+    """
+    顧客一覧を返す
+
+    代理店ユーザー：自代理店のgroup_codeに属する顧客のみ
+    社員ユーザー：管轄部課配下の全group_codeの顧客
+    各顧客に保有種目サマリーと複数代理店またがりフラグを付与する
+    """
+    user_type = payload.get("user_type", "agency")
+    conn = get_db_connection()
+    try:
+        # ── アクセス可能なgroup_codeリストを決定 ──────────────────
+        if user_type == "staff":
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+            if role_id == 1:
+                ag_rows = conn.execute("SELECT DISTINCT group_code FROM agencies").fetchall()
+            else:
+                ag_rows = conn.execute(
+                    "SELECT DISTINCT group_code FROM agencies WHERE buka_code = ?", (buka_code,)
+                ).fetchall()
+            allowed_groups = [r["group_code"] for r in ag_rows]
+        else:
+            own_gc = payload.get("group_code")
+            allowed_groups = [own_gc] if own_gc else []
+
+        # group_codeフィルタ（社員が絞り込む場合）
+        if group_code:
+            allowed_groups = [g for g in allowed_groups if g == group_code]
+
+        if not allowed_groups:
+            return {"customers": [], "total": 0}
+
+        placeholders = ",".join("?" * len(allowed_groups))
+        sql    = f"SELECT * FROM customers WHERE group_code IN ({placeholders})"
+        params = list(allowed_groups)
+
+        if last_name:
+            sql += " AND last_name LIKE ?"
+            params.append(f"%{last_name}%")
+        if first_name:
+            sql += " AND (first_name LIKE ? OR first_name_raw LIKE ?)"
+            params.extend([f"%{first_name}%", f"%{first_name}%"])
+
+        sql += " ORDER BY group_code, customer_id"
+        customers = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+        # ── 各顧客の契約サマリーを付与 ────────────────────────────
+        for cust in customers:
+            cid = cust["customer_id"]
+
+            # 絞り込み条件（代理店・担当者・種目）
+            c_sql    = "SELECT agency_code, policy_type, staff_code FROM contracts WHERE linked_customer_id = ?"
+            c_params = [cid]
+            if agency_code:
+                c_sql += " AND agency_code = ?"
+                c_params.append(agency_code)
+            if staff_code:
+                c_sql += " AND staff_code = ?"
+                c_params.append(staff_code)
+            if policy_type:
+                c_sql += " AND policy_type = ?"
+                c_params.append(policy_type)
+
+            c_rows = conn.execute(c_sql, c_params).fetchall()
+
+            held_types   = {r["policy_type"] for r in c_rows}
+            held_agencies = {r["agency_code"] for r in c_rows}
+            all_types    = ["自動車", "火災", "傷害", "自賠責", "賠償責任", "サイバーリスク", "所得補償"]
+
+            cust["policy_summary"]     = {t: (t in held_types) for t in all_types}
+            cust["held_agencies"]      = sorted(held_agencies)
+            cust["multi_agency"]       = len(held_agencies) > 1
+            cust["contract_count"]     = len(c_rows)
+
+        # policy_typeフィルタがある場合、保有契約ゼロの顧客を除外
+        if policy_type or agency_code or staff_code:
+            customers = [c for c in customers if c["contract_count"] > 0]
+
+        return {"customers": customers, "total": len(customers)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/customers/{customer_id}")
+def get_customer_detail(customer_id: int, payload: dict = Depends(verify_token)):
+    """
+    顧客詳細を返す
+
+    group_codeチェックでアクセス権限を確認する。
+    紐づく契約一覧（全種目・全代理店）を含む。
+    """
+    user_type = payload.get("user_type", "agency")
+    conn = get_db_connection()
+    try:
+        cust = conn.execute(
+            "SELECT * FROM customers WHERE customer_id = ?", (customer_id,)
+        ).fetchone()
+        if not cust:
+            raise HTTPException(status_code=404, detail="顧客が見つかりません")
+
+        cust_gc = cust["group_code"]
+
+        # アクセス権限チェック
+        if user_type == "staff":
+            role_id   = payload.get("role_id")
+            buka_code = payload.get("buka_code")
+            if role_id != 1:
+                ag = conn.execute(
+                    "SELECT 1 FROM agencies WHERE group_code = ? AND buka_code = ?",
+                    (cust_gc, buka_code)
+                ).fetchone()
+                if not ag:
+                    raise HTTPException(status_code=403, detail="アクセス権限がありません")
+        else:
+            if cust_gc != payload.get("group_code"):
+                raise HTTPException(status_code=403, detail="アクセス権限がありません")
+
+        # 紐づく契約一覧
+        contracts = [dict(r) for r in conn.execute("""
+            SELECT c.*, ag.agency_name, ag.group_code AS ag_group_code
+            FROM contracts c
+            LEFT JOIN agencies ag ON ag.agency_code = c.agency_code
+            WHERE c.linked_customer_id = ?
+            ORDER BY c.agency_code, c.expiry_date
+        """, (customer_id,)).fetchall()]
+
+        return {"customer": dict(cust), "contracts": contracts}
+    finally:
+        conn.close()
+
+
+@app.post("/api/customers/match")
+def match_customer(request: CustomerMatchRequest, payload: dict = Depends(verify_token)):
+    """
+    名寄せ判定API
+
+    同一group_code内で性別・生年月日・名が一致 AND (電話番号 OR 住所) が一致する
+    既存顧客IDを返す。一致候補リストと判定根拠も付与する。
+    """
+    conn = get_db_connection()
+    try:
+        # 必須3項目のみで候補を絞る
+        candidates = conn.execute("""
+            SELECT * FROM customers
+            WHERE group_code = ?
+              AND gender = ?
+              AND birth_date = ?
+              AND (first_name_raw = ? OR first_name = ?)
+        """, (request.group_code, request.gender, request.birth_date,
+              request.first_name, request.first_name)).fetchall()
+
+        matched_id   = None
+        matched_list = []
+        for row in candidates:
+            reasons = ["性別一致", "生年月日一致", "名一致"]
+            tel_match     = bool(request.tel     and row["tel"]     and request.tel     == row["tel"])
+            address_match = bool(request.address and row["address"] and request.address == row["address"])
+            if tel_match:
+                reasons.append("電話番号一致")
+            if address_match:
+                reasons.append("住所一致")
+
+            is_match = tel_match or address_match
+            if is_match and matched_id is None:
+                matched_id = row["customer_id"]
+
+            matched_list.append({
+                "customer_id":  row["customer_id"],
+                "last_name":    row["last_name"],
+                "first_name":   row["first_name"],
+                "birth_date":   row["birth_date"],
+                "tel":          row["tel"],
+                "address":      row["address"],
+                "is_match":     is_match,
+                "match_reasons": reasons,
+            })
+
+        return {
+            "matched_customer_id": matched_id,
+            "candidates":          matched_list,
+        }
+    finally:
+        conn.close()
+
+
 @app.get("/api/maturity")
 def get_maturity(
     payload:           dict          = Depends(verify_token),

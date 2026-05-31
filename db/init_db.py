@@ -2,7 +2,7 @@
 データベース初期化スクリプト
 全テーブルを再作成し、サンプルデータを登録する
 """
-import sqlite3, os, bcrypt, random
+import sqlite3, os, bcrypt, random, hashlib
 from datetime import date, timedelta
 
 random.seed(42)  # 再実行しても同じデータを生成する
@@ -299,20 +299,384 @@ MATURITY_CONTRACTS = [
 
 NOTICE_TYPES = ["はがき", "はがき", "冊子", "冊子", "はがき"]
 
+# ── 種目マスタ ────────────────────────────────────────────────────
+POLICY_TYPES_MASTER = [
+    ("AUTO",      "自動車",         1),
+    ("FIRE",      "火災",           2),
+    ("INJURY",    "傷害",           3),
+    ("JIBAI",     "自賠責",         4),
+    ("LIABILITY", "賠償責任",       5),
+    ("CYBER",     "サイバーリスク", 6),
+    ("INCOME",    "所得補償",       7),
+]
+
+# ── グループA顧客（10名）group_code="A" ────────────────────────────
+# ①②は複数代理店にまたがる名寄せ統合デモ用
+# グループB・Cに同姓同名を登録（別グループ→別顧客のデモ）
+CUSTOMERS_GROUP_A = [
+    # ① 羽生 結弦：A001に自動車・自賠責、A002に火災 → グループA内で名寄せ統合→1件
+    dict(
+        group_code="A",
+        last_name="羽生", first_name_raw="結弦", gender="M", birth_date="1994-12-07",
+        address="東京都港区赤坂1-1-1", tel="090-1207-9400", email="hanyu.yuzuru@example.com",
+        family_structure="単身", hobbies="フィギュアスケート、将棋", assets_info="投資資産あり、プロスケーター",
+        contracts=[
+            dict(agency_code="A001", policy_type="自動車",  annual_premium=135000, expiry_date="2027-12-07", staff_code="S001"),
+            dict(agency_code="A001", policy_type="自賠責",  annual_premium=19000,  expiry_date="2027-12-07", staff_code="S001"),
+            dict(agency_code="A002", policy_type="火災",    annual_premium=98000,  expiry_date="2027-06-30", staff_code="S001"),
+        ]
+    ),
+    # ② 大谷 翔平：A001に自動車、A003に傷害・賠償責任 → グループA内で名寄せ統合→1件
+    dict(
+        group_code="A",
+        last_name="大谷", first_name_raw="翔平", gender="M", birth_date="1994-07-05",
+        address="東京都千代田区丸の内2-3-4", tel="090-0705-9400", email="ohtani.shohei@example.com",
+        family_structure="夫婦のみ", hobbies="野球、読書", assets_info="高額資産家、プロ野球選手",
+        contracts=[
+            dict(agency_code="A001", policy_type="自動車",  annual_premium=158000, expiry_date="2027-07-05", staff_code="S002"),
+            dict(agency_code="A003", policy_type="傷害",    annual_premium=68000,  expiry_date="2027-04-30", staff_code="S001"),
+            dict(agency_code="A003", policy_type="賠償責任", annual_premium=75000, expiry_date="2027-04-30", staff_code="S001"),
+        ]
+    ),
+    # ③ 山本 太一：A001に自動車・火災・自賠責
+    dict(
+        group_code="A",
+        last_name="山本", first_name_raw="太一", gender="M", birth_date="1975-08-12",
+        address="東京都港区六本木3-2-1", tel="090-2345-6789", email="yamamoto.taichi@example.com",
+        family_structure="夫婦子あり", hobbies="ゴルフ、読書", assets_info="持家（ローン残8年）、車2台保有",
+        contracts=[
+            dict(agency_code="A001", policy_type="自動車", annual_premium=125000, expiry_date="2027-08-31", staff_code="S001"),
+            dict(agency_code="A001", policy_type="火災",   annual_premium=88000,  expiry_date="2027-09-30", staff_code="S001"),
+            dict(agency_code="A001", policy_type="自賠責", annual_premium=18500,  expiry_date="2027-08-31", staff_code="S001"),
+        ]
+    ),
+    # ④ 白石 麻衣：A001に自動車・傷害
+    dict(
+        group_code="A",
+        last_name="白石", first_name_raw="麻衣", gender="F", birth_date="1992-08-20",
+        address="東京都渋谷区神南1-5-2", tel="080-3456-7890", email="shiraishi.mai@example.com",
+        family_structure="単身", hobbies="ヨガ、映画鑑賞", assets_info="賃貸マンション、車1台保有",
+        contracts=[
+            dict(agency_code="A001", policy_type="自動車", annual_premium=98000, expiry_date="2027-07-31", staff_code="S002"),
+            dict(agency_code="A001", policy_type="傷害",   annual_premium=42000, expiry_date="2027-07-31", staff_code="S002"),
+        ]
+    ),
+    # ⑤ 坂口 健太：A001に火災・賠償責任・サイバーリスク
+    dict(
+        group_code="A",
+        last_name="坂口", first_name_raw="健太", gender="M", birth_date="1985-03-25",
+        address="東京都新宿区西新宿7-8-9", tel="070-4567-8901", email="sakaguchi.kenta@example.com",
+        family_structure="夫婦のみ", hobbies="カメラ、旅行", assets_info="持家（完済）、自営業（IT系）",
+        contracts=[
+            dict(agency_code="A001", policy_type="火災",           annual_premium=135000, expiry_date="2027-03-31", staff_code="S001"),
+            dict(agency_code="A001", policy_type="賠償責任",       annual_premium=62000,  expiry_date="2027-03-31", staff_code="S001"),
+            dict(agency_code="A001", policy_type="サイバーリスク", annual_premium=75000,  expiry_date="2027-03-31", staff_code="S001"),
+        ]
+    ),
+    # ⑥ 森川 悠介：A001に自動車のみ
+    dict(
+        group_code="A",
+        last_name="森川", first_name_raw="悠介", gender="M", birth_date="1998-11-05",
+        address="東京都世田谷区下北沢2-1-3", tel="090-5678-9012", email="morikawa.yusuke@example.com",
+        family_structure="単身", hobbies="バンド活動、スノーボード", assets_info="賃貸アパート、バイク1台・車1台保有",
+        contracts=[
+            dict(agency_code="A001", policy_type="自動車", annual_premium=85000, expiry_date="2027-10-31", staff_code="S002"),
+        ]
+    ),
+    # ⑦ 吉田 幸子：A001に火災・所得補償
+    dict(
+        group_code="A",
+        last_name="吉田", first_name_raw="幸子", gender="F", birth_date="1981-06-17",
+        address="東京都目黒区自由が丘1-3-5", tel="080-6789-0123", email="yoshida.sachiko@example.com",
+        family_structure="子あり（小学生）", hobbies="料理、ガーデニング", assets_info="持家（ローン残15年）、専業主婦",
+        contracts=[
+            dict(agency_code="A001", policy_type="火災",   annual_premium=195000, expiry_date="2027-06-30", staff_code="S001"),
+            dict(agency_code="A001", policy_type="所得補償", annual_premium=98000, expiry_date="2027-06-30", staff_code="S001"),
+        ]
+    ),
+    # ⑧ 田辺 大輔：A001に自動車・火災・傷害・自賠責
+    dict(
+        group_code="A",
+        last_name="田辺", first_name_raw="大輔", gender="M", birth_date="1973-09-08",
+        address="東京都品川区大井1-12-5", tel="090-7890-1234", email="tanabe.daisuke@example.com",
+        family_structure="夫婦子あり（2名）", hobbies="釣り、野球観戦", assets_info="持家、車3台保有、中小企業経営者",
+        contracts=[
+            dict(agency_code="A001", policy_type="自動車", annual_premium=148000, expiry_date="2027-09-30", staff_code="S002"),
+            dict(agency_code="A001", policy_type="火災",   annual_premium=220000, expiry_date="2027-09-30", staff_code="S002"),
+            dict(agency_code="A001", policy_type="傷害",   annual_premium=65000,  expiry_date="2027-09-30", staff_code="S002"),
+            dict(agency_code="A001", policy_type="自賠責", annual_premium=19000,  expiry_date="2027-09-30", staff_code="S002"),
+        ]
+    ),
+    # ⑨ 宮本 美穂：A002に賠償責任・サイバーリスク
+    dict(
+        group_code="A",
+        last_name="宮本", first_name_raw="美穂", gender="F", birth_date="1987-04-30",
+        address="東京都中野区中野3-7-2", tel="070-8901-2345", email="miyamoto.miho@example.com",
+        family_structure="夫婦のみ", hobbies="ハイキング、陶芸", assets_info="賃貸マンション、フリーランスデザイナー",
+        contracts=[
+            dict(agency_code="A002", policy_type="賠償責任",       annual_premium=48000, expiry_date="2027-04-30", staff_code="S001"),
+            dict(agency_code="A002", policy_type="サイバーリスク", annual_premium=62000, expiry_date="2027-04-30", staff_code="S001"),
+        ]
+    ),
+    # ⑩ 栗原 勇太：A003に自動車・サイバーリスク
+    dict(
+        group_code="A",
+        last_name="栗原", first_name_raw="勇太", gender="M", birth_date="1994-02-14",
+        address="東京都豊島区池袋2-4-8", tel="090-9012-3456", email="kurihara.yuta@example.com",
+        family_structure="単身", hobbies="プログラミング、e-Sports", assets_info="賃貸マンション、ITエンジニア",
+        contracts=[
+            dict(agency_code="A003", policy_type="自動車",         annual_premium=92000, expiry_date="2027-02-28", staff_code="S002"),
+            dict(agency_code="A003", policy_type="サイバーリスク", annual_premium=85000, expiry_date="2027-02-28", staff_code="S002"),
+        ]
+    ),
+]
+
+# ── グループB顧客（8名）group_code="B" ────────────────────────────
+# ①②は羽生・大谷と同姓同名だが別グループ→別顧客（デモ用）
+CUSTOMERS_GROUP_B = [
+    # ① 羽生 結弦（B002）：グループBの別顧客として登録
+    dict(
+        group_code="B",
+        last_name="羽生", first_name_raw="結弦", gender="M", birth_date="1994-12-07",
+        address="大阪府大阪市北区梅田1-2-3", tel="080-1207-0001", email="hanyu.b@example.com",
+        family_structure="単身", hobbies="フィギュアスケート、将棋", assets_info="投資資産あり",
+        contracts=[
+            dict(agency_code="B002", policy_type="火災", annual_premium=98000, expiry_date="2027-06-30", staff_code="S003"),
+        ]
+    ),
+    # ② 大谷 翔平（B002）：グループBの別顧客として登録
+    dict(
+        group_code="B",
+        last_name="大谷", first_name_raw="翔平", gender="M", birth_date="1994-07-05",
+        address="大阪府大阪市中央区心斎橋1-1-1", tel="080-0705-0001", email="ohtani.b@example.com",
+        family_structure="夫婦のみ", hobbies="野球、読書", assets_info="高額資産家",
+        contracts=[
+            dict(agency_code="B002", policy_type="傷害",   annual_premium=68000, expiry_date="2027-04-30", staff_code="S003"),
+            dict(agency_code="B002", policy_type="賠償責任", annual_premium=75000, expiry_date="2027-04-30", staff_code="S003"),
+        ]
+    ),
+    # ③ 菊地 裕太：B001に自動車・火災・傷害
+    dict(
+        group_code="B",
+        last_name="菊地", first_name_raw="裕太", gender="M", birth_date="1984-05-20",
+        address="大阪府大阪市北区梅田2-5-3", tel="090-2345-1111", email="kikuchi.yuta@example.com",
+        family_structure="夫婦子あり", hobbies="バスケットボール、料理", assets_info="持家、会社員（製造業）",
+        contracts=[
+            dict(agency_code="B001", policy_type="自動車", annual_premium=110000, expiry_date="2027-05-31", staff_code="S003"),
+            dict(agency_code="B001", policy_type="火災",   annual_premium=145000, expiry_date="2027-05-31", staff_code="S003"),
+            dict(agency_code="B001", policy_type="傷害",   annual_premium=48000,  expiry_date="2027-05-31", staff_code="S003"),
+        ]
+    ),
+    # ④ 深川 圭子：B002に自動車・所得補償
+    dict(
+        group_code="B",
+        last_name="深川", first_name_raw="圭子", gender="F", birth_date="1991-09-14",
+        address="大阪府大阪市西区江戸堀1-7-4", tel="080-3456-2222", email="fukagawa.keiko@example.com",
+        family_structure="単身", hobbies="ピアノ、読書", assets_info="賃貸マンション、会社員",
+        contracts=[
+            dict(agency_code="B002", policy_type="自動車",  annual_premium=88000,  expiry_date="2027-09-30", staff_code="S003"),
+            dict(agency_code="B002", policy_type="所得補償", annual_premium=105000, expiry_date="2027-09-30", staff_code="S003"),
+        ]
+    ),
+    # ⑤ 尾形 拓也：B002に火災・サイバーリスク・賠償責任
+    dict(
+        group_code="B",
+        last_name="尾形", first_name_raw="拓也", gender="M", birth_date="1976-12-03",
+        address="大阪府大阪市中央区谷町4-3-8", tel="070-4567-3333", email="ogata.takuya@example.com",
+        family_structure="夫婦のみ", hobbies="クラシック音楽、美術鑑賞", assets_info="持家（完済）、小規模法人代表",
+        contracts=[
+            dict(agency_code="B002", policy_type="火災",           annual_premium=180000, expiry_date="2027-12-31", staff_code="S003"),
+            dict(agency_code="B002", policy_type="サイバーリスク", annual_premium=95000,  expiry_date="2027-12-31", staff_code="S003"),
+            dict(agency_code="B002", policy_type="賠償責任",       annual_premium=72000,  expiry_date="2027-12-31", staff_code="S003"),
+        ]
+    ),
+    # ⑥ 浜田 奈美：B001に自動車・傷害・自賠責
+    dict(
+        group_code="B",
+        last_name="浜田", first_name_raw="奈美", gender="F", birth_date="1988-03-17",
+        address="大阪府吹田市江坂町2-9-5", tel="090-5678-4444", email="hamada.nami@example.com",
+        family_structure="夫婦子あり（1名）", hobbies="テニス、子育て", assets_info="持家、パート（医療事務）",
+        contracts=[
+            dict(agency_code="B001", policy_type="自動車", annual_premium=95000, expiry_date="2027-03-31", staff_code="S003"),
+            dict(agency_code="B001", policy_type="傷害",   annual_premium=38000, expiry_date="2027-03-31", staff_code="S003"),
+            dict(agency_code="B001", policy_type="自賠責", annual_premium=16500, expiry_date="2027-03-31", staff_code="S003"),
+        ]
+    ),
+    # ⑦ 成田 雄介：B002に自動車・火災・自賠責・サイバーリスク
+    dict(
+        group_code="B",
+        last_name="成田", first_name_raw="雄介", gender="M", birth_date="1982-11-09",
+        address="大阪府豊中市庄内西町3-4-7", tel="090-7890-6666", email="narita.yusuke@example.com",
+        family_structure="夫婦子あり（2名）", hobbies="車いじり、キャンプ", assets_info="持家、車3台保有、整備士",
+        contracts=[
+            dict(agency_code="B002", policy_type="自動車",         annual_premium=132000, expiry_date="2027-11-30", staff_code="S003"),
+            dict(agency_code="B002", policy_type="火災",           annual_premium=158000, expiry_date="2027-11-30", staff_code="S003"),
+            dict(agency_code="B002", policy_type="自賠責",         annual_premium=18000,  expiry_date="2027-11-30", staff_code="S003"),
+            dict(agency_code="B002", policy_type="サイバーリスク", annual_premium=65000,  expiry_date="2027-11-30", staff_code="S003"),
+        ]
+    ),
+    # ⑧ 岩佐 玲奈：B001に賠償責任・所得補償
+    dict(
+        group_code="B",
+        last_name="岩佐", first_name_raw="玲奈", gender="F", birth_date="1979-06-25",
+        address="大阪府高槻市城西町1-5-3", tel="070-8901-7777", email="iwasa.reina@example.com",
+        family_structure="子あり（高校生）", hobbies="ウォーキング、絵画", assets_info="賃貸戸建、パート（小売）",
+        contracts=[
+            dict(agency_code="B001", policy_type="賠償責任",  annual_premium=52000, expiry_date="2027-06-30", staff_code="S003"),
+            dict(agency_code="B001", policy_type="所得補償",  annual_premium=88000, expiry_date="2027-06-30", staff_code="S003"),
+        ]
+    ),
+]
+
+# ── グループC顧客（8名）group_code="C" ────────────────────────────
+CUSTOMERS_GROUP_C = [
+    # ① 増田 隆雄：C001に自動車・火災・賠償責任
+    dict(
+        group_code="C",
+        last_name="増田", first_name_raw="隆雄", gender="M", birth_date="1985-04-04",
+        address="愛知県名古屋市中区錦2-6-3", tel="090-2345-9999", email="masuda.takao@example.com",
+        family_structure="夫婦子あり（2名）", hobbies="野球、DIY", assets_info="持家（ローン残10年）、会社員（建設）",
+        contracts=[
+            dict(agency_code="C001", policy_type="自動車",  annual_premium=118000, expiry_date="2027-04-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="火災",    annual_premium=172000, expiry_date="2027-04-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="賠償責任", annual_premium=58000, expiry_date="2027-04-30", staff_code="S004"),
+        ]
+    ),
+    # ② 沖田 倫子：C003に傷害・所得補償
+    dict(
+        group_code="C",
+        last_name="沖田", first_name_raw="倫子", gender="F", birth_date="1992-08-11",
+        address="愛知県名古屋市千種区覚王山1-3-8", tel="080-3456-0001", email="okita.noriko@example.com",
+        family_structure="単身", hobbies="ヨガ、旅行", assets_info="賃貸、会社員（医療）",
+        contracts=[
+            dict(agency_code="C003", policy_type="傷害",   annual_premium=45000,  expiry_date="2027-08-31", staff_code="S004"),
+            dict(agency_code="C003", policy_type="所得補償", annual_premium=118000, expiry_date="2027-08-31", staff_code="S004"),
+        ]
+    ),
+    # ③ 谷口 和彦：C001に自動車・自賠責・サイバーリスク
+    dict(
+        group_code="C",
+        last_name="谷口", first_name_raw="和彦", gender="M", birth_date="1974-06-19",
+        address="愛知県名古屋市守山区大森5-9-2", tel="070-4567-0002", email="taniguchi.kazuhiko@example.com",
+        family_structure="夫婦子あり（3名）", hobbies="釣り、ゴルフ", assets_info="持家（完済）、車2台、自営業（飲食）",
+        contracts=[
+            dict(agency_code="C001", policy_type="自動車",         annual_premium=98000, expiry_date="2027-06-30", staff_code="S005"),
+            dict(agency_code="C001", policy_type="自賠責",         annual_premium=17000, expiry_date="2027-06-30", staff_code="S005"),
+            dict(agency_code="C001", policy_type="サイバーリスク", annual_premium=82000, expiry_date="2027-06-30", staff_code="S005"),
+        ]
+    ),
+    # ④ 黒木 華奈：C003に火災・賠償責任
+    dict(
+        group_code="C",
+        last_name="黒木", first_name_raw="華奈", gender="F", birth_date="1988-01-30",
+        address="愛知県名古屋市昭和区広路本町2-1-4", tel="090-5678-0003", email="kuroki.kana@example.com",
+        family_structure="夫婦のみ", hobbies="カフェ巡り、スポーツ観戦", assets_info="賃貸マンション、会社員（広告）",
+        contracts=[
+            dict(agency_code="C003", policy_type="火災",   annual_premium=95000, expiry_date="2027-01-31", staff_code="S004"),
+            dict(agency_code="C003", policy_type="賠償責任", annual_premium=44000, expiry_date="2027-01-31", staff_code="S004"),
+        ]
+    ),
+    # ⑤ 松田 翔太：C003に自動車のみ
+    dict(
+        group_code="C",
+        last_name="松田", first_name_raw="翔太", gender="M", birth_date="1997-12-15",
+        address="愛知県名古屋市名東区社が丘3-5-7", tel="080-6789-0004", email="matsuda.shota@example.com",
+        family_structure="単身", hobbies="バイク、ゲーム", assets_info="賃貸アパート、バイク2台・車1台保有",
+        contracts=[
+            dict(agency_code="C003", policy_type="自動車", annual_premium=82000, expiry_date="2027-12-31", staff_code="S005"),
+        ]
+    ),
+    # ⑥ 藤本 美紀：C001に自動車・火災・傷害・所得補償
+    dict(
+        group_code="C",
+        last_name="藤本", first_name_raw="美紀", gender="F", birth_date="1980-09-07",
+        address="愛知県名古屋市天白区平針2-8-6", tel="090-7890-0005", email="fujimoto.miki@example.com",
+        family_structure="子あり（小学生・中学生）", hobbies="料理、バドミントン", assets_info="持家（ローン残18年）、パート（事務）",
+        contracts=[
+            dict(agency_code="C001", policy_type="自動車",  annual_premium=112000, expiry_date="2027-09-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="火災",    annual_premium=185000, expiry_date="2027-09-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="傷害",    annual_premium=52000,  expiry_date="2027-09-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="所得補償", annual_premium=92000, expiry_date="2027-09-30", staff_code="S004"),
+        ]
+    ),
+    # ⑦ 今井 義人：C003に賠償責任・サイバーリスク
+    dict(
+        group_code="C",
+        last_name="今井", first_name_raw="義人", gender="M", birth_date="1975-03-22",
+        address="愛知県名古屋市西区城西4-3-1", tel="070-8901-0006", email="imai.yoshito@example.com",
+        family_structure="夫婦のみ", hobbies="温泉旅行、将棋", assets_info="持家（完済）、定年退職後・年金受給中",
+        contracts=[
+            dict(agency_code="C003", policy_type="賠償責任",       annual_premium=48000, expiry_date="2027-03-31", staff_code="S005"),
+            dict(agency_code="C003", policy_type="サイバーリスク", annual_premium=55000, expiry_date="2027-03-31", staff_code="S005"),
+        ]
+    ),
+    # ⑧ 野村 栞菜：C001に自動車・火災・自賠責
+    dict(
+        group_code="C",
+        last_name="野村", first_name_raw="栞菜", gender="F", birth_date="1993-11-28",
+        address="愛知県名古屋市緑区鳴海町3-12-9", tel="090-9012-0007", email="nomura.kanna@example.com",
+        family_structure="単身", hobbies="ダンス、ネットショッピング", assets_info="賃貸マンション、会社員（小売）",
+        contracts=[
+            dict(agency_code="C001", policy_type="自動車", annual_premium=88000,  expiry_date="2027-11-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="火災",   annual_premium=125000, expiry_date="2027-11-30", staff_code="S004"),
+            dict(agency_code="C001", policy_type="自賠責", annual_premium=17500,  expiry_date="2027-11-30", staff_code="S004"),
+        ]
+    ),
+]
+
+ALL_CUSTOMER_GROUPS = [CUSTOMERS_GROUP_A, CUSTOMERS_GROUP_B, CUSTOMERS_GROUP_C]
+
+
+def make_match_key(group_code: str, gender: str, birth_date: str, first_name_raw: str) -> str:
+    """名寄せキー（group_code + gender + birth_date + first_name_raw のSHA256ハッシュ）"""
+    raw = f"{group_code}|{gender}|{birth_date}|{first_name_raw}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def mask_first_name(first_name_raw: str) -> str:
+    """名の先頭1文字を○でマスクする"""
+    if len(first_name_raw) <= 1:
+        return "○"
+    return "○" + first_name_raw[1:]
+
+
+def find_same_customer(conn, group_code: str, gender: str, birth_date: str,
+                       first_name: str, tel: str, address: str):
+    """
+    同一group_code内で必須3項目（性別・生年月日・名）が一致
+    AND（電話番号一致 OR 住所一致）の場合に既存customer_idを返す。
+    一致なければNoneを返す。
+    """
+    rows = conn.execute("""
+        SELECT customer_id FROM customers
+        WHERE group_code = ?
+          AND gender = ?
+          AND birth_date = ?
+          AND first_name_raw = ?
+          AND (
+            (tel     IS NOT NULL AND tel     != '' AND tel     = ?)
+            OR
+            (address IS NOT NULL AND address != '' AND address = ?)
+          )
+    """, (group_code, gender, birth_date, first_name, tel or "", address or "")).fetchall()
+    return rows[0]["customer_id"] if rows else None
+
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     try:
         cur = conn.cursor()
         cur.execute("PRAGMA foreign_keys = OFF")
 
         # テーブルを全削除（依存関係の逆順）
         for tbl in ("maturity_notices", "accidents", "role_permissions",
-                    "contracts", "users", "features", "roles",
+                    "contracts", "customers", "policy_types",
+                    "users", "features", "roles",
                     "staff_users", "staff_roles", "agencies"):
             cur.execute(f"DROP TABLE IF EXISTS {tbl}")
 
-        # ── 代理店マスタ（buka_code追加）─────────────────────────
+        # ── 代理店マスタ ─────────────────────────────────────────
         cur.execute("""
             CREATE TABLE agencies (
                 agency_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -433,7 +797,43 @@ def init_db():
             role_name = ROLES[u["role_id"] - 1]["role_name"]
             print(f"  代理店ユーザー: [{u['agency_code']}] {u['login_id']} ({role_name})")
 
-        # ── contractsテーブル ─────────────────────────────────────
+        # ── 種目マスタ（policy_types）────────────────────────────
+        cur.execute("""
+            CREATE TABLE policy_types (
+                type_code     TEXT    PRIMARY KEY,
+                type_name     TEXT    NOT NULL,
+                display_order INTEGER NOT NULL
+            )
+        """)
+        for tc, tn, do in POLICY_TYPES_MASTER:
+            cur.execute("INSERT INTO policy_types VALUES (?, ?, ?)", (tc, tn, do))
+        print(f"  種目マスタ: {len(POLICY_TYPES_MASTER)}件")
+
+        # ── 顧客マスタ（group_codeを上位キーとして管理）──────────
+        # UNIQUE(group_code, match_key)：同一グループ内で同一人物は1件のみ
+        cur.execute("""
+            CREATE TABLE customers (
+                customer_id      INTEGER  PRIMARY KEY AUTOINCREMENT,
+                group_code       TEXT     NOT NULL,
+                last_name        TEXT     NOT NULL,
+                first_name       TEXT     NOT NULL,
+                first_name_raw   TEXT     NOT NULL,
+                gender           TEXT     CHECK(gender IN ('M','F')),
+                birth_date       TEXT,
+                address          TEXT,
+                tel              TEXT,
+                email            TEXT,
+                family_structure TEXT,
+                hobbies          TEXT,
+                assets_info      TEXT,
+                match_key        TEXT     NOT NULL,
+                created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(group_code, match_key)
+            )
+        """)
+
+        # ── contractsテーブル（顧客管理項目追加）────────────────
         cur.execute("""
             CREATE TABLE contracts (
                 id                    INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -459,7 +859,14 @@ def init_db():
                 renewed_premium       INTEGER,
                 upsell_status         TEXT     DEFAULT 'なし',
                 lapse_status          INTEGER  DEFAULT 0,
-                created_at            DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at            DATETIME DEFAULT CURRENT_TIMESTAMP,
+                linked_customer_id    INTEGER  REFERENCES customers(customer_id),
+                contractor_last_name  TEXT,
+                contractor_first_name TEXT,
+                contractor_gender     TEXT,
+                contractor_birth_date TEXT,
+                contractor_address    TEXT,
+                contractor_tel        TEXT
             )
         """)
 
@@ -493,8 +900,7 @@ def init_db():
             """, ac)
         print(f"  事故データ: {len(ACCIDENTS)}件")
 
-        # ── ダッシュボード用 既存サンプル契約（1449件）──────────
-        # 各フィールドをランダムで埋めて満期管理一覧にも表示できるようにする
+        # ── ダッシュボード用 サンプル契約（1449件）────────────────
         total_dash = 0
         total_notices = 0
         for agency_code, month, completed, pending in CONTRACT_CONFIG:
@@ -530,7 +936,7 @@ def init_db():
             total_dash += completed + pending
         print(f"  契約（ダッシュボード用）: {total_dash}件 + notices: {total_notices}件")
 
-        # ── 満期管理用 サンプル契約（15件）──────────────────────
+        # ── 満期管理用 サンプル契約（16件）──────────────────────
         for mc in MATURITY_CONTRACTS:
             cur.execute("""
                 INSERT INTO contracts (
@@ -555,6 +961,62 @@ def init_db():
                 VALUES (?, ?, ?)
             """, (cid, ndate, ntype))
         print(f"  契約（満期管理用）: {len(MATURITY_CONTRACTS)}件 + notices: {len(MATURITY_CONTRACTS)}件")
+
+        # ── 顧客マスタ＆顧客契約データ投入（グループ単位）────────
+        total_customers = 0
+        total_cust_contracts = 0
+        for group_customers in ALL_CUSTOMER_GROUPS:
+            for c in group_customers:
+                group_code = c["group_code"]
+                first_name = mask_first_name(c["first_name_raw"])
+                match_key  = make_match_key(group_code, c["gender"], c["birth_date"], c["first_name_raw"])
+
+                # 名寄せ：同一グループ内に既存顧客がいれば統合
+                existing_id = find_same_customer(
+                    conn, group_code, c["gender"], c["birth_date"],
+                    c["first_name_raw"], c["tel"], c["address"]
+                )
+                if existing_id:
+                    cust_db_id = existing_id
+                else:
+                    cur.execute("""
+                        INSERT OR IGNORE INTO customers
+                        (group_code, last_name, first_name, first_name_raw, gender, birth_date,
+                         address, tel, email, family_structure, hobbies, assets_info, match_key)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (group_code, c["last_name"], first_name, c["first_name_raw"],
+                          c["gender"], c["birth_date"], c["address"], c["tel"], c["email"],
+                          c["family_structure"], c["hobbies"], c["assets_info"], match_key))
+                    cust_db_id = cur.lastrowid
+                    total_customers += 1
+
+                # 各代理店への契約を登録
+                customer_display_name = f"{c['last_name']} {first_name}"
+                for ci, ct in enumerate(c["contracts"], 1):
+                    contract_no   = f"CUST-{ct['agency_code']}-{cust_db_id:04d}-{ci:02d}"
+                    renewal_month = ct["expiry_date"][:7]
+                    cur.execute("""
+                        INSERT INTO contracts
+                        (agency_code, contract_no, customer_name, renewal_month, status,
+                         policy_type, expiry_date, annual_premium, staff_code,
+                         contact_method, contact_info, followcall_status, renewal_status,
+                         upsell_status, lapse_status,
+                         linked_customer_id,
+                         contractor_last_name, contractor_first_name,
+                         contractor_gender, contractor_birth_date,
+                         contractor_address, contractor_tel)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (ct["agency_code"], contract_no, customer_display_name,
+                          renewal_month, "pending",
+                          ct["policy_type"], ct["expiry_date"], ct["annual_premium"], ct["staff_code"],
+                          "TEL", c["tel"], "未実施", "未対応", "なし", 0,
+                          cust_db_id,
+                          c["last_name"], first_name,
+                          c["gender"], c["birth_date"],
+                          c["address"], c["tel"]))
+                    total_cust_contracts += 1
+
+        print(f"  顧客マスタ: {total_customers}名 / 顧客契約: {total_cust_contracts}件")
 
         cur.execute("PRAGMA foreign_keys = ON")
         conn.commit()
