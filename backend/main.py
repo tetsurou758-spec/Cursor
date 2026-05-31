@@ -1158,8 +1158,11 @@ def get_maturity(
         sql += " AND c.renewal_status = ?"
         params.append(renewal_status)
     if followcall_status:
-        sql += " AND c.followcall_status = ?"
-        params.append(followcall_status)
+        # 未実施 = NULL、実施済 = 日付文字列が入っている
+        if followcall_status == "未実施":
+            sql += " AND (c.followcall_status IS NULL OR c.followcall_status = '')"
+        elif followcall_status == "実施済":
+            sql += " AND c.followcall_status IS NOT NULL AND c.followcall_status != ''"
     if customer_name and customer_name.strip():
         sql += " AND c.customer_name LIKE ?"
         params.append(f"%{customer_name.strip()}%")
@@ -1174,6 +1177,120 @@ def get_maturity(
         rows = conn.execute(sql, params).fetchall()
         contracts = [dict(r) for r in rows]
         return {"contracts": contracts, "total": len(contracts)}
+    finally:
+        conn.close()
+
+
+class MemoUpdateRequest(BaseModel):
+    """メモ更新リクエスト"""
+    memo: Optional[str] = None
+
+
+class FollowcallUpdateRequest(BaseModel):
+    """フォローコール日付更新リクエスト"""
+    followcall_date: Optional[str] = None  # YYYY-MM-DD または None（未実施に戻す）
+
+
+class RenewalUpdateRequest(BaseModel):
+    """更改ステータス更新リクエスト"""
+    renewal_status: str
+    memo: Optional[str] = None          # 満期落ち時のコメント
+    customer_id: Optional[int] = None  # 満期落ち時のコンタクト登録先
+
+
+@app.put("/api/maturity/{contract_id}/memo")
+def update_contract_memo(
+    contract_id: int,
+    request: MemoUpdateRequest,
+    payload: dict = Depends(verify_token),
+):
+    """契約のメモを更新する"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT id FROM contracts WHERE id = ?", (contract_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="契約が見つかりません")
+        conn.execute("UPDATE contracts SET memo = ? WHERE id = ?", (request.memo, contract_id))
+        conn.commit()
+        return {"updated": True, "memo": request.memo}
+    finally:
+        conn.close()
+
+
+@app.put("/api/maturity/{contract_id}/followcall")
+def update_followcall(
+    contract_id: int,
+    request: FollowcallUpdateRequest,
+    payload: dict = Depends(verify_token),
+):
+    """フォローコール日付を更新する（None で未実施に戻す）"""
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT id FROM contracts WHERE id = ?", (contract_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="契約が見つかりません")
+        conn.execute(
+            "UPDATE contracts SET followcall_status = ? WHERE id = ?",
+            (request.followcall_date, contract_id)
+        )
+        conn.commit()
+        return {"updated": True, "followcall_date": request.followcall_date}
+    finally:
+        conn.close()
+
+
+RENEWAL_STATUS_OPTIONS = {"未対応", "対応中", "更改済", "落ち", "満期落ち"}
+
+
+@app.put("/api/maturity/{contract_id}/renewal")
+def update_renewal_status(
+    contract_id: int,
+    request: RenewalUpdateRequest,
+    payload: dict = Depends(verify_token),
+):
+    """
+    更改ステータスを更新する
+
+    renewal_status が「満期落ち」の場合は linked_customer_id の顧客に
+    コンタクト履歴（種別:満期落ち）を自動登録する。
+    """
+    if request.renewal_status not in RENEWAL_STATUS_OPTIONS:
+        raise HTTPException(status_code=400, detail="不正な更改ステータスです")
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            "SELECT id, linked_customer_id FROM contracts WHERE id = ?", (contract_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="契約が見つかりません")
+
+        conn.execute(
+            "UPDATE contracts SET renewal_status = ? WHERE id = ?",
+            (request.renewal_status, contract_id)
+        )
+
+        contact_id = None
+        if request.renewal_status == "満期落ち":
+            # コンタクト履歴に自動登録
+            customer_id = request.customer_id or row["linked_customer_id"]
+            if customer_id:
+                created_by = payload.get("login_id") or payload.get("staff_code") or "unknown"
+                agency_id  = payload.get("agency_id") if payload.get("user_type") != "staff" else None
+                now        = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                cur = conn.execute("""
+                    INSERT INTO contacts
+                    (customer_id, contact_datetime, contact_type, memo, created_by, agency_id, created_at, updated_at)
+                    VALUES (?, ?, '満期落ち', ?, ?, ?, ?, ?)
+                """, (customer_id, now, request.memo, created_by, agency_id, now, now))
+                contact_id = cur.lastrowid
+
+        conn.commit()
+        return {
+            "updated": True,
+            "renewal_status": request.renewal_status,
+            "contact_id": contact_id,
+        }
     finally:
         conn.close()
 

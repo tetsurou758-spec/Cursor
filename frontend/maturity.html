@@ -164,6 +164,63 @@
     .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
 
     @media (max-width:768px) { .search-grid { flex-direction:column; } .field-group.date input, .field-group.text input, .field-group.sel select { width:100%; } .detail-inner { grid-template-columns:repeat(2,1fr); } }
+
+    /* ═══ インラインポップオーバー ═══════════════════════════════ */
+    .popover-backdrop { display:none; position:fixed; inset:0; z-index:500; }
+    .popover-backdrop.open { display:block; }
+    .popover {
+      display:none; position:fixed; z-index:600;
+      background:#fff; border-radius:8px;
+      box-shadow:0 4px 20px rgba(0,0,0,.18);
+      border:1px solid var(--gray-border);
+      padding:14px 16px; min-width:220px;
+    }
+    .popover.open { display:block; }
+    .popover-title { font-size:0.76rem; font-weight:700; color:var(--primary); margin-bottom:10px; }
+    .popover textarea {
+      width:100%; height:72px; resize:vertical;
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:6px 8px; font-size:0.82rem; font-family:inherit;
+      outline:none; transition:border-color .2s;
+    }
+    .popover textarea:focus { border-color:var(--primary); }
+    .popover input[type="date"] {
+      width:100%; height:32px;
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:0 8px; font-size:0.82rem; outline:none;
+      transition:border-color .2s;
+    }
+    .popover input[type="date"]:focus { border-color:var(--primary); }
+    .popover select {
+      width:100%; height:32px;
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:0 8px; font-size:0.82rem; outline:none;
+      transition:border-color .2s; background:#fff;
+    }
+    .popover select:focus { border-color:var(--primary); }
+    .popover-comment {
+      margin-top:8px;
+      display:none;
+    }
+    .popover-comment textarea { height:56px; }
+    .popover-actions { display:flex; gap:8px; margin-top:10px; justify-content:flex-end; }
+    .pop-btn-save {
+      height:28px; padding:0 14px; font-size:0.78rem; font-weight:700;
+      background:var(--primary); color:#fff; border:none; border-radius:4px; cursor:pointer;
+    }
+    .pop-btn-save:hover { opacity:.88; }
+    .pop-btn-cancel {
+      height:28px; padding:0 12px; font-size:0.78rem;
+      background:#fff; color:var(--text-sub);
+      border:1.5px solid var(--gray-border); border-radius:4px; cursor:pointer;
+    }
+    .pop-btn-cancel:hover { border-color:var(--primary); }
+
+    /* クリック可能アイコン */
+    .icon-clickable { cursor:pointer; font-size:1rem; display:inline-block; }
+    .icon-clickable:hover { opacity:.75; }
+    .fc-done { font-size:0.75rem; font-weight:700; color:#155724; cursor:pointer; white-space:nowrap; }
+    .fc-done:hover { opacity:.75; }
   </style>
 </head>
 <body>
@@ -278,8 +335,8 @@
             <th title="メモ">メモ</th>
             <th>発送予定日</th>
             <th>帳票</th>
-            <th>FC-STS</th>
-            <th>更改STS</th>
+            <th style="width:66px">ﾌｫﾛｰｺｰﾙ</th>
+            <th style="width:70px">更改STS</th>
           </tr>
         </thead>
         <tbody id="table-body">
@@ -287,6 +344,47 @@
         </tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- ポップオーバー背景クリックで閉じる -->
+<div class="popover-backdrop" id="pop-backdrop" onclick="closePopover()"></div>
+
+<!-- メモ編集ポップオーバー -->
+<div class="popover" id="pop-memo">
+  <div class="popover-title">📝 メモ編集</div>
+  <textarea id="pop-memo-text" placeholder="メモを入力..."></textarea>
+  <div class="popover-actions">
+    <button class="pop-btn-cancel" onclick="closePopover()">キャンセル</button>
+    <button class="pop-btn-save"   onclick="saveMemo()">登録</button>
+  </div>
+</div>
+
+<!-- フォローコール日付ポップオーバー -->
+<div class="popover" id="pop-fc">
+  <div class="popover-title">📞 フォローコール日付登録</div>
+  <input type="date" id="pop-fc-date">
+  <div class="popover-actions">
+    <button class="pop-btn-cancel" onclick="closePopover()">キャンセル</button>
+    <button class="pop-btn-save"   onclick="saveFollowcall()">登録</button>
+  </div>
+</div>
+
+<!-- 更改STS変更ポップオーバー -->
+<div class="popover" id="pop-renewal">
+  <div class="popover-title">🔄 更改ステータス変更</div>
+  <select id="pop-renewal-select" onchange="onRenewalSelectChange()">
+    <option value="未対応">未対応</option>
+    <option value="対応中">対応中</option>
+    <option value="落ち">落ち</option>
+    <option value="満期落ち">満期落ち</option>
+  </select>
+  <div class="popover-comment" id="pop-renewal-comment">
+    <textarea id="pop-renewal-memo" placeholder="コメントを入力（コンタクト履歴のメモに登録されます）"></textarea>
+  </div>
+  <div class="popover-actions">
+    <button class="pop-btn-cancel" onclick="closePopover()">キャンセル</button>
+    <button class="pop-btn-save"   onclick="saveRenewal()">登録</button>
   </div>
 </div>
 
@@ -452,9 +550,13 @@
     const cls = {'未対応':'badge-red','対応中':'badge-orange','更改済':'badge-green','落ち':'badge-gray'}[s]||'badge-gray';
     return `<span class="badge ${cls}">${s}</span>`;
   }
-  function followcallBadge(s) {
-    if (!s) return '<span class="icon-none">—</span>';
-    return `<span class="badge ${s==='未実施'?'badge-red':'badge-green'}">${s}</span>`;
+  function followcallBadge(s, contractId) {
+    // s = null/'' → 未実施（電話アイコン）、s = 日付文字列 → MM/DD済
+    if (!s) {
+      return `<span class="icon-clickable" title="フォローコール未実施" onclick="openFcPopover(event,${contractId},'')">📞</span>`;
+    }
+    const mm = s.slice(5, 7), dd = s.slice(8, 10);
+    return `<span class="fc-done" title="${s} 実施済" onclick="openFcPopover(event,${contractId},'${s}')">${mm}/${dd}済</span>`;
   }
   function typeBadge(t) {
     if (!t) return '—';
@@ -463,6 +565,150 @@
   }
   function yen(v) { return v!=null ? '¥'+Number(v).toLocaleString() : '—'; }
   function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ── ポップオーバー共通 ────────────────────────────────────────
+  let _popContractId   = null;
+  let _popCustomerId   = null;
+  let _activePopover   = null;
+
+  function positionPopover(pop, event) {
+    const el = event.currentTarget || event.target;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    pop.style.display = 'block';
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let left = rect.left, top = rect.bottom + 6;
+    if (left + pw > vw - 12) left = vw - pw - 12;
+    if (top + ph > vh - 12) top = rect.top - ph - 6;
+    pop.style.left = left + 'px';
+    pop.style.top  = top  + 'px';
+    pop.style.display = '';
+  }
+
+  function openPopover(id, event) {
+    closePopover();
+    const pop = document.getElementById(id);
+    document.getElementById('pop-backdrop').classList.add('open');
+    pop.classList.add('open');
+    positionPopover(pop, event);
+    _activePopover = id;
+  }
+
+  function closePopover() {
+    if (_activePopover) {
+      document.getElementById(_activePopover)?.classList.remove('open');
+      _activePopover = null;
+    }
+    document.getElementById('pop-backdrop').classList.remove('open');
+    _popContractId = null;
+    _popCustomerId = null;
+  }
+
+  // ── メモ ────────────────────────────────────────────────────
+  function openMemoPopover(event, contractId, currentMemo) {
+    _popContractId = contractId;
+    document.getElementById('pop-memo-text').value = currentMemo;
+    openPopover('pop-memo', event);
+    document.getElementById('pop-memo-text').focus();
+  }
+
+  async function saveMemo() {
+    const memo = document.getElementById('pop-memo-text').value.trim();
+    const token = _ssGet(isStaff ? 'staff_token' : 'token');
+    try {
+      const res = await fetch(`${API_BASE}/api/maturity/${_popContractId}/memo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ memo: memo || null }),
+      });
+      if (!res.ok) { alert('更新に失敗しました'); return; }
+      // セルを動的に更新
+      const cell = document.getElementById(`memo-cell-${_popContractId}`);
+      if (cell) {
+        const id = _popContractId;
+        if (memo) {
+          cell.innerHTML = `<span class="icon-clickable" title="${esc(memo)}" onclick="openMemoPopover(event,${id},'${esc(memo).replace(/'/g,'&#39;')}')">📌</span>`;
+        } else {
+          cell.innerHTML = `<span class="icon-clickable" title="メモを追加" onclick="openMemoPopover(event,${id},'')">✏️</span>`;
+        }
+      }
+      closePopover();
+    } catch (e) { alert('通信エラー'); }
+  }
+
+  // ── フォローコール ───────────────────────────────────────────
+  function openFcPopover(event, contractId, currentDate) {
+    _popContractId = contractId;
+    const input = document.getElementById('pop-fc-date');
+    input.value = currentDate || new Date().toISOString().slice(0, 10);
+    openPopover('pop-fc', event);
+    input.focus();
+  }
+
+  async function saveFollowcall() {
+    const dateVal = document.getElementById('pop-fc-date').value;
+    if (!dateVal) { alert('日付を選択してください'); return; }
+    const token = _ssGet(isStaff ? 'staff_token' : 'token');
+    try {
+      const res = await fetch(`${API_BASE}/api/maturity/${_popContractId}/followcall`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ followcall_date: dateVal }),
+      });
+      if (!res.ok) { alert('更新に失敗しました'); return; }
+      const cell = document.getElementById(`fc-cell-${_popContractId}`);
+      if (cell) cell.innerHTML = followcallBadge(dateVal, _popContractId);
+      closePopover();
+    } catch (e) { alert('通信エラー'); }
+  }
+
+  // ── 更改STS ─────────────────────────────────────────────────
+  function openRenewalPopover(event, contractId, currentStatus, customerId) {
+    _popContractId = contractId;
+    _popCustomerId = customerId;
+    const sel = document.getElementById('pop-renewal-select');
+    sel.value = currentStatus || '未対応';
+    onRenewalSelectChange();
+    openPopover('pop-renewal', event);
+  }
+
+  function onRenewalSelectChange() {
+    const val = document.getElementById('pop-renewal-select').value;
+    const commentDiv = document.getElementById('pop-renewal-comment');
+    commentDiv.style.display = val === '満期落ち' ? 'block' : 'none';
+    if (val !== '満期落ち') document.getElementById('pop-renewal-memo').value = '';
+  }
+
+  async function saveRenewal() {
+    const status = document.getElementById('pop-renewal-select').value;
+    const memo   = document.getElementById('pop-renewal-memo').value.trim();
+    const token  = _ssGet(isStaff ? 'staff_token' : 'token');
+    try {
+      const body = { renewal_status: status };
+      if (status === '満期落ち') {
+        body.memo        = memo || null;
+        body.customer_id = _popCustomerId;
+      }
+      const res = await fetch(`${API_BASE}/api/maturity/${_popContractId}/renewal`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { alert('更新に失敗しました'); return; }
+      const cell = document.getElementById(`renewal-cell-${_popContractId}`);
+      if (cell) {
+        const id = _popContractId, cid = _popCustomerId;
+        if (status === '更改済') {
+          cell.innerHTML = renewalBadge(status);
+        } else {
+          cell.innerHTML = `<span style="cursor:pointer" onclick="openRenewalPopover(event,${id},'${status}',${cid||'null'})">${renewalBadge(status)}</span>`;
+        }
+      }
+      closePopover();
+    } catch (e) { alert('通信エラー'); }
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopover(); });
 
   function renderTable(rows) {
     const tbody = document.getElementById('table-body');
@@ -476,7 +722,16 @@
       const pno = rawNo
         ? `<a href="contract_detail.html?contract_no=${encodeURIComponent(rawNo)}&from=maturity" style="color:var(--primary);font-weight:600;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(rawNo)}</a>`
         : '—';
-      const memo = esc(c.memo || '');
+      const memoVal = c.memo || '';
+      const memoCell = memoVal
+        ? `<span class="icon-clickable" title="${esc(memoVal)}" onclick="openMemoPopover(event,${c.id},'${esc(memoVal).replace(/'/g,'&#39;')}')">📌</span>`
+        : `<span class="icon-clickable" title="メモを追加" onclick="openMemoPopover(event,${c.id},'')">✏️</span>`;
+
+      const renewalClickable = c.renewal_status !== '更改済';
+      const renewalCell = renewalClickable
+        ? `<span style="cursor:pointer" onclick="openRenewalPopover(event,${c.id},'${esc(c.renewal_status||'')}',${c.linked_customer_id||'null'})">${renewalBadge(c.renewal_status)}</span>`
+        : renewalBadge(c.renewal_status);
+
       return `
         <tr class="main-row${isThisMonth?' highlight-month':''}">
           <td><button class="toggle-btn" id="btn-${idx}" onclick="toggle(${idx})">＋</button></td>
@@ -493,11 +748,11 @@
           <td class="premium">${yen(c.annual_premium)}</td>
           <td>${c.has_accident?'<span class="icon-flag">🔴</span>':'<span class="icon-none">○</span>'}</td>
           <td>${c.has_change?'<span class="icon-flag">📝</span>':'<span class="icon-none">○</span>'}</td>
-          <td>${memo?`<span class="icon-flag" title="${memo}">📌</span>`:'<span class="icon-none">○</span>'}</td>
+          <td id="memo-cell-${c.id}">${memoCell}</td>
           <td>${c.notice_date||'—'}</td>
           <td>${c.notice_type?`<a class="notice-link" href="#" onclick="return false">${esc(c.notice_type)}</a>`:'—'}</td>
-          <td>${followcallBadge(c.followcall_status)}</td>
-          <td>${renewalBadge(c.renewal_status)}</td>
+          <td id="fc-cell-${c.id}">${followcallBadge(c.followcall_status, c.id)}</td>
+          <td id="renewal-cell-${c.id}">${renewalCell}</td>
         </tr>
         <tr class="detail-row" id="detail-${idx}" style="display:none">
           <td colspan="17">
