@@ -381,10 +381,9 @@
     <option value="未対応">未対応</option>
     <option value="対応中">対応中</option>
     <option value="落ち">落ち</option>
-    <option value="満期落ち">満期落ち</option>
   </select>
   <div class="popover-comment" id="pop-renewal-comment">
-    <textarea id="pop-renewal-memo" placeholder="コメントを入力（コンタクト履歴のメモに登録されます）"></textarea>
+    <textarea id="pop-renewal-memo" placeholder="コメントを入力（コンタクト履歴「満期落ち」として登録されます）"></textarea>
   </div>
   <div class="popover-actions">
     <button class="pop-btn-cancel" onclick="closePopover()">キャンセル</button>
@@ -679,8 +678,9 @@
   function onRenewalSelectChange() {
     const val = document.getElementById('pop-renewal-select').value;
     const commentDiv = document.getElementById('pop-renewal-comment');
-    commentDiv.style.display = val === '満期落ち' ? 'block' : 'none';
-    if (val !== '満期落ち') document.getElementById('pop-renewal-memo').value = '';
+    // 「落ち」選択時にコメント欄を表示（コンタクト履歴「満期落ち」として登録される）
+    commentDiv.style.display = val === '落ち' ? 'block' : 'none';
+    if (val !== '落ち') document.getElementById('pop-renewal-memo').value = '';
   }
 
   async function saveRenewal() {
@@ -689,7 +689,7 @@
     const token  = _ssGet(isStaff ? 'staff_token' : 'token');
     try {
       const body = { renewal_status: status };
-      if (status === '満期落ち') {
+      if (status === '落ち') {
         body.memo        = memo || null;
         body.customer_id = _popCustomerId;
       }

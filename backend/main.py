@@ -1239,7 +1239,7 @@ def update_followcall(
         conn.close()
 
 
-RENEWAL_STATUS_OPTIONS = {"未対応", "対応中", "更改済", "落ち", "満期落ち"}
+RENEWAL_STATUS_OPTIONS = {"未対応", "対応中", "更改済", "落ち"}
 
 
 @app.put("/api/maturity/{contract_id}/renewal")
@@ -1251,7 +1251,7 @@ def update_renewal_status(
     """
     更改ステータスを更新する
 
-    renewal_status が「満期落ち」の場合は linked_customer_id の顧客に
+    renewal_status が「落ち」の場合は linked_customer_id の顧客に
     コンタクト履歴（種別:満期落ち）を自動登録する。
     """
     if request.renewal_status not in RENEWAL_STATUS_OPTIONS:
@@ -1271,8 +1271,8 @@ def update_renewal_status(
         )
 
         contact_id = None
-        if request.renewal_status == "満期落ち":
-            # コンタクト履歴に自動登録
+        if request.renewal_status == "落ち":
+            # 「落ち」選択時にコンタクト履歴へ種別「満期落ち」で自動登録
             customer_id = request.customer_id or row["linked_customer_id"]
             if customer_id:
                 created_by = payload.get("login_id") or payload.get("staff_code") or "unknown"
