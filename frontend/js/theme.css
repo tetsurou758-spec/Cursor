@@ -54,6 +54,6 @@
     --primary-shadow:    rgba(204,0,119,0.35);
     --card-shadow:       rgba(255,20,147,0.08);
     --label-color:       #FF69B4;
-    --held-color:        #2e001a;
+    --held-color:        var(--primary);
     --detail-label-color: #FF69B4;
 }
