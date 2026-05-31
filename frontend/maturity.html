@@ -765,7 +765,7 @@
               <div class="detail-item"><label>更改後年換算保険料</label><span>${yen(c.renewed_premium)}</span></div>
               <div class="detail-item"><label>アップセルSTS</label><span>${esc(c.upsell_status)||'—'}</span></div>
               <div class="detail-item"><label>落ちSTS</label><span>${c.lapse_status?'<span class="badge badge-gray">落ち</span>':'—'}</span></div>
-              <div class="detail-item memo-item"><label>メモ</label><span>${memo||'（なし）'}</span></div>
+              <div class="detail-item memo-item"><label>メモ</label><span>${esc(memoVal)||'（なし）'}</span></div>
             </div>
           </td>
         </tr>`;
