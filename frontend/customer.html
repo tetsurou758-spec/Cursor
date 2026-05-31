@@ -102,6 +102,12 @@
     /* ── 複数代理店アイコン ── */
     .multi-icon { color: var(--accent); font-size: 15px; }
 
+    /* ── コンタクト履歴リンク ── */
+    .contact-link { color: var(--primary); text-decoration: none; font-size: 12px; white-space: nowrap; }
+    .contact-link:hover { text-decoration: underline; }
+    .contact-none { color: #9ca3af; font-size: 12px; text-decoration: none; white-space: nowrap; }
+    .contact-none:hover { color: var(--primary); text-decoration: underline; }
+
     /* ── 保険加入状況（7列固定）── */
     .ps-th { width: 40px; text-align: center; font-size: 11px; font-weight: bold; }
     .ps-td { width: 40px; text-align: center; padding: 6px 0; }
@@ -261,6 +267,7 @@
           <th style="width:70px">参照G</th>
           <th>代理店</th>
           <th>電話番号</th>
+          <th style="width:90px" class="center">コンタクト</th>
           <th class="ps-th">車</th>
           <th class="ps-th">火</th>
           <th class="ps-th">傷</th>
@@ -271,7 +278,7 @@
         </tr>
       </thead>
       <tbody id="customer-tbody">
-        <tr><td colspan="13" class="loading">読み込み中...</td></tr>
+        <tr><td colspan="14" class="loading">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -379,7 +386,7 @@
   // ── 単一顧客表示（満期管理リンクからの遷移）──────────────────
   async function loadSingleCustomer(customerId) {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="13" class="loading">読み込み中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="loading">読み込み中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
 
     try {
@@ -387,7 +394,7 @@
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       if (!res.ok) {
-        tbody.innerHTML = `<tr><td colspan="13" class="empty">顧客が見つかりません（ID: ${customerId}）</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="empty">顧客が見つかりません（ID: ${customerId}）</td></tr>`;
         return;
       }
       const data = await res.json();
@@ -398,14 +405,14 @@
         await toggleDetail(customerId);
       }
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
   // ── 検索 ────────────────────────────────────────────────────────
   async function searchCustomers() {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="13" class="loading">検索中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="loading">検索中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
 
     const params = new URLSearchParams();
@@ -439,13 +446,13 @@
       document.getElementById('result-count').textContent = data.total;
       renderTable(data.customers);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
   async function searchCustomersByTel(tel) {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="13" class="loading">検索中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="loading">検索中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
     const params = new URLSearchParams({ tel });
     try {
@@ -457,13 +464,13 @@
       document.getElementById('result-count').textContent = data.total;
       renderTable(data.customers);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
   async function searchCustomersByContract(contractNo) {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="13" class="loading">検索中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="loading">検索中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
     const params = new URLSearchParams({ contract_no: contractNo });
     try {
@@ -475,7 +482,7 @@
       document.getElementById('result-count').textContent = data.total;
       renderTable(data.customers);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
@@ -502,7 +509,7 @@
   function renderTable(customers) {
     const tbody = document.getElementById('customer-tbody');
     if (!customers.length) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty">該当する顧客が見つかりません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" class="empty">該当する顧客が見つかりません</td></tr>';
       return;
     }
 
@@ -524,6 +531,12 @@
         `<span class="agency-badge">${ac}</span>`
       ).join('');
 
+      const cnt = c.contact_count || 0;
+      const customerName = encodeURIComponent(`${c.last_name} ${c.first_name}`);
+      const contactCell = cnt > 0
+        ? `<a class="contact-link" href="contact.html?customer_id=${c.customer_id}&customer_name=${customerName}">(${cnt}件)</a>`
+        : `<a class="contact-none" href="contact.html?customer_id=${c.customer_id}&customer_name=${customerName}">(なし)</a>`;
+
       const mainRow = document.createElement('tr');
       mainRow.id = rowId;
       mainRow.innerHTML = `
@@ -535,6 +548,7 @@
         <td class="center">${c.group_code}</td>
         <td>${agencyBadges}</td>
         <td class="tel-masked">${maskTel(c.tel)}</td>
+        <td class="center">${contactCell}</td>
         ${psTds}
       `;
       tbody.appendChild(mainRow);
@@ -544,7 +558,7 @@
       detailRow.id    = detailId;
       detailRow.className = 'detail-row';
       detailRow.style.display = 'none';
-      detailRow.innerHTML = `<td colspan="13" class="detail-cell" id="detail-content-${c.customer_id}">
+      detailRow.innerHTML = `<td colspan="14" class="detail-cell" id="detail-content-${c.customer_id}">
         <div style="color:#999;font-size:12px">読み込み中...</div>
       </td>`;
       tbody.appendChild(detailRow);
@@ -691,7 +705,7 @@
 
   function showError(tbody, status) {
     const msg = status === 401 ? '認証エラー。再ログインしてください' : `エラー（${status}）`;
-    tbody.innerHTML = `<tr><td colspan="13" class="empty">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" class="empty">${msg}</td></tr>`;
   }
 
   // Enter キーで検索

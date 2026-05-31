@@ -828,6 +828,21 @@ class CustomerMatchRequest(BaseModel):
     address: Optional[str] = None
 
 
+class ContactCreateRequest(BaseModel):
+    """コンタクト履歴新規登録リクエスト"""
+    customer_id: int
+    contact_datetime: str
+    contact_type: str
+    memo: Optional[str] = None
+
+
+class ContactUpdateRequest(BaseModel):
+    """コンタクト履歴更新リクエスト"""
+    contact_datetime: Optional[str] = None
+    contact_type: Optional[str] = None
+    memo: Optional[str] = None
+
+
 @app.get("/api/customers")
 def get_customers(
     payload:           dict          = Depends(verify_token),
@@ -931,6 +946,10 @@ def get_customers(
             cust["held_agencies"]      = sorted(held_agencies)
             cust["multi_agency"]       = len(held_agencies) > 1
             cust["contract_count"]     = len(c_rows)
+            cnt_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM contacts WHERE customer_id = ?", (cid,)
+            ).fetchone()
+            cust["contact_count"] = cnt_row["cnt"] if cnt_row else 0
 
         # policy_typeフィルタがある場合、保有契約ゼロの顧客を除外
         if policy_type or agency_code or staff_code:
@@ -1385,5 +1404,82 @@ def get_contract_detail(contract_no: str, payload: dict = Depends(verify_token))
             raise HTTPException(status_code=404, detail="契約が見つかりません")
 
         return {"contract": dict(row)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/contacts")
+def get_contacts(
+    customer_id: int = Query(..., description="顧客ID"),
+    payload: dict = Depends(verify_token),
+):
+    """顧客IDに紐づくコンタクト履歴一覧を返す（新しい順）"""
+    conn = get_db_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM contacts WHERE customer_id = ? ORDER BY contact_datetime DESC",
+            (customer_id,)
+        ).fetchall()
+        return {"contacts": [dict(r) for r in rows], "total": len(rows)}
+    finally:
+        conn.close()
+
+
+@app.post("/api/contacts")
+def create_contact(request: ContactCreateRequest, payload: dict = Depends(verify_token)):
+    """コンタクト履歴を新規登録する"""
+    allowed_types = {"連絡", "クレーム", "満期落ち", "その他"}
+    if request.contact_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="不正な種別です")
+
+    created_by = payload.get("login_id") or payload.get("staff_code") or "unknown"
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = get_db_connection()
+    try:
+        cur = conn.execute(
+            """INSERT INTO contacts (customer_id, contact_datetime, contact_type, memo, created_by, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (request.customer_id, request.contact_datetime, request.contact_type,
+             request.memo, created_by, now, now)
+        )
+        conn.commit()
+        new_id = cur.lastrowid
+        row = conn.execute("SELECT * FROM contacts WHERE id = ?", (new_id,)).fetchone()
+        return {"contact": dict(row)}
+    finally:
+        conn.close()
+
+
+@app.put("/api/contacts/{contact_id}")
+def update_contact(
+    contact_id: int,
+    request: ContactUpdateRequest,
+    payload: dict = Depends(verify_token),
+):
+    """コンタクト履歴を更新する"""
+    allowed_types = {"連絡", "クレーム", "満期落ち", "その他"}
+    if request.contact_type and request.contact_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="不正な種別です")
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="コンタクト履歴が見つかりません")
+
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        new_dt   = request.contact_datetime or row["contact_datetime"]
+        new_type = request.contact_type     or row["contact_type"]
+        new_memo = request.memo if request.memo is not None else row["memo"]
+
+        conn.execute(
+            """UPDATE contacts SET contact_datetime=?, contact_type=?, memo=?, updated_at=?
+               WHERE id=?""",
+            (new_dt, new_type, new_memo, now, contact_id)
+        )
+        conn.commit()
+        updated = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+        return {"contact": dict(updated)}
     finally:
         conn.close()

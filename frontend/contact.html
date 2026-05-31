@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>コンタクト履歴｜AX損害保険</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--gray-bg); color: #333; min-height: 100vh; }
+
+    /* ── ヘッダー ── */
+    .header { background: var(--primary); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-logo { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
+    .header-title { font-size: 14px; color: rgba(255,255,255,.8); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .header-user { font-size: 13px; color: rgba(255,255,255,.85); }
+    .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-logout:hover { background: rgba(255,255,255,.15); }
+    .btn-back { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; }
+    .btn-back:hover { background: rgba(255,255,255,.25); }
+
+    /* ── メイン ── */
+    .main { padding: 20px 24px 40px; }
+
+    /* ── 顧客名バー ── */
+    .customer-bar { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 14px 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .customer-name { font-size: 18px; font-weight: 700; color: var(--primary); }
+    .customer-label { font-size: 11px; color: #888; margin-bottom: 2px; }
+    .btn-new { height: 36px; padding: 0 18px; background: var(--accent); color: var(--primary-dark); border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .btn-new:hover { opacity: .85; }
+
+    /* ── 件数バー ── */
+    .result-bar { font-size: 13px; color: #555; margin-bottom: 10px; }
+    .result-bar span { font-weight: 700; color: var(--primary); font-size: 15px; }
+
+    /* ── テーブル ── */
+    .table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+    thead th { background: var(--primary); color: #fff; padding: 10px 12px; text-align: left; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background .15s; cursor: pointer; }
+    tbody tr:hover { background: var(--highlight-row); }
+    td { padding: 10px 12px; vertical-align: middle; }
+
+    /* ── 種別バッジ ── */
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-連絡 { background: #dbeafe; color: #1d4ed8; }
+    .badge-クレーム { background: #fee2e2; color: #dc2626; }
+    .badge-満期落ち { background: #fef3c7; color: #b45309; }
+    .badge-その他 { background: #f3f4f6; color: #6b7280; }
+
+    /* ── メモ省略 ── */
+    .memo-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; font-size: 12px; }
+
+    /* ── 空 ── */
+    .empty { text-align: center; padding: 48px; color: #bbb; font-size: 14px; }
+    .loading { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+
+    /* ── モーダル ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 10px; width: 480px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,.2); display: flex; flex-direction: column; }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--primary); }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-footer { padding: 14px 20px; border-top: 1px solid #eee; display: flex; gap: 10px; justify-content: flex-end; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label { font-size: 11px; font-weight: 700; color: var(--label-color); }
+    .form-control { height: 36px; border: 1px solid #d1d5db; border-radius: 5px; padding: 0 10px; font-size: 13px; outline: none; transition: border-color .2s; }
+    .form-control:focus { border-color: var(--primary); }
+    textarea.form-control { height: 80px; padding: 8px 10px; resize: vertical; }
+
+    .btn-save { height: 36px; padding: 0 20px; background: var(--primary); color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .btn-save:hover { background: var(--primary-dark); }
+    .btn-cancel { height: 36px; padding: 0 16px; background: #f3f4f6; color: #555; border: 1px solid #d1d5db; border-radius: 5px; cursor: pointer; font-size: 13px; }
+
+    /* ── トースト ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 10px 22px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 2000; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ── ヘッダー ── -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">🛡 AX損害保険</div>
+    <div class="header-title">コンタクト履歴</div>
+  </div>
+  <div class="header-right">
+    <span class="header-user" id="header-user-info"></span>
+    <a id="btn-back" href="customer.html" class="btn-back">← 顧客一覧に戻る</a>
+    <button class="btn-logout" onclick="doLogout()">ログアウト</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- 顧客名バー -->
+  <div class="customer-bar">
+    <div>
+      <div class="customer-label">対象顧客</div>
+      <div class="customer-name" id="customer-name-label">読み込み中...</div>
+    </div>
+    <button class="btn-new" onclick="openModal(null)">＋ 新規登録</button>
+  </div>
+
+  <!-- 件数 -->
+  <div class="result-bar">コンタクト履歴：<span id="result-count">-</span> 件</div>
+
+  <!-- テーブル -->
+  <div class="table-wrap">
+    <table id="contact-table">
+      <thead>
+        <tr>
+          <th style="width:160px">日時</th>
+          <th style="width:110px">種別</th>
+          <th>メモ</th>
+          <th style="width:100px">登録者</th>
+          <th style="width:140px">更新日時</th>
+        </tr>
+      </thead>
+      <tbody id="contact-tbody">
+        <tr><td colspan="5" class="loading">読み込み中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- ── 登録・編集モーダル ── -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">コンタクト履歴 新規登録</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">日時 *</label>
+        <input type="datetime-local" id="f-datetime" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">種別 *</label>
+        <select id="f-type" class="form-control">
+          <option value="">選択してください</option>
+          <option value="連絡">連絡</option>
+          <option value="クレーム">クレーム</option>
+          <option value="満期落ち">満期落ち</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ</label>
+        <textarea id="f-memo" class="form-control" placeholder="対応内容などを入力"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveContact()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script src="js/session.js"></script>
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+
+  const _params     = new URLSearchParams(location.search);
+  const _customerId = Number(_params.get('customer_id'));
+  const _customerName = decodeURIComponent(_params.get('customer_name') || '');
+
+  let _editingId = null;
+
+  // ── 初期化 ─────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    requireAuth();
+    applyTheme();
+
+    const info = getUserInfo();
+    if (info) {
+      const userType = sessionStorage.getItem('user_type') || '';
+      const label    = userType === 'staff'
+        ? `${info.staff_code || ''} ${info.name || ''} ｜ ${info.role_name || ''}`
+        : `[${info.agency_code || ''}] ${info.name || ''} ｜ ${info.role_name || ''}`;
+      document.getElementById('header-user-info').textContent = label;
+    }
+
+    if (!_customerId) {
+      document.getElementById('contact-tbody').innerHTML =
+        '<tr><td colspan="5" class="empty">顧客IDが指定されていません</td></tr>';
+      return;
+    }
+
+    document.getElementById('customer-name-label').textContent =
+      _customerName || `顧客ID: ${_customerId}`;
+
+    loadContacts();
+  });
+
+  // ── 一覧取得 ────────────────────────────────────────────────────
+  async function loadContacts() {
+    const tbody = document.getElementById('contact-tbody');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">読み込み中...</td></tr>';
+    try {
+      const res = await fetch(`${API_BASE}/api/contacts?customer_id=${_customerId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty">エラー（${res.status}）</td></tr>`;
+        return;
+      }
+      const data = await res.json();
+      document.getElementById('result-count').textContent = data.total;
+      renderContacts(data.contacts);
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">通信エラーが発生しました</td></tr>';
+    }
+  }
+
+  // ── テーブル描画 ─────────────────────────────────────────────────
+  function renderContacts(contacts) {
+    const tbody = document.getElementById('contact-tbody');
+    if (!contacts.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">コンタクト履歴がありません。「＋ 新規登録」から追加してください。</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    contacts.forEach(ct => {
+      const tr = document.createElement('tr');
+      tr.title = '行をクリックして編集';
+      tr.onclick = () => openModal(ct);
+      tr.innerHTML = `
+        <td>${formatDatetime(ct.contact_datetime)}</td>
+        <td><span class="badge badge-${ct.contact_type}">${ct.contact_type}</span></td>
+        <td><div class="memo-cell">${esc(ct.memo || '—')}</div></td>
+        <td>${esc(ct.created_by || '—')}</td>
+        <td style="font-size:11px;color:#888">${formatDatetime(ct.updated_at)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── モーダル ─────────────────────────────────────────────────────
+  function openModal(ct) {
+    _editingId = ct ? ct.id : null;
+    document.getElementById('modal-title').textContent =
+      ct ? 'コンタクト履歴 編集' : 'コンタクト履歴 新規登録';
+
+    if (ct) {
+      document.getElementById('f-datetime').value = toDatetimeLocal(ct.contact_datetime);
+      document.getElementById('f-type').value     = ct.contact_type;
+      document.getElementById('f-memo').value     = ct.memo || '';
+    } else {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('f-datetime').value = now.toISOString().slice(0, 16);
+      document.getElementById('f-type').value     = '';
+      document.getElementById('f-memo').value     = '';
+    }
+    document.getElementById('contact-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('contact-modal').classList.remove('open');
+    _editingId = null;
+  }
+
+  async function saveContact() {
+    const dt   = document.getElementById('f-datetime').value;
+    const type = document.getElementById('f-type').value;
+    const memo = document.getElementById('f-memo').value.trim();
+
+    if (!dt)   { alert('日時を入力してください'); return; }
+    if (!type) { alert('種別を選択してください'); return; }
+
+    // datetime-local → "YYYY-MM-DD HH:MM:SS" に変換
+    const contactDatetime = dt.replace('T', ' ') + ':00';
+
+    try {
+      let res;
+      if (_editingId) {
+        res = await fetch(`${API_BASE}/api/contacts/${_editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify({ contact_datetime: contactDatetime, contact_type: type, memo: memo || null })
+        });
+      } else {
+        res = await fetch(`${API_BASE}/api/contacts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify({ customer_id: _customerId, contact_datetime: contactDatetime, contact_type: type, memo: memo || null })
+        });
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || `エラー（${res.status}）`);
+        return;
+      }
+      closeModal();
+      showToast(_editingId ? '更新しました' : '登録しました');
+      loadContacts();
+    } catch (e) {
+      alert('通信エラーが発生しました');
+    }
+  }
+
+  // ── ユーティリティ ───────────────────────────────────────────────
+  function formatDatetime(s) {
+    if (!s) return '—';
+    return s.replace('T', ' ').slice(0, 16);
+  }
+
+  function toDatetimeLocal(s) {
+    if (!s) return '';
+    return s.replace(' ', 'T').slice(0, 16);
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  // Escキーでモーダルを閉じる
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+</body>
+</html>
