@@ -609,22 +609,29 @@
 
   // ── メモ ────────────────────────────────────────────────────
   function openMemoPopover(event, contractId, currentMemo) {
-    _popContractId = contractId;
     document.getElementById('pop-memo-text').value = currentMemo;
     openPopover('pop-memo', event);
+    _popContractId = contractId; // openPopover内のclosePopover()後にセット
     document.getElementById('pop-memo-text').focus();
   }
 
   async function saveMemo() {
     const memo = document.getElementById('pop-memo-text').value.trim();
     const token = _ssGet(isStaff ? 'staff_token' : 'token');
+    console.log('[saveMemo] contractId=', _popContractId, 'token=', token ? token.slice(0,20)+'...' : 'null');
     try {
       const res = await fetch(`${API_BASE}/api/maturity/${_popContractId}/memo`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ memo: memo || null }),
       });
-      if (!res.ok) { alert('更新に失敗しました'); return; }
+      console.log('[saveMemo] status=', res.status);
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error('[saveMemo] error body=', errBody);
+        alert(`更新に失敗しました (${res.status})\n${errBody}`);
+        return;
+      }
       // セルを動的に更新
       const cell = document.getElementById(`memo-cell-${_popContractId}`);
       if (cell) {
@@ -641,10 +648,10 @@
 
   // ── フォローコール ───────────────────────────────────────────
   function openFcPopover(event, contractId, currentDate) {
-    _popContractId = contractId;
     const input = document.getElementById('pop-fc-date');
     input.value = currentDate || new Date().toISOString().slice(0, 10);
     openPopover('pop-fc', event);
+    _popContractId = contractId; // openPopover内のclosePopover()後にセット
     input.focus();
   }
 
@@ -652,13 +659,20 @@
     const dateVal = document.getElementById('pop-fc-date').value;
     if (!dateVal) { alert('日付を選択してください'); return; }
     const token = _ssGet(isStaff ? 'staff_token' : 'token');
+    console.log('[saveFollowcall] contractId=', _popContractId, 'date=', dateVal);
     try {
       const res = await fetch(`${API_BASE}/api/maturity/${_popContractId}/followcall`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ followcall_date: dateVal }),
       });
-      if (!res.ok) { alert('更新に失敗しました'); return; }
+      console.log('[saveFollowcall] status=', res.status);
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error('[saveFollowcall] error body=', errBody);
+        alert(`更新に失敗しました (${res.status})\n${errBody}`);
+        return;
+      }
       const cell = document.getElementById(`fc-cell-${_popContractId}`);
       if (cell) cell.innerHTML = followcallBadge(dateVal, _popContractId);
       closePopover();
@@ -667,12 +681,12 @@
 
   // ── 更改STS ─────────────────────────────────────────────────
   function openRenewalPopover(event, contractId, currentStatus, customerId) {
-    _popContractId = contractId;
-    _popCustomerId = customerId;
     const sel = document.getElementById('pop-renewal-select');
     sel.value = currentStatus || '未対応';
     onRenewalSelectChange();
     openPopover('pop-renewal', event);
+    _popContractId = contractId; // openPopover内のclosePopover()後にセット
+    _popCustomerId = customerId;
   }
 
   function onRenewalSelectChange() {
@@ -687,6 +701,7 @@
     const status = document.getElementById('pop-renewal-select').value;
     const memo   = document.getElementById('pop-renewal-memo').value.trim();
     const token  = _ssGet(isStaff ? 'staff_token' : 'token');
+    console.log('[saveRenewal] contractId=', _popContractId, 'status=', status, 'customerId=', _popCustomerId);
     try {
       const body = { renewal_status: status };
       if (status === '落ち') {
@@ -698,7 +713,13 @@
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
-      if (!res.ok) { alert('更新に失敗しました'); return; }
+      console.log('[saveRenewal] status=', res.status);
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error('[saveRenewal] error body=', errBody);
+        alert(`更新に失敗しました (${res.status})\n${errBody}`);
+        return;
+      }
       const cell = document.getElementById(`renewal-cell-${_popContractId}`);
       if (cell) {
         const id = _popContractId, cid = _popCustomerId;
