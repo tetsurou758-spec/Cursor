@@ -331,7 +331,7 @@
       return `
         <tr>
           <td class="td-left">
-            <a class="contract-link" href="contract_detail.html?contract_no=${encodeURIComponent(c.contract_no)}">${esc(c.contract_no)}</a>
+            <a class="contract-link" href="contract_detail.html?contract_no=${encodeURIComponent(c.contract_no)}&from=contract">${esc(c.contract_no)}</a>
           </td>
           <td>${pBadge(c.policy_type)}</td>
           <td class="td-left">${esc(c.customer_name)||'—'}</td>

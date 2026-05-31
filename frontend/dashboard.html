@@ -613,7 +613,7 @@
         if (!res.ok) throw new Error('API error');
         const data = await res.json();
         if (data.redirect === 'detail') {
-          location.href = `contract_detail.html?contract_no=${encodeURIComponent(data.contract_no)}`;
+          location.href = `contract_detail.html?contract_no=${encodeURIComponent(data.contract_no)}&from=dashboard`;
         } else if (data.redirect === 'list') {
           location.href = `contract.html?q=${encodeURIComponent(val)}`;
         } else {

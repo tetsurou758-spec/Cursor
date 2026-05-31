@@ -185,7 +185,7 @@
   <div class="header-right">
     <span class="page-badge">契約詳細</span>
     <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
-    <a href="maturity.html" class="btn-back">← 満期管理に戻る</a>
+    <a id="btn-back" href="maturity.html" class="btn-back">← 満期管理に戻る</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
 </header>
@@ -225,8 +225,25 @@
 
 <script>
   const API_BASE = 'http://127.0.0.1:8000';
-  const _params = new URLSearchParams(location.search);
+  const _params     = new URLSearchParams(location.search);
   const _contractNo = _params.get('contract_no') || '';
+  const _from       = _params.get('from') || '';
+
+  // 遷移元マッピング（新画面追加時はここに1行追加するだけ）
+  const FROM_MAP = {
+    maturity:  { href: 'maturity.html',  label: '← 満期管理に戻る' },
+    customer:  { href: 'customer.html',  label: '← 顧客管理に戻る' },
+    contract:  { href: 'contract.html',  label: '← 契約照会一覧に戻る' },
+    dashboard: { href: 'dashboard.html', label: '← ダッシュボードに戻る' },
+  };
+  const _back = FROM_MAP[_from] || FROM_MAP.maturity;
+
+  // 戻るボタンを遷移元に合わせて設定
+  const _btnBack = document.getElementById('btn-back');
+  if (_btnBack) {
+    _btnBack.href        = _back.href;
+    _btnBack.textContent = _back.label;
+  }
 
   /* ─── ユーティリティ ─────────────────────────────────────── */
 

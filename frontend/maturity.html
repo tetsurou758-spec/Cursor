@@ -474,7 +474,7 @@
       const isThisMonth = c.expiry_date && c.expiry_date.startsWith(THIS_MONTH);
       const rawNo = c.contract_no || c.policy_number || '';
       const pno = rawNo
-        ? `<a href="contract_detail.html?contract_no=${encodeURIComponent(rawNo)}" style="color:var(--primary);font-weight:600;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(rawNo)}</a>`
+        ? `<a href="contract_detail.html?contract_no=${encodeURIComponent(rawNo)}&from=maturity" style="color:var(--primary);font-weight:600;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(rawNo)}</a>`
         : '—';
       const memo = esc(c.memo || '');
       return `
