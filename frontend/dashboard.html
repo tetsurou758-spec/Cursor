@@ -124,7 +124,7 @@
 
     /* ═══ CHARTS ════════════════════════════════════════════════ */
     .charts-section { margin-bottom: 28px; }
-    .charts-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+    .charts-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
 
     .chart-card {
       background: #fff;
@@ -134,7 +134,11 @@
       text-align: center;
       border-top: 4px solid var(--primary);
     }
-    .chart-card.sub { border-top-color: var(--accent); }
+    .chart-card.sub  { border-top-color: var(--accent); }
+    .chart-card.prev { border-top-color: #94a3b8; }
+    .chart-card.prev .chart-card-title { color: #64748b; }
+    .chart-card.prev .chart-center .count { color: #475569; }
+    .chart-card.prev .chart-center .rate-badge { background: #64748b; }
 
     .chart-card-title { font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:6px; letter-spacing:0.04em; }
     .chart-card.sub .chart-card-title { color:var(--primary-dark); }
@@ -304,7 +308,9 @@
     .direct-search-hint { font-size: 0.72rem; color: var(--text-sub); margin-top: 6px; height: 16px; }
 
     /* ═══ RESPONSIVE ════════════════════════════════════════════ */
-    @media (max-width:900px) { .charts-grid { grid-template-columns:1fr; } .nav-grid { grid-template-columns:repeat(2,1fr); } .bottom-grid { grid-template-columns:1fr; } }
+    @media (max-width:1100px) { .charts-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:700px)  { .charts-grid { grid-template-columns:1fr; } }
+    @media (max-width:900px) { .nav-grid { grid-template-columns:repeat(2,1fr); } .bottom-grid { grid-template-columns:1fr; } }
     @media (max-width:520px) { .nav-grid { grid-template-columns:repeat(2,1fr); } .site-header { padding:0 14px; } .header-logo-text .company { display:none; } }
   </style>
 </head>
@@ -349,6 +355,22 @@
     <section class="charts-section">
       <div class="section-title">更改状況インフォグラフィックス</div>
       <div class="charts-grid">
+        <div class="chart-card prev clickable" id="chart-card-prev" onclick="goToMaturityMonth('prev')">
+          <div class="chart-card-title">先月更改</div>
+          <div class="chart-month-label" id="prv-month-label">-- 年 -- 月<span class="chart-total-badge" id="prv-total-badge"></span></div>
+          <div class="chart-wrap">
+            <canvas id="chart-prev"></canvas>
+            <div class="chart-center">
+              <div class="count" id="prv-count">--</div>
+              <div class="label">件 完了</div>
+              <div class="rate-badge" id="prv-rate">--%</div>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <span><span class="legend-dot" id="legend-dot0"></span>完了</span>
+            <span><span class="legend-dot" style="background:var(--gray-border)"></span>対応中</span>
+          </div>
+        </div>
         <div class="chart-card clickable" id="chart-card-current" onclick="goToMaturityMonth('current')">
           <div class="chart-card-title">今月更改</div>
           <div class="chart-month-label" id="cur-month-label">-- 年 -- 月<span class="chart-total-badge" id="cur-total-badge"></span></div>
@@ -501,7 +523,7 @@
 
   <script>
     const API_BASE = 'http://127.0.0.1:8000';
-    let chartCurrent, chartNext;
+    let chartPrev, chartCurrent, chartNext;
 
     function buildDonut(canvasId, color, bgColor) {
       const ctx = document.getElementById(canvasId).getContext('2d');
@@ -526,12 +548,22 @@
       return `${y}年 ${parseInt(m)}月`;
     }
 
-    let _curMonth = '', _nxtMonth = '';
+    let _prvMonth = '', _curMonth = '', _nxtMonth = '';
 
     function renderDashboard(data) {
-      const cm = data.current_month, nm = data.next_month;
+      const pm = data.prev_month, cm = data.current_month, nm = data.next_month;
+      _prvMonth = pm.month;
       _curMonth = cm.month;
       _nxtMonth = nm.month;
+
+      // 先月ラベル
+      document.getElementById('prv-month-label').innerHTML =
+        fmtMonth(pm.month) + (pm.total_contracts != null
+          ? `<span class="chart-total-badge">&#x1F4CB; ${pm.total_contracts.toLocaleString()}件</span>`
+          : '');
+      document.getElementById('prv-count').textContent = pm.completed;
+      document.getElementById('prv-rate').textContent   = pm.rate + '%';
+      updateDonut(chartPrev, pm.completed, pm.total);
 
       // 今月ラベル（総契約件数バッジ付き）
       document.getElementById('cur-month-label').innerHTML =
@@ -626,7 +658,8 @@
 
     // ── チャートクリック → 満期管理遷移 ───────────────────────────
     function goToMaturityMonth(which) {
-      const month = which === 'current' ? _curMonth : _nxtMonth;
+      const map = { prev: _prvMonth, current: _curMonth, next: _nxtMonth };
+      const month = map[which];
       if (!month) return;
       location.href = `maturity.html?renewal_status=${encodeURIComponent('未対応')}&expiry_month=${month}`;
     }
@@ -641,8 +674,11 @@
       const c2 = style.getPropertyValue('--graph-color2').trim();
       const bg = style.getPropertyValue('--gray-border').trim();
 
+      const c0 = '#94a3b8'; // 先月：スレートグレー
+      chartPrev    = buildDonut('chart-prev',    c0, bg);
       chartCurrent = buildDonut('chart-current', c1, bg);
       chartNext    = buildDonut('chart-next',    c2, bg);
+      document.getElementById('legend-dot0').style.background = c0;
       document.getElementById('legend-dot1').style.background = c1;
       document.getElementById('legend-dot2').style.background = c2;
 

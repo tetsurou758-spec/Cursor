@@ -702,6 +702,7 @@ def get_dashboard(payload: dict = Depends(verify_token)):
     today     = datetime.date.today()
     cur_month = today.strftime("%Y-%m")
     nxt_month = f"{today.year + 1}-01" if today.month == 12 else f"{today.year}-{today.month + 1:02d}"
+    prv_month = f"{today.year - 1}-12" if today.month == 1 else f"{today.year}-{today.month - 1:02d}"
 
     user_type = payload.get("user_type", "agency")
     conn = get_db_connection()
@@ -757,6 +758,7 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 "name":          payload.get("name", ""),
                 "buka_code":     buka_code,
                 "agency_count":  len(agency_codes),
+                "prev_month":    aggregate_staff(prv_month),
                 "current_month": aggregate_staff(cur_month),
                 "next_month":    aggregate_staff(nxt_month),
             }
@@ -795,6 +797,7 @@ def get_dashboard(payload: dict = Depends(verify_token)):
                 "agency_code":   agency_code,
                 "login_id":      payload.get("login_id", ""),
                 "name":          payload.get("name", ""),
+                "prev_month":    aggregate(prv_month),
                 "current_month": aggregate(cur_month),
                 "next_month":    aggregate(nxt_month),
             }
