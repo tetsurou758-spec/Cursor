@@ -939,7 +939,17 @@ def get_customer_detail(customer_id: int, payload: dict = Depends(verify_token))
             ORDER BY c.agency_code, c.expiry_date
         """, (customer_id,)).fetchall()]
 
-        return {"customer": dict(cust), "contracts": contracts}
+        # 顧客一覧と同形式のサマリーを付与
+        cust_dict = dict(cust)
+        all_types = ["自動車", "火災", "傷害", "自賠責", "賠償責任", "サイバーリスク", "所得補償"]
+        held_types    = {c["policy_type"] for c in contracts}
+        held_agencies = sorted({c["agency_code"] for c in contracts})
+        cust_dict["policy_summary"] = {t: (t in held_types) for t in all_types}
+        cust_dict["held_agencies"]  = held_agencies
+        cust_dict["multi_agency"]   = len(held_agencies) > 1
+        cust_dict["contract_count"] = len(contracts)
+
+        return {"customer": cust_dict, "contracts": contracts}
     finally:
         conn.close()
 
@@ -1035,7 +1045,7 @@ def get_maturity(
         SELECT
             c.id, c.agency_code, ag.buka_code, c.contract_no, c.customer_name,
             c.renewal_month, c.status,
-            c.customer_id, c.policy_number, c.policy_type,
+            c.linked_customer_id, c.policy_number, c.policy_type,
             c.expiry_date, c.annual_premium,
             c.staff_code, c.contact_method, c.contact_info, c.memo,
             c.has_change,

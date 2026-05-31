@@ -842,7 +842,6 @@ def init_db():
                 customer_name         TEXT     NOT NULL,
                 renewal_month         TEXT     NOT NULL,
                 status                TEXT     NOT NULL CHECK(status IN ('completed','pending')),
-                customer_id           TEXT,
                 policy_number         TEXT,
                 policy_type           TEXT,
                 expiry_date           DATE,
@@ -942,13 +941,13 @@ def init_db():
             cur.execute("""
                 INSERT INTO contracts (
                     agency_code, contract_no, customer_name, renewal_month, status,
-                    customer_id, policy_number, policy_type, expiry_date, annual_premium,
+                    policy_number, policy_type, expiry_date, annual_premium,
                     staff_code, contact_method, contact_info, memo,
                     has_accident, has_change, followcall_status, renewal_status,
                     renewed_policy_number, renewed_premium, upsell_status, lapse_status
                 ) VALUES (
                     :agency_code,:contract_no,:customer_name,:renewal_month,:status,
-                    :customer_id,:policy_number,:policy_type,:expiry_date,:annual_premium,
+                    :policy_number,:policy_type,:expiry_date,:annual_premium,
                     :staff_code,:contact_method,:contact_info,:memo,
                     :has_accident,:has_change,:followcall_status,:renewal_status,
                     :renewed_policy_number,:renewed_premium,:upsell_status,:lapse_status

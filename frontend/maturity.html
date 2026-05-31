@@ -156,6 +156,8 @@
     .contact-info   { font-size:0.72rem; color:var(--text-sub); display:block; margin-top:2px; }
 
     .notice-link { color:var(--primary); font-size:0.75rem; text-decoration:underline; cursor:pointer; }
+    .customer-link { color:var(--primary); text-decoration:none; cursor:pointer; font-weight:600; }
+    .customer-link:hover { text-decoration:underline; color:var(--accent,#FFD700); filter:brightness(0.85); }
     .premium { text-align:right; font-size:0.8rem; font-weight:600; color:var(--primary); }
     .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
 
@@ -460,7 +462,9 @@
           <td style="font-size:0.72rem">${esc(c.agency_code)||'—'}</td>
           <td>${c.expiry_date||'—'}</td>
           <td style="font-size:0.72rem">${pno}</td>
-          <td class="td-left" style="min-width:90px">${esc(c.customer_name)}</td>
+          <td class="td-left" style="min-width:90px">${c.linked_customer_id
+            ? `<a class="customer-link" href="customer.html?customer_id=${c.linked_customer_id}&expand=true">${esc(c.customer_name)}</a>`
+            : esc(c.customer_name)}</td>
           <td>${typeBadge(c.policy_type)}</td>
           <td>${esc(c.staff_code)||'—'}</td>
           <td class="td-left"><div class="contact-wrap"><span class="contact-method">${esc(c.contact_method)||'—'}</span><span class="contact-info">${esc(c.contact_info)||'—'}</span></div></td>

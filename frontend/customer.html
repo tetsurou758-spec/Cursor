@@ -164,7 +164,7 @@
   </div>
   <div class="header-right">
     <span class="header-user" id="header-user-info"></span>
-    <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <a id="btn-back-header" href="dashboard.html" class="btn-back">← ダッシュボード</a>
     <button class="btn-logout" onclick="doLogout()">ログアウト</button>
   </div>
 </header>
@@ -307,6 +307,11 @@
 <script>
   const API_BASE = 'http://127.0.0.1:8000';
 
+  // URLパラメータ
+  const _urlParams    = new URLSearchParams(location.search);
+  const _urlCustomerId = _urlParams.get('customer_id') ? Number(_urlParams.get('customer_id')) : null;
+  const _urlExpand     = _urlParams.get('expand') === 'true';
+
   // ── 初期化 ──────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     requireAuth();
@@ -320,14 +325,52 @@
         : `[${info.agency_code || ''}] ${info.name || ''} ｜ ${info.role_name || ''}`;
       document.getElementById('header-user-info').textContent = label;
 
-      // 社員のみ：代理店コード・参照Gコード絞り込みを表示
       if (userType === 'staff') {
         document.querySelectorAll('.staff-only').forEach(el => el.style.display = '');
       }
     }
 
-    searchCustomers();
+    // 満期管理からの遷移：ヘッダーの戻るボタンを「← 満期管理に戻る」に切り替え
+    if (_urlCustomerId) {
+      const btn = document.getElementById('btn-back-header');
+      btn.href        = 'maturity.html';
+      btn.textContent = '← 満期管理に戻る';
+
+      // 検索フォームを非表示
+      const searchCard = document.querySelector('.search-card');
+      if (searchCard) searchCard.style.display = 'none';
+
+      loadSingleCustomer(_urlCustomerId);
+    } else {
+      searchCustomers();
+    }
   });
+
+  // ── 単一顧客表示（満期管理リンクからの遷移）──────────────────
+  async function loadSingleCustomer(customerId) {
+    const tbody = document.getElementById('customer-tbody');
+    tbody.innerHTML = '<tr><td colspan="13" class="loading">読み込み中...</td></tr>';
+    document.getElementById('result-count').textContent = '-';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) {
+        tbody.innerHTML = `<tr><td colspan="13" class="empty">顧客が見つかりません（ID: ${customerId}）</td></tr>`;
+        return;
+      }
+      const data = await res.json();
+      // 1件だけ renderTable し、そのまま詳細を展開
+      renderTable([data.customer]);
+      document.getElementById('result-count').textContent = 1;
+      if (_urlExpand) {
+        await toggleDetail(customerId);
+      }
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="13" class="empty">通信エラーが発生しました</td></tr>';
+    }
+  }
 
   // ── 検索 ────────────────────────────────────────────────────────
   async function searchCustomers() {
