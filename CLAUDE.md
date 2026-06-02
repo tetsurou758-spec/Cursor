@@ -23,6 +23,12 @@ python -m uvicorn backend.main:app --reload --port 8000
 - maturity.html：満期管理（代理店・社員共通）
 - customer.html：顧客管理（代理店・社員共通）
 - admin.html：権限管理（代理店・社員共通）
+- contract.html：契約照会（代理店・社員共通）
+- contract_detail.html：契約詳細（代理店・社員共通）
+- claim.html：保険金支払状況（代理店・社員共通）
+- claim_detail.html：保険金詳細（代理店・社員共通）
+- contact.html：コンタクト履歴入力（代理店・社員共通）
+- agency_master.html：代理店マスタ編集（社員専用）
 
 ## テーマ切替
 session.jsのapplyTheme()でdata-theme属性を切替
@@ -91,6 +97,10 @@ session.jsのapplyTheme()でdata-theme属性を切替
 - ドーナツグラフクリック遷移（未対応絞込）
 - 名寄せバッチ処理（夜間想定）
 - Playwright自動テスト・Excel証跡自動生成
+- 契約照会・契約詳細
+- 保険金支払状況・保険金詳細
+- コンタクト履歴入力
+- 社員専用：代理店マスタ編集
 
 ## テスト成果物
 - test/001_UT-ログインテスト/
@@ -102,12 +112,9 @@ session.jsのapplyTheme()でdata-theme属性を切替
 - test/007_UT-顧客管理保険加入状況テスト/
 
 ## 未実装・作業中
-- 契約照会画面
 - 社員専用：参照グループ設定画面
 - 代理店専用：担当者別成績管理画面
 - 帳票出力（ReportLab）
-- コンタクト履歴入力機能
-- 保険金支払状況画面
 
 ## 開発ルール
 - コメントは日本語

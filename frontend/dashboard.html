@@ -454,6 +454,14 @@
           </svg>
           <span class="nav-label">保険金支払状況</span>
         </a>
+        <!-- 成績管理ボタン：代理店ユーザーのみ表示 -->
+        <a href="sales.html" class="nav-btn agency-only-btn" id="btn-sales" data-tooltip="権限がありません" style="display:none">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22,7 13.5,15.5 8.5,10.5 2,17"/>
+            <polyline points="16,7 22,7 22,13"/>
+          </svg>
+          <span class="nav-label">📈 成績管理</span>
+        </a>
       </div>
     </section>
 
@@ -679,6 +687,12 @@
       document.getElementById('legend-dot0').style.background = c0;
       document.getElementById('legend-dot1').style.background = c1;
       document.getElementById('legend-dot2').style.background = c2;
+
+      // 代理店ユーザーのみ成績管理ボタンを表示
+      if (userType !== 'staff') {
+        const salesBtn = document.getElementById('btn-sales');
+        if (salesBtn) salesBtn.style.display = '';
+      }
 
       if (userType === 'staff') {
         document.getElementById('hdr-system-name').textContent = '社員専用システム';

@@ -10,6 +10,10 @@ import os
 
 app = FastAPI(title="AX損害保険 代理店システムAPI")
 
+# 成績管理ルーターを登録
+from backend.routers.sales_router import router as sales_router  # noqa: E402
+app.include_router(sales_router, prefix="/api")
+
 # フロントエンドからのリクエストを許可するCORS設定
 app.add_middleware(
     CORSMiddleware,

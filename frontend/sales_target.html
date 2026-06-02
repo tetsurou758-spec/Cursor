@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>目標設定｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+    .header-logo svg { width:28px; height:28px; flex-shrink:0; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
+    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:#fff; }
+    .header-right { display:flex; align-items:center; gap:10px; }
+    .page-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
+      color: var(--accent-light); border-radius:4px; padding:3px 10px;
+      font-size:0.75rem; font-weight:700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
+      border-radius:20px; padding:4px 14px; color:#fff; font-size:0.8rem;
+    }
+    .user-badge span { color:var(--accent); font-weight:700; margin-right:6px; }
+    .btn-logout {
+      background:transparent; border:1.5px solid var(--accent-border-btn);
+      color:var(--accent-light); border-radius:4px; padding:5px 14px;
+      font-size:0.78rem; font-weight:600; cursor:pointer;
+      transition:background 0.2s,color 0.2s;
+    }
+    .btn-logout:hover { background:var(--accent); color:var(--primary-dark); border-color:var(--accent); }
+    .btn-back {
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; border-radius:4px; padding:5px 12px;
+      font-size:0.75rem; cursor:pointer; text-decoration:none;
+      transition:background 0.2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,0.18); }
+    .accent-bar { height:3px; background:linear-gradient(90deg,var(--primary-dark) 0%,var(--accent) 50%,var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width:1500px; margin:0 auto; padding:20px 16px 40px; }
+    .page-title {
+      font-size:1.1rem; font-weight:700; color:var(--primary);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .page-title::before { content:''; display:inline-block; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+
+    /* ═══ SEARCH CARD ═══════════════════════════════════════════ */
+    .search-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); padding:18px 20px; margin-bottom:16px; }
+    .search-grid { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+    .field-group { display:flex; flex-direction:column; gap:4px; }
+    .field-group label { font-size:0.72rem; font-weight:600; color:var(--primary); letter-spacing:0.04em; }
+    .field-group input, .field-group select {
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:6px 10px; font-size:0.82rem; color:var(--text-main);
+      outline:none; background:#fff; transition:border-color 0.2s; height:32px;
+    }
+    .field-group input:focus, .field-group select:focus { border-color:var(--primary); box-shadow:0 0 0 2px var(--card-shadow); }
+    .field-group.sel select { width:160px; }
+    .btn-group { display:flex; gap:8px; align-items:flex-end; }
+    .btn-load {
+      background:#fff; color:var(--primary); border:1.5px solid var(--primary);
+      border-radius:4px; padding:0 16px; height:32px;
+      font-size:0.82rem; font-weight:700; cursor:pointer; transition:background 0.2s;
+    }
+    .btn-load:hover { background:var(--primary); color:#fff; }
+
+    /* ═══ TABLE CARD ═════════════════════════════════════════════ */
+    .table-header-row {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:12px; flex-wrap:wrap; gap:8px;
+    }
+    .table-label { font-size:0.85rem; color:var(--text-sub); }
+    .table-label strong { color:var(--primary); font-size:0.9rem; }
+
+    .table-actions { display:flex; gap:10px; align-items:center; }
+    .btn-save {
+      background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
+      color:#fff; border:none; border-radius:4px;
+      padding:7px 20px; font-size:0.82rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+    }
+    .btn-save:hover { opacity:0.88; }
+    .btn-back-sales {
+      background:#fff; color:var(--primary); border:1.5px solid var(--primary);
+      border-radius:4px; padding:7px 14px;
+      font-size:0.82rem; font-weight:600; cursor:pointer; text-decoration:none;
+      transition:background 0.2s; display:inline-block;
+    }
+    .btn-back-sales:hover { background:var(--primary); color:#fff; }
+
+    .table-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); overflow:hidden; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+
+    thead tr { background:var(--primary); }
+    thead th {
+      color:#fff; font-size:0.72rem; font-weight:700;
+      padding:9px 8px; text-align:center; letter-spacing:0.04em;
+      border-right:1px solid rgba(255,255,255,0.1); white-space:nowrap;
+      min-width:120px;
+    }
+    thead th:first-child { min-width:100px; }
+    thead th:last-child { border-right:none; min-width:130px; }
+
+    tbody tr { transition:background 0.15s; }
+    tbody tr:hover { background:var(--gray-card); }
+    tbody tr.row-total { background:rgba(0,0,0,0.04); font-weight:700; }
+    tbody tr.row-total:hover { background:rgba(0,0,0,0.07); }
+
+    tbody td {
+      padding:6px 8px; border-bottom:1px solid var(--gray-border);
+      text-align:center; font-size:0.78rem; color:var(--text-main);
+      vertical-align:middle; border-right:1px solid var(--gray-border);
+    }
+    tbody td:first-child { text-align:left; font-weight:600; white-space:nowrap; padding-left:10px; }
+    tbody td:last-child { border-right:none; }
+
+    /* 目標設定セル */
+    .cell-inner { display:flex; flex-direction:column; gap:4px; min-width:110px; padding:2px; }
+    .cell-prev { font-size:0.7rem; color:var(--text-sub); white-space:nowrap; }
+    .cell-row  { display:flex; align-items:center; gap:4px; }
+    .cell-label { font-size:0.68rem; color:var(--text-sub); white-space:nowrap; min-width:70px; text-align:right; }
+    .cell-input {
+      border:1.5px solid var(--gray-border); border-radius:3px;
+      padding:2px 6px; font-size:0.78rem; width:80px; outline:none;
+      transition:border-color 0.2s; text-align:right;
+    }
+    .cell-input:focus { border-color:var(--primary); }
+    /* TOTAL行はinputを非表示（集計のみ表示） */
+    .row-total .cell-input { display:none; }
+    .row-total .cell-label { display:none; }
+    .row-total .cell-calc { font-size:0.78rem; font-weight:700; color:var(--primary); }
+
+    /* トースト通知 */
+    .toast {
+      position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+      background:var(--primary); color:#fff; border-radius:6px;
+      padding:12px 28px; font-size:0.88rem; font-weight:700;
+      box-shadow:0 4px 16px rgba(0,0,0,0.2); z-index:9999;
+      opacity:0; transition:opacity 0.3s; pointer-events:none;
+    }
+    .toast.show { opacity:1; }
+
+    .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
+
+    .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
+
+    @media (max-width:768px) {
+      .search-grid { flex-direction:column; }
+      .field-group.sel select { width:100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+            fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+            fill="rgba(255,255,255,0.15)"/>
+      <polyline points="22,32 29,39 43,25" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo-text">
+      <div class="company">AX損害保険株式会社</div>
+      <div class="system">目標設定システム</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="page-badge">目標設定</span>
+    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <a href="#" class="btn-back" onclick="goToDashboard(); return false;">← ダッシュボード</a>
+    <button class="btn-logout" id="btn-logout">ログアウト</button>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<div class="main-content">
+  <div class="page-title">目標設定</div>
+
+  <!-- 設定条件エリア -->
+  <div class="search-card">
+    <div class="search-grid">
+      <div class="field-group sel">
+        <label>設定対象年度</label>
+        <select id="sel-year"></select>
+      </div>
+      <div class="field-group sel">
+        <label>担当者</label>
+        <select id="sel-staff"></select>
+      </div>
+      <div class="btn-group">
+        <button class="btn-load" onclick="doLoad()">読込</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- テーブルヘッダー行 -->
+  <div class="table-header-row">
+    <div class="table-label" id="table-label">担当者・年度を選択して「読込」を押してください</div>
+    <div class="table-actions">
+      <a href="sales.html" class="btn-back-sales">← 成績参照画面へ</a>
+      <button class="btn-save" onclick="doSave()">保存</button>
+    </div>
+  </div>
+
+  <!-- 目標設定テーブル -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table id="target-table">
+        <thead>
+          <tr>
+            <th>種目</th>
+            <th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th>
+            <th>10月</th><th>11月</th><th>12月</th><th>1月</th><th>2月</th><th>3月</th>
+            <th>年間合計</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="14" class="empty-msg">読込ボタンを押してください</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- トースト通知 -->
+<div class="toast" id="toast">保存しました</div>
+
+<footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+
+  // 保険種目定義（表示順）
+  const POLICY_TYPES = [
+    { code: 'AUTO',      label: '自動車(AUTO)' },
+    { code: 'FIRE',      label: '火災(FIRE)' },
+    { code: 'INJURY',    label: '傷害(INJURY)' },
+    { code: 'JIBAI',     label: '自賠責(JIBAI)' },
+    { code: 'LIABILITY', label: '賠償責任(LIABILITY)' },
+    { code: 'CYBER',     label: 'サイバーリスク(CYBER)' },
+    { code: 'INCOME',    label: '所得補償(INCOME)' },
+    { code: 'TOTAL',     label: '合計(TOTAL)' },
+  ];
+
+  // 会計年度の月順（4〜3月）
+  const FISCAL_MONTHS = [4,5,6,7,8,9,10,11,12,1,2,3];
+
+  let currentAgencyCode = '';
+  let staffListData     = []; // { staff_code, staff_name }[]
+
+  /**
+   * 当年度を計算する（4月以降 = 当年、1〜3月 = 前年）
+   */
+  function getCurrentFiscalYear() {
+    const d = new Date();
+    const m = d.getMonth() + 1;
+    const y = d.getFullYear();
+    return m >= 4 ? y : y - 1;
+  }
+
+  /**
+   * 設定対象年度プルダウンを動的生成（来年度・再来年度の2年分）
+   */
+  function buildYearSelect() {
+    const base = getCurrentFiscalYear();
+    const sel  = document.getElementById('sel-year');
+    sel.innerHTML = '';
+    for (let i = 1; i <= 2; i++) {
+      const y = base + i;
+      const opt = document.createElement('option');
+      opt.value       = y;
+      opt.textContent = `${y}年度`;
+      sel.appendChild(opt);
+    }
+  }
+
+  /**
+   * 担当者プルダウンを構築する（全担当者 + 代理店合計）
+   */
+  function buildStaffSelect(staffList) {
+    const sel = document.getElementById('sel-staff');
+    sel.innerHTML = '';
+
+    // 代理店合計（全担当者合算）
+    const total = document.createElement('option');
+    total.value       = '__all__';
+    total.textContent = '代理店合計';
+    sel.appendChild(total);
+
+    staffList.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value       = s.staff_code;
+      opt.textContent = `${s.staff_code}（${s.staff_name}）`;
+      sel.appendChild(opt);
+    });
+  }
+
+  /**
+   * 担当者一覧をAPIから取得する
+   */
+  async function fetchStaffList(token) {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/sales/staff-list?agency_code=${encodeURIComponent(currentAgencyCode)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.staff_list || [];
+    } catch (e) {
+      console.error('担当者一覧取得失敗:', e);
+      return [];
+    }
+  }
+
+  /**
+   * 汎用JSONフェッチ（失敗時はnullを返す）
+   */
+  async function fetchJson(url, token) {
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) { doLogout(); return null; }
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.error('API取得失敗:', url, e);
+      return null;
+    }
+  }
+
+  /**
+   * 前年度実績・既存目標を読み込んでテーブルに反映する
+   */
+  async function doLoad() {
+    const token      = _ssGet('token');
+    const fiscalYear = parseInt(document.getElementById('sel-year').value);
+    const staffVal   = document.getElementById('sel-staff').value;
+    const prevYear   = fiscalYear - 1; // 前年度実績を参照
+
+    updateLabel(fiscalYear, staffVal);
+
+    const params = new URLSearchParams({
+      agency_code: currentAgencyCode,
+      fiscal_year: prevYear,
+    });
+    if (staffVal !== '__all__') params.set('staff_code', staffVal);
+
+    const targetParams = new URLSearchParams({
+      agency_code: currentAgencyCode,
+      fiscal_year: fiscalYear,
+    });
+    if (staffVal !== '__all__') targetParams.set('staff_code', staffVal);
+
+    // 前年度実績・今年度既存目標を並行取得
+    const [actualData, targetData] = await Promise.all([
+      fetchJson(`${API_BASE}/api/sales/actual?${params}`, token),
+      fetchJson(`${API_BASE}/api/sales/targets?${targetParams}`, token),
+    ]);
+
+    const actuals = (actualData && actualData.actuals) ? actualData.actuals : {};
+    const targets = (targetData && targetData.targets) ? targetData.targets : {};
+
+    renderTable(actuals, targets);
+  }
+
+  /**
+   * 集計表ラベルを更新する
+   */
+  function updateLabel(fiscalYear, staffVal) {
+    let staffLabel;
+    if (staffVal === '__all__') {
+      staffLabel = '代理店合計';
+    } else {
+      const s = staffListData.find(x => x.staff_code === staffVal);
+      staffLabel = s ? `${s.staff_code}（${s.staff_name}）` : staffVal;
+    }
+    document.getElementById('table-label').innerHTML =
+      `設定対象：<strong>${fiscalYear}年度</strong>　担当者：<strong>${staffLabel}</strong>`;
+  }
+
+  /**
+   * 金額を円表示にフォーマット
+   */
+  function yen(v) {
+    return (v != null) ? '¥' + Number(v).toLocaleString() : '—';
+  }
+
+  /**
+   * inputのIDを生成する（種目×月の一意キー）
+   */
+  function inputId(policyCode, month, type) {
+    return `inp_${policyCode}_${String(month).padStart(2,'0')}_${type}`;
+  }
+
+  /**
+   * 目標設定テーブルを描画する（前年度実績・既存目標を反映）
+   */
+  function renderTable(prevActuals, existingTargets) {
+    const tbody = document.getElementById('table-body');
+
+    tbody.innerHTML = POLICY_TYPES.map(pt => {
+      const isTotal = (pt.code === 'TOTAL');
+      const rowClass = isTotal ? ' class="row-total"' : '';
+
+      // 月別セルを生成
+      const cells = FISCAL_MONTHS.map(m => {
+        const mStr = String(m).padStart(2, '0');
+
+        if (isTotal) {
+          // TOTAL行：集計表示のみ（input なし）
+          const prevSum = sumAllTypes(prevActuals, mStr);
+          const tgtSum  = sumAllTypes(existingTargets, mStr);
+          return `<td><div class="cell-inner">
+            <span class="cell-prev">前年度実績：${yen(prevSum)}</span>
+            <span class="cell-calc">次年度目標：${yen(tgtSum)}</span>
+          </div></td>`;
+        }
+
+        const prevVal = (prevActuals[pt.code] || {})[mStr] ?? null;
+        const tgtVal  = (existingTargets[pt.code] || {})[mStr] ?? null;
+
+        // 既存目標があれば目標設定率を逆算（前年実績があれば計算、なければ空）
+        let rateDefault = '';
+        if (prevVal != null && prevVal > 0 && tgtVal != null) {
+          rateDefault = (tgtVal / prevVal).toFixed(2);
+        }
+
+        const rateId  = inputId(pt.code, m, 'rate');
+        const tgtId   = inputId(pt.code, m, 'tgt');
+        const prevData = prevVal != null ? prevVal : 0; // data属性用
+
+        return `<td><div class="cell-inner">
+          <span class="cell-prev">前年度実績：${yen(prevVal)}</span>
+          <div class="cell-row">
+            <span class="cell-label">目標設定率：</span>
+            <input type="text" class="cell-input inp-rate"
+              id="${rateId}"
+              data-policy="${pt.code}" data-month="${mStr}" data-prev="${prevData}"
+              value="${rateDefault}" placeholder="1.00"
+              onblur="onRateBlur(this)">
+          </div>
+          <div class="cell-row">
+            <span class="cell-label">次年度目標：</span>
+            <input type="text" class="cell-input inp-tgt"
+              id="${tgtId}"
+              data-policy="${pt.code}" data-month="${mStr}"
+              value="${tgtVal != null ? tgtVal : ''}" placeholder="0"
+              oninput="onTgtInput(this)">
+          </div>
+        </div></td>`;
+      }).join('');
+
+      // 年間合計セル
+      if (isTotal) {
+        const prevYearSum = sumAllMonths_allTypes(prevActuals);
+        const tgtYearSum  = sumAllMonths_allTypes(existingTargets);
+        return `<tr${rowClass}>
+          <td>${pt.label}</td>
+          ${cells}
+          <td><div class="cell-inner">
+            <span class="cell-prev">前年度実績：${yen(prevYearSum)}</span>
+            <span class="cell-calc" id="year-total-label">次年度目標：${yen(tgtYearSum)}</span>
+          </div></td>
+        </tr>`;
+      }
+
+      return `<tr${rowClass}>
+        <td>${pt.label}</td>
+        ${cells}
+        <td><div class="cell-inner">
+          <span class="cell-prev" id="prev-year-${pt.code}">前年度実績：${yen(sumAllMonths(prevActuals[pt.code] || {}))}</span>
+          <span class="cell-calc" id="tgt-year-${pt.code}">次年度目標：${yen(sumTgtRow(pt.code))}</span>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /**
+   * 目標設定率のonblurハンドラ：前年実績 × 目標設定率 を計算して次年度目標に反映する
+   */
+  function onRateBlur(rateInput) {
+    const raw    = rateInput.value.trim();
+    const rate   = parseFloat(raw);
+    // 0.00形式の正常数値のみ計算（不正値はスルー）
+    if (isNaN(rate) || rate < 0) return;
+    const prev   = parseFloat(rateInput.dataset.prev) || 0;
+    const policy = rateInput.dataset.policy;
+    const month  = rateInput.dataset.month;
+    const tgtInput = document.getElementById(inputId(policy, parseInt(month), 'tgt'));
+    if (!tgtInput) return;
+    // 円未満切捨て
+    const newTgt = Math.floor(prev * rate);
+    tgtInput.value = newTgt;
+    updateYearTotal(policy);
+  }
+
+  /**
+   * 次年度目標直接入力ハンドラ：数値以外の文字を除去する
+   */
+  function onTgtInput(tgtInput) {
+    // 数値のみ許可（マイナス・小数点不可）
+    tgtInput.value = tgtInput.value.replace(/[^0-9]/g, '');
+    updateYearTotal(tgtInput.dataset.policy);
+  }
+
+  /**
+   * 種目の年間合計目標をDOM上の入力値から計算して更新する
+   */
+  function updateYearTotal(policyCode) {
+    let sum = 0;
+    FISCAL_MONTHS.forEach(m => {
+      const tgtInput = document.getElementById(inputId(policyCode, m, 'tgt'));
+      if (tgtInput) sum += parseInt(tgtInput.value || '0') || 0;
+    });
+    const yearEl = document.getElementById(`tgt-year-${policyCode}`);
+    if (yearEl) yearEl.textContent = `次年度目標：¥${sum.toLocaleString()}`;
+  }
+
+  /**
+   * 種目の全月入力値の合計を返す（renderTable時の初期表示用）
+   */
+  function sumTgtRow(policyCode) {
+    // renderTable時はまだinputが存在しないためnullを返す
+    return null;
+  }
+
+  /**
+   * 全種目の特定月の合計を計算する（TOTAL行用・prevActuals/existingTargets両対応）
+   */
+  function sumAllTypes(data, monthStr) {
+    let sum = null;
+    POLICY_TYPES.filter(p => p.code !== 'TOTAL').forEach(p => {
+      const v = (data[p.code] || {})[monthStr];
+      if (v != null) sum = (sum || 0) + v;
+    });
+    return sum;
+  }
+
+  /**
+   * 特定種目の全月合計を計算する
+   */
+  function sumAllMonths(monthMap) {
+    let sum = null;
+    Object.values(monthMap).forEach(v => {
+      if (v != null) sum = (sum || 0) + v;
+    });
+    return sum;
+  }
+
+  /**
+   * 全種目・全月の合計を計算する（TOTAL行の年間合計用）
+   */
+  function sumAllMonths_allTypes(data) {
+    let sum = null;
+    POLICY_TYPES.filter(p => p.code !== 'TOTAL').forEach(p => {
+      const s = sumAllMonths(data[p.code] || {});
+      if (s != null) sum = (sum || 0) + s;
+    });
+    return sum;
+  }
+
+  /**
+   * 全セルの入力値を収集してAPIへPOSTする
+   */
+  async function doSave() {
+    const token      = _ssGet('token');
+    const fiscalYear = parseInt(document.getElementById('sel-year').value);
+    const staffVal   = document.getElementById('sel-staff').value;
+
+    // 入力値を構造化（{ policy_code, month, target_amount, staff_code }[]）
+    const rows = [];
+    POLICY_TYPES.filter(p => p.code !== 'TOTAL').forEach(pt => {
+      FISCAL_MONTHS.forEach(m => {
+        const tgtInput = document.getElementById(inputId(pt.code, m, 'tgt'));
+        if (!tgtInput) return;
+        const val = parseInt(tgtInput.value || '0') || 0;
+        rows.push({
+          policy_code:   pt.code,
+          month:         String(m).padStart(2, '0'),
+          target_amount: val,
+          staff_code:    staffVal === '__all__' ? null : staffVal,
+        });
+      });
+    });
+
+    try {
+      const res = await fetch(`${API_BASE}/api/sales/targets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          agency_code: currentAgencyCode,
+          fiscal_year: fiscalYear,
+          staff_code:  staffVal === '__all__' ? null : staffVal,
+          targets: rows,
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        alert(`保存に失敗しました (${res.status})\n${errText}`);
+        return;
+      }
+      showToast('保存しました');
+    } catch (e) {
+      alert('通信エラーが発生しました');
+    }
+  }
+
+  /**
+   * トーストメッセージを表示する
+   */
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // ─── 初期化 ────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    // 権限チェック：代理店ユーザーかつ管理者のみアクセス可
+    const userType = _ssGet('user_type');
+    if (userType === 'staff') {
+      window.location.href = 'sales.html';
+      return;
+    }
+
+    const token = requireAuth();
+    if (!token) return;
+
+    currentAgencyCode = _ssGet('agency_code') || '';
+    const loginId     = _ssGet('login_id')    || '';
+
+    // ヘッダー設定
+    document.getElementById('hdr-code').textContent = currentAgencyCode + ' ';
+    document.getElementById('hdr-name').textContent = loginId;
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+    // 権限確認（管理者以外はsales.htmlへリダイレクト）
+    try {
+      const permRes = await fetch(`${API_BASE}/api/permissions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (permRes.ok) {
+        const p = await permRes.json();
+        if (p.role_id !== 1) {
+          window.location.href = 'sales.html';
+          return;
+        }
+      } else {
+        window.location.href = 'sales.html';
+        return;
+      }
+    } catch (e) {
+      console.error('権限取得失敗:', e);
+      window.location.href = 'sales.html';
+      return;
+    }
+
+    // 年度プルダウン構築（来年度・再来年度）
+    buildYearSelect();
+
+    // 担当者一覧取得・プルダウン構築
+    staffListData = await fetchStaffList(token);
+    buildStaffSelect(staffListData);
+  });
+</script>
+</body>
+</html>
