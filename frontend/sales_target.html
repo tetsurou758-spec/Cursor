@@ -313,7 +313,7 @@
     staffList.forEach(s => {
       const opt = document.createElement('option');
       opt.value       = s.staff_code;
-      opt.textContent = `${s.staff_code}（${s.staff_name}）`;
+      opt.textContent = `${s.staff_code}（${s.name}）`;
       sel.appendChild(opt);
     });
   }
@@ -329,7 +329,8 @@
       );
       if (!res.ok) return [];
       const data = await res.json();
-      return data.staff_list || [];
+      // APIは配列を直接返す。ALLエントリは除外（フロントで代理店合計として追加）
+      return Array.isArray(data) ? data.filter(s => s.staff_code !== 'ALL') : [];
     } catch (e) {
       console.error('担当者一覧取得失敗:', e);
       return [];
@@ -395,7 +396,7 @@
       staffLabel = '代理店合計';
     } else {
       const s = staffListData.find(x => x.staff_code === staffVal);
-      staffLabel = s ? `${s.staff_code}（${s.staff_name}）` : staffVal;
+      staffLabel = s ? `${s.staff_code}（${s.name}）` : staffVal;
     }
     document.getElementById('table-label').innerHTML =
       `設定対象：<strong>${fiscalYear}年度</strong>　担当者：<strong>${staffLabel}</strong>`;
