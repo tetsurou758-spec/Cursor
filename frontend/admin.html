@@ -464,6 +464,28 @@
   <!-- メインコンテンツ -->
   <div class="main-content">
 
+    <!-- 社員専用：代理店マスタ編集ボタン -->
+    <div id="staff-tools-bar" style="display:none; text-align:right; margin-bottom:18px;">
+      <a href="agency_master.html" style="
+        display:inline-flex; align-items:center; gap:7px;
+        background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 100%);
+        color:#FFD700; border:1.5px solid rgba(201,168,76,0.45);
+        border-radius:6px; padding:8px 18px; font-size:0.82rem; font-weight:700;
+        text-decoration:none; letter-spacing:0.04em;
+        box-shadow:0 2px 8px var(--card-shadow); transition:opacity 0.2s,transform 0.15s;
+      " onmouseover="this.style.opacity='0.85';this.style.transform='translateY(-1px)'"
+         onmouseout="this.style.opacity='1';this.style.transform='none'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </svg>
+        代理店マスタ編集
+      </a>
+    </div>
+
     <!-- ユーザー一覧 -->
     <section>
       <div class="section-header">
@@ -890,6 +912,7 @@
       // ユーザー種別ごとのUI差分
       if (userType === 'staff') {
         document.querySelector('.header-logo-text .system').textContent = '社員専用システム｜ユーザー管理';
+        document.getElementById('staff-tools-bar').style.display = '';
         document.getElementById('form-login-id-label').textContent = '社員番号';
         document.getElementById('form-name-group').style.display   = '';
         // ロール選択肢を社員ロールに差し替え

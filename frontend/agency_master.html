@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>代理店マスタ編集｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --white: #ffffff;
+    }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      min-width: 320px;
+    }
+
+    /* ════════════════════════ HEADER ════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: #FFD700; }
+    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: var(--white); }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-back-link {
+      color: var(--accent-light);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--accent-border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+    }
+
+    .header-back-link:hover { background: rgba(201,168,76,0.15); color: #FFD700; }
+
+    .user-badge {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid var(--accent-border);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+    }
+
+    .user-badge .badge-code { color: var(--accent-light); font-weight: 700; margin-right: 2px; }
+    .user-badge .badge-name { color: #fff; font-weight: 400; }
+    .user-badge .badge-role { color: var(--accent-light); font-weight: 600; margin-left: 2px; }
+
+    .btn-logout {
+      background: transparent;
+      border: 1.5px solid var(--accent-border-btn);
+      color: var(--accent-light);
+      border-radius: 4px;
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      letter-spacing: 0.06em;
+    }
+
+    .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
+
+    .gold-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%);
+    }
+
+    /* ════════════════════════ LAYOUT ════════════════════════════════════ */
+    .main-content { max-width: 1200px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--detail-label-color);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 10px;
+      box-shadow: 0 2px 12px var(--card-shadow);
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    /* ════════════════════════ FORM ══════════════════════════════════════ */
+    .form-card {
+      background: var(--white);
+      border-radius: 10px;
+      box-shadow: 0 2px 12px var(--card-shadow);
+      padding: 24px 28px 20px;
+      margin-bottom: 28px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 24px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--detail-label-color);
+      letter-spacing: 0.08em;
+    }
+
+    .form-group label .req {
+      color: #c0392b;
+      margin-left: 3px;
+    }
+
+    .form-group input[type="text"] {
+      border: 1.5px solid var(--gray-border);
+      border-radius: 5px;
+      padding: 7px 10px;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      background: var(--white);
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    .form-group input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-group input[type="text"]:disabled {
+      background: var(--gray-bg);
+      color: var(--text-sub);
+      cursor: not-allowed;
+      border-color: var(--gray-border);
+    }
+
+    /* ── ボタンエリア ────────────────────────────────────────────── */
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--gray-border);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: var(--white);
+      border: none;
+      border-radius: 6px;
+      padding: 9px 28px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 2px 8px var(--card-shadow);
+    }
+
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-deselect {
+      background: transparent;
+      border: 1.5px solid var(--gray-border);
+      color: var(--text-sub);
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-deselect:not(:disabled):hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-deselect:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ════════════════════════ TABLE ═════════════════════════════════════ */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    thead { background: var(--primary); color: var(--white); }
+
+    thead th {
+      padding: 11px 14px;
+      text-align: left;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      font-size: 0.77rem;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--gray-border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--gray-card); }
+
+    tbody tr.selected {
+      background: rgba(var(--primary-rgb, 30, 58, 110), 0.09);
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    tbody td {
+      padding: 11px 14px;
+      vertical-align: middle;
+    }
+
+    /* ════════════════════════ TOAST ═════════════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e3a6e;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: #c0392b; }
+    .toast.success { background: #1a6e2e; }
+
+    /* ════════════════════════ FOOTER ════════════════════════════════════ */
+    .site-footer {
+      background: var(--primary-dark);
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      padding: 14px 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header class="site-header">
+    <div class="header-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+              fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+              fill="rgba(255,255,255,0.15)"/>
+        <polyline points="22,32 29,39 43,25"
+                  stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-logo-text">
+        <div class="company">AX損害保険株式会社</div>
+        <div class="system">社員専用システム｜代理店マスタ編集</div>
+      </div>
+    </div>
+    <div class="header-user">
+      <a href="admin.html" class="header-back-link">← ユーザー管理へ</a>
+      <div class="user-badge">
+        <span class="badge-code" id="hdr-code">--</span>
+        <span class="badge-name" id="hdr-name">--</span>
+        <span class="badge-role" id="hdr-role"></span>
+      </div>
+      <button class="btn-logout" id="btn-logout">ログアウト</button>
+    </div>
+  </header>
+  <div class="gold-bar"></div>
+
+  <!-- メインコンテンツ -->
+  <div class="main-content">
+
+    <!-- ── 入力フォーム ── -->
+    <div class="section-title">代理店情報</div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>代理店コード<span class="req" id="req-code">＊</span></label>
+          <input type="text" id="f-agency-code" placeholder="例：A001" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label>代理店名<span class="req">＊</span></label>
+          <input type="text" id="f-agency-name" placeholder="代理店名を入力" maxlength="100">
+        </div>
+        <div class="form-group">
+          <label>グループコード<span class="req">＊</span></label>
+          <input type="text" id="f-group-code" placeholder="例：A" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label>部課コード</label>
+          <input type="text" id="f-buka-code" placeholder="例：X001" maxlength="20">
+        </div>
+        <div class="form-group full">
+          <label>住所</label>
+          <input type="text" id="f-address" placeholder="住所を入力" maxlength="200">
+        </div>
+        <div class="form-group">
+          <label>TEL</label>
+          <input type="text" id="f-tel" placeholder="例：03-1234-5678" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label>メールアドレス</label>
+          <input type="text" id="f-email" placeholder="例：info@example.jp" maxlength="200">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-deselect" id="btn-deselect" disabled onclick="deselect()">選択解除</button>
+        <button class="btn-primary" id="btn-submit" onclick="submitForm()">新規追加</button>
+      </div>
+    </div>
+
+    <!-- ── 代理店一覧 ── -->
+    <div class="section-title">代理店一覧</div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>代理店コード</th>
+              <th>代理店名</th>
+              <th>G</th>
+              <th>部課コード</th>
+              <th>住所</th>
+              <th>TEL</th>
+              <th>メール</th>
+            </tr>
+          </thead>
+          <tbody id="agency-tbody">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-sub);padding:24px">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <footer class="site-footer">
+    &copy; 2026 AX損害保険株式会社. All Rights Reserved.
+  </footer>
+
+  <!-- トースト通知 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000';
+
+    let token;
+    let agencies = [];
+    let selectedAgencyId = null; // 選択中の agency_id（nullは新規モード）
+
+    // ── 初期化 ───────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      token = requireStaffAuth();
+      if (!token) return;
+
+      const info = getUserInfo();
+      document.getElementById('hdr-code').textContent = (info?.staff_code || '') + ' ';
+      document.getElementById('hdr-name').textContent = info?.name || '';
+      document.getElementById('hdr-role').textContent = '｜' + (info?.role_name || '');
+
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+      await loadAgencies();
+    });
+
+    // ── 共通fetchラッパー ─────────────────────────────────────────
+    async function apiFetch(path, options = {}) {
+      const res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) {
+        sessionStorage.clear();
+        window.location.href = 'staff_login.html';
+      }
+      return res;
+    }
+
+    // ── トースト通知 ──────────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => { t.className = 'toast'; }, 3000);
+    }
+
+    // ── 代理店一覧を取得して描画 ──────────────────────────────────
+    async function loadAgencies() {
+      const res = await apiFetch('/api/staff/agencies');
+      if (!res.ok) { showToast('代理店一覧の取得に失敗しました', 'error'); return; }
+      const data = await res.json();
+      agencies = data.agencies;
+      renderTable();
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('agency-tbody');
+      if (!agencies.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-sub);padding:24px">データがありません</td></tr>';
+        return;
+      }
+      tbody.innerHTML = agencies.map(a => `
+        <tr id="row-${a.agency_id}" onclick="selectRow(${a.agency_id})"
+            class="${selectedAgencyId === a.agency_id ? 'selected' : ''}">
+          <td style="font-weight:600">${esc(a.agency_code)}</td>
+          <td>${esc(a.agency_name)}</td>
+          <td style="text-align:center">${esc(a.group_code)}</td>
+          <td>${esc(a.buka_code ?? '')}</td>
+          <td style="font-size:0.78rem;color:var(--text-sub)">${esc(a.address ?? '')}</td>
+          <td style="font-size:0.78rem">${esc(a.tel ?? '')}</td>
+          <td style="font-size:0.78rem">${esc(a.email ?? '')}</td>
+        </tr>`).join('');
+    }
+
+    // ── 行選択 ───────────────────────────────────────────────────
+    function selectRow(agencyId) {
+      selectedAgencyId = agencyId;
+      const a = agencies.find(x => x.agency_id === agencyId);
+      if (!a) return;
+
+      // フォームに値をセット
+      document.getElementById('f-agency-code').value = a.agency_code ?? '';
+      document.getElementById('f-agency-name').value = a.agency_name ?? '';
+      document.getElementById('f-group-code').value  = a.group_code  ?? '';
+      document.getElementById('f-buka-code').value   = a.buka_code   ?? '';
+      document.getElementById('f-address').value     = a.address     ?? '';
+      document.getElementById('f-tel').value         = a.tel         ?? '';
+      document.getElementById('f-email').value       = a.email       ?? '';
+
+      // キー項目（代理店コード）をロック
+      document.getElementById('f-agency-code').disabled = true;
+      document.getElementById('req-code').style.display = 'none';
+
+      // ボタン切替
+      document.getElementById('btn-submit').textContent   = '更新';
+      document.getElementById('btn-deselect').disabled    = false;
+
+      // 選択行のハイライト
+      document.querySelectorAll('#agency-tbody tr').forEach(tr => tr.classList.remove('selected'));
+      const row = document.getElementById(`row-${agencyId}`);
+      if (row) { row.classList.add('selected'); row.scrollIntoView({ block: 'nearest' }); }
+    }
+
+    // ── 選択解除 ─────────────────────────────────────────────────
+    function deselect() {
+      selectedAgencyId = null;
+      clearForm();
+      document.querySelectorAll('#agency-tbody tr').forEach(tr => tr.classList.remove('selected'));
+    }
+
+    function clearForm() {
+      ['f-agency-code','f-agency-name','f-group-code','f-buka-code','f-address','f-tel','f-email']
+        .forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('f-agency-code').disabled  = false;
+      document.getElementById('req-code').style.display  = '';
+      document.getElementById('btn-submit').textContent  = '新規追加';
+      document.getElementById('btn-deselect').disabled   = true;
+    }
+
+    // ── 新規追加 / 更新 ──────────────────────────────────────────
+    async function submitForm() {
+      const code  = document.getElementById('f-agency-code').value.trim();
+      const name  = document.getElementById('f-agency-name').value.trim();
+      const group = document.getElementById('f-group-code').value.trim();
+      const buka  = document.getElementById('f-buka-code').value.trim();
+      const addr  = document.getElementById('f-address').value.trim();
+      const tel   = document.getElementById('f-tel').value.trim();
+      const email = document.getElementById('f-email').value.trim();
+
+      if (selectedAgencyId === null) {
+        // 新規追加モード：全項目必須
+        if (!code)  { showToast('代理店コードを入力してください', 'error'); return; }
+        if (!name)  { showToast('代理店名を入力してください', 'error'); return; }
+        if (!group) { showToast('グループコードを入力してください', 'error'); return; }
+
+        const res = await apiFetch('/api/staff/agencies', {
+          method: 'POST',
+          body: JSON.stringify({
+            agency_code: code, agency_name: name,
+            address: addr, tel, email, group_code: group, buka_code: buka,
+          }),
+        });
+        const json = await res.json();
+        if (res.ok) {
+          showToast('代理店を登録しました');
+          clearForm();
+          await loadAgencies();
+        } else {
+          showToast(json.detail || '登録に失敗しました', 'error');
+        }
+      } else {
+        // 更新モード：非キー項目を更新
+        if (!name)  { showToast('代理店名を入力してください', 'error'); return; }
+        if (!group) { showToast('グループコードを入力してください', 'error'); return; }
+
+        const res = await apiFetch(`/api/staff/agencies/${selectedAgencyId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            agency_name: name, address: addr, tel, email,
+            group_code: group, buka_code: buka,
+          }),
+        });
+        const json = await res.json();
+        if (res.ok) {
+          showToast('代理店情報を更新しました');
+          await loadAgencies();
+          // 更新後も選択状態を維持
+          selectRow(selectedAgencyId);
+        } else {
+          showToast(json.detail || '更新に失敗しました', 'error');
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>

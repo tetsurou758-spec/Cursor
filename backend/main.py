@@ -161,6 +161,34 @@ def require_staff_admin(payload: dict = Depends(verify_token)) -> dict:
     return payload
 
 
+def require_staff(payload: dict = Depends(verify_token)) -> dict:
+    """社員ユーザーのみアクセスを許可する（ロール不問）"""
+    if payload.get("user_type") != "staff":
+        raise HTTPException(status_code=403, detail="社員ユーザー権限が必要です")
+    return payload
+
+
+class AgencyCreateRequest(BaseModel):
+    """代理店新規登録リクエストのスキーマ"""
+    agency_code: str
+    agency_name: str
+    address: str = ""
+    tel: str = ""
+    email: str = ""
+    group_code: str
+    buka_code: str = ""
+
+
+class AgencyUpdateRequest(BaseModel):
+    """代理店更新リクエストのスキーマ（キー項目以外）"""
+    agency_name: str
+    address: str = ""
+    tel: str = ""
+    email: str = ""
+    group_code: str
+    buka_code: str = ""
+
+
 class StaffUserCreateRequest(BaseModel):
     """社員ユーザー登録リクエストのスキーマ"""
     staff_code: str
@@ -1836,5 +1864,71 @@ def get_dashboard_contacts(payload: dict = Depends(verify_token)):
             rows = conn.execute(sql, [since, group_code, group_code]).fetchall()
 
         return {"contacts": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+# ── 代理店マスタ管理（社員専用）────────────────────────────────────
+
+@app.get("/api/staff/agencies")
+def get_staff_agencies(payload: dict = Depends(require_staff)):
+    """社員の部課コードに紐づく代理店一覧を返す（role_id=1は全件）"""
+    role_id   = payload.get("role_id")
+    buka_code = payload.get("buka_code", "")
+    conn = get_db_connection()
+    try:
+        if role_id == 1:
+            rows = conn.execute(
+                "SELECT * FROM agencies ORDER BY agency_code"
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM agencies WHERE buka_code = ? ORDER BY agency_code",
+                (buka_code,)
+            ).fetchall()
+        return {"agencies": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+@app.post("/api/staff/agencies", status_code=201)
+def create_agency(request: AgencyCreateRequest, payload: dict = Depends(require_staff)):
+    """新規代理店を登録する"""
+    conn = get_db_connection()
+    try:
+        existing = conn.execute(
+            "SELECT agency_id FROM agencies WHERE agency_code = ?", (request.agency_code,)
+        ).fetchone()
+        if existing:
+            raise HTTPException(status_code=409, detail="この代理店コードは既に登録されています")
+        conn.execute("""
+            INSERT INTO agencies (agency_code, agency_name, address, tel, email, group_code, buka_code)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (request.agency_code, request.agency_name, request.address,
+              request.tel, request.email, request.group_code, request.buka_code))
+        conn.commit()
+        return {"message": "代理店を登録しました"}
+    finally:
+        conn.close()
+
+
+@app.put("/api/staff/agencies/{agency_id}")
+def update_agency(agency_id: int, request: AgencyUpdateRequest, payload: dict = Depends(require_staff)):
+    """代理店の非キー項目を更新する"""
+    conn = get_db_connection()
+    try:
+        existing = conn.execute(
+            "SELECT agency_id FROM agencies WHERE agency_id = ?", (agency_id,)
+        ).fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="代理店が見つかりません")
+        conn.execute("""
+            UPDATE agencies
+            SET agency_name = ?, address = ?, tel = ?, email = ?, group_code = ?, buka_code = ?
+            WHERE agency_id = ?
+        """, (request.agency_name, request.address, request.tel, request.email,
+              request.group_code, request.buka_code, agency_id))
+        conn.commit()
+        return {"message": "代理店情報を更新しました"}
     finally:
         conn.close()
