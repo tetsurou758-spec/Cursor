@@ -107,12 +107,23 @@ def get_staff_list(
     conn = _get_db()
     try:
         rows = conn.execute(
-            "SELECT login_id, name FROM users WHERE agency_code = ? AND is_active = 1 ORDER BY id",
+            """SELECT login_id, name, staff_code
+               FROM users
+               WHERE agency_code = ? AND is_active = 1 AND role_id != 1
+               ORDER BY id""",
             (agency_code,)
         ).fetchall()
-        result = [{"staff_code": r["login_id"], "name": r["name"]} for r in rows]
+        # staff_codeカラムを使用（NULLの場合はlogin_idで代替）
+        result = [
+            {
+                "staff_code": r["staff_code"] or r["login_id"],
+                "login_id":   r["login_id"],
+                "name":       r["name"],
+            }
+            for r in rows
+        ]
         # 代理店合計を末尾に追加
-        result.append({"staff_code": "ALL", "name": "代理店合計"})
+        result.append({"staff_code": "ALL", "login_id": "ALL", "name": "代理店合計"})
         return result
     finally:
         conn.close()
