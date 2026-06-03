@@ -137,11 +137,12 @@ def get_actual(
     payload: dict = Depends(_verify_token),
 ):
     """
-    月別×種目別の実績保険料を集計して返す（代理店ユーザー専用）
+    月別×種目別の更改実績保険料を集計して返す（代理店ユーザー専用）
 
-    contractsテーブルのannual_premiumをexpiry_dateの年度で集計する。
-    staff_code='ALL'の場合は代理店全体を集計する。
-    policy_typeが英語コード（AUTO等）以外のデータは集計対象外となり全0を返す。
+    集計対象：renewed_premium（更改後年換算保険料）
+    絞り込み：更改済み契約のみ（renewed_policy_number IS NOT NULL）
+    月基準：expiry_date の満期月
+    staff_code='ALL' の場合は代理店全体を集計する。
     """
     _require_agency(payload)
 
@@ -154,18 +155,19 @@ def get_actual(
 
     conn = _get_db()
     try:
-        # 月別×種目別に集計
+        # 更改済み契約の月別×種目別に renewed_premium を集計
         if staff_code == "ALL":
             rows = conn.execute("""
                 SELECT
                     CAST(strftime('%m', expiry_date) AS INTEGER) AS month,
                     policy_type,
-                    SUM(annual_premium) AS total
+                    SUM(renewed_premium) AS total
                 FROM contracts
                 WHERE agency_code = ?
                   AND expiry_date >= ?
                   AND expiry_date <= ?
-                  AND annual_premium IS NOT NULL
+                  AND renewed_policy_number IS NOT NULL
+                  AND renewed_premium IS NOT NULL
                 GROUP BY month, policy_type
             """, (agency_code, date_from, date_to)).fetchall()
         else:
@@ -173,13 +175,14 @@ def get_actual(
                 SELECT
                     CAST(strftime('%m', expiry_date) AS INTEGER) AS month,
                     policy_type,
-                    SUM(annual_premium) AS total
+                    SUM(renewed_premium) AS total
                 FROM contracts
                 WHERE agency_code = ?
                   AND staff_code = ?
                   AND expiry_date >= ?
                   AND expiry_date <= ?
-                  AND annual_premium IS NOT NULL
+                  AND renewed_policy_number IS NOT NULL
+                  AND renewed_premium IS NOT NULL
                 GROUP BY month, policy_type
             """, (agency_code, staff_code, date_from, date_to)).fetchall()
 
