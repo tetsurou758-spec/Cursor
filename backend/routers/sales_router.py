@@ -23,6 +23,17 @@ _DB_PATH = os.path.join(os.path.dirname(__file__), "../../db/users.sqlite")
 # 保険種目コード一覧
 POLICY_TYPES = ["AUTO", "FIRE", "INJURY", "JIBAI", "LIABILITY", "CYBER", "INCOME"]
 
+# contractsテーブルの日本語policy_type → 英語コード変換マップ
+POLICY_TYPE_MAP = {
+    "自動車":       "AUTO",
+    "火災":         "FIRE",
+    "傷害":         "INJURY",
+    "自賠責":       "JIBAI",
+    "賠償責任":     "LIABILITY",
+    "サイバーリスク": "CYBER",
+    "所得補償":     "INCOME",
+}
+
 
 def _get_db() -> sqlite3.Connection:
     """SQLite接続を取得する（check_same_thread=Falseでスレッド間共有を許可）"""
@@ -191,12 +202,15 @@ def get_actual(
         data["TOTAL"] = {}
 
         for r in rows:
-            month = str(r["month"])
-            pt    = r["policy_type"] if r["policy_type"] in POLICY_TYPES else None
+            month    = str(r["month"])
+            raw_type = r["policy_type"] or ""
+            # 日本語コードは英語コードに変換、すでに英語コードの場合はそのまま使用
+            pt = POLICY_TYPE_MAP.get(raw_type, raw_type if raw_type in POLICY_TYPES else None)
             if pt:
                 data[pt][month] = data[pt].get(month, 0) + (r["total"] or 0)
-            # TOTAL は全種目（policy_type不問）の合算
-            data["TOTAL"][month] = data["TOTAL"].get(month, 0) + (r["total"] or 0)
+            # TOTAL は変換済み種目の合算（未知の種目は除外）
+            if pt:
+                data["TOTAL"][month] = data["TOTAL"].get(month, 0) + (r["total"] or 0)
 
         return {
             "fiscal_year": fiscal_year,
