@@ -128,11 +128,12 @@
     tbody td:first-child { text-align:center; font-weight:600; white-space:nowrap; }
     tbody td:last-child { border-right:none; }
 
-    /* セル内レイアウト */
-    .cell-inner  { display:flex; flex-direction:column; gap:2px; min-width:110px; }
+    /* セル内レイアウト（高さ統一のため常に同じ構造） */
+    .cell-inner  { display:flex; flex-direction:column; gap:2px; min-width:110px; min-height:72px; justify-content:center; }
     .cell-target { font-size:0.78rem; color:var(--text-sub); text-align:left; }
     .cell-actual { font-size:0.78rem; font-weight:700; color:var(--primary); text-align:left; }
     .cell-rate   { font-size:0.78rem; color:var(--text-sub); text-align:center; }
+    .cell-empty  { color:var(--text-sub); text-align:center; }
 
     /* プログレスバー */
     .progress-wrap { margin:3px 0 1px; }
@@ -411,13 +412,18 @@
    * 1セルのHTMLを生成する
    */
   function buildCell(target, actual) {
+    // データなしでも同じ4行構造でレンダリング（セル高さを統一）
     if (target == null && actual == null) {
-      // データなし
-      return `<div class="cell-inner"><span style="color:var(--text-sub);font-size:0.72rem">—</span></div>`;
+      return `<div class="cell-inner">
+        <span class="cell-target">&nbsp;</span>
+        <span class="cell-actual" style="text-align:center">—</span>
+        <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill fill-blue" style="width:0%"></div></div></div>
+        <span class="cell-rate">&nbsp;</span>
+      </div>`;
     }
     const t = target || 0;
     const a = actual || 0;
-    const rate = (t > 0) ? Math.round(a / t * 1000) / 10 : null; // 小数第1位
+    const rate = (t > 0) ? Math.round(a / t * 1000) / 10 : null;
     const barWidth = (rate != null) ? Math.min(rate, 100) : 0;
     const cls  = rate != null ? fillClass(rate) : 'fill-blue';
     const rateLabel = rate != null

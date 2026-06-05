@@ -137,13 +137,11 @@
 
     /* 目標設定セル */
     .cell-inner { display:flex; flex-direction:column; gap:4px; min-width:110px; padding:2px; }
-    /* 前年度実績：見出し左・金額右のflex配置 */
-    .cell-prev { display:flex; justify-content:space-between; align-items:center;
-                 font-size:0.78rem; color:#000; white-space:nowrap; gap:4px; }
-    .cell-prev-label  { text-align:left; flex-shrink:0; }
-    .cell-prev-amount { text-align:right; }
-    .cell-row  { display:grid; grid-template-columns:68px 82px; align-items:center; gap:3px; }
-    .cell-label { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
+    /* cell-inner全体をgridにして全行を揃える */
+    .cell-inner { display:grid; grid-template-columns:68px 82px; gap:3px 3px; align-items:center; }
+    .cell-prev-label  { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
+    .cell-prev-amount { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
+    .cell-label       { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
     .cell-input {
       border:1.5px solid var(--gray-border); border-radius:3px;
       padding:2px 6px; font-size:0.78rem; width:80px; outline:none;
@@ -499,28 +497,22 @@
 
         const tgtFmt = tgtVal != null && tgtVal > 0 ? fmtMoney(tgtVal) : '';
         return `<td><div class="cell-inner">
-          <span class="cell-prev">
-            <span class="cell-prev-label">前年度実績：</span>
-            <span class="cell-prev-amount">${prevVal != null ? yen(prevVal) : '—'}</span>
-          </span>
-          <div class="cell-row">
-            <span class="cell-label">目標設定率：</span>
-            <input type="text" class="cell-input inp-rate"
-              id="${rateId}"
-              data-policy="${pt.code}" data-month="${mStr}" data-prev="${prevData}"
-              value="${rateDefault}" placeholder="1.00"
-              onblur="onRateBlur(this)">
-          </div>
-          <div class="cell-row">
-            <span class="cell-label">次年度目標：</span>
-            <input type="text" class="cell-input inp-tgt"
-              id="${tgtId}"
-              data-policy="${pt.code}" data-month="${mStr}" data-raw="${tgtVal ?? 0}"
-              value="${tgtFmt}" placeholder="0"
-              onfocus="onTgtFocus(this)"
-              onblur="onTgtBlur(this)"
-              oninput="onTgtInput(this)">
-          </div>
+          <span class="cell-prev-label">前年度実績：</span>
+          <span class="cell-prev-amount">${prevVal != null ? yen(prevVal) : '—'}</span>
+          <span class="cell-label">目標設定率：</span>
+          <input type="text" class="cell-input inp-rate"
+            id="${rateId}"
+            data-policy="${pt.code}" data-month="${mStr}" data-prev="${prevData}"
+            value="${rateDefault}" placeholder="1.00"
+            onblur="onRateBlur(this)">
+          <span class="cell-label">次年度目標：</span>
+          <input type="text" class="cell-input inp-tgt"
+            id="${tgtId}"
+            data-policy="${pt.code}" data-month="${mStr}" data-raw="${tgtVal ?? 0}"
+            value="${tgtFmt}" placeholder="0"
+            onfocus="onTgtFocus(this)"
+            onblur="onTgtBlur(this)"
+            oninput="onTgtInput(this)">
         </div></td>`;
       }).join('');
 
@@ -532,7 +524,7 @@
           <td>${pt.label}</td>
           ${cells}
           <td><div class="cell-inner">
-            <span class="cell-prev"><span class="cell-prev-label">前年度実績：</span><span class="cell-prev-amount">${prevYearSum != null ? yen(prevYearSum) : '—'}</span></span>
+            <span class="cell-prev-label">前年度実績：</span><span class="cell-prev-amount">${prevYearSum != null ? yen(prevYearSum) : '—'}</span>
             <span class="cell-calc" id="year-total-label">次年度目標：${yen(tgtYearSum)}</span>
           </div></td>
         </tr>`;
@@ -542,7 +534,7 @@
         <td>${pt.label}</td>
         ${cells}
         <td><div class="cell-inner">
-          <span class="cell-prev" id="prev-year-${pt.code}"><span class="cell-prev-label">前年度実績：</span><span class="cell-prev-amount">${yen(sumAllMonths(prevActuals[pt.code] || {})) ?? '—'}</span></span>
+          <span class="cell-prev-label" id="prev-year-${pt.code}">前年度実績：</span><span class="cell-prev-amount">${yen(sumAllMonths(prevActuals[pt.code] || {}))}</span>
           <span class="cell-calc" id="tgt-year-${pt.code}">次年度目標：${yen(sumTgtRow(pt.code))}</span>
         </div></td>
       </tr>`;
