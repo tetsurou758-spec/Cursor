@@ -8,6 +8,7 @@
   <script src="js/session.js"></script>
   <script>applyTheme()</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -189,10 +190,10 @@
       background: var(--primary); border-color: var(--primary); color: #fff;
       box-shadow: 0 6px 20px var(--primary-shadow); transform: translateY(-3px);
     }
-    .nav-btn:hover .nav-icon { stroke: var(--accent); }
+    .nav-btn:hover .nav-icon { color: var(--accent); }
     .nav-btn:hover .nav-label { color: #fff; }
 
-    .nav-icon { width:44px; height:44px; stroke:var(--primary); transition:stroke 0.2s; }
+    .nav-icon { width:44px; height:44px; font-size:2rem; color:var(--primary); transition:color 0.2s; display:flex; align-items:center; justify-content:center; }
     .nav-label { font-size:0.82rem; font-weight:700; letter-spacing:0.02em; color:var(--primary); transition:color 0.2s; }
 
     .nav-btn.no-permission {
@@ -204,7 +205,7 @@
       color:var(--text-sub); box-shadow:0 2px 8px var(--card-shadow); transform:none;
     }
     .nav-btn.no-permission .nav-icon,
-    .nav-btn.no-permission:hover .nav-icon { stroke:var(--text-sub); }
+    .nav-btn.no-permission:hover .nav-icon { color:var(--text-sub); }
     .nav-btn.no-permission .nav-label,
     .nav-btn.no-permission:hover .nav-label { color:var(--text-sub); }
     .nav-btn.no-permission::after {
@@ -235,6 +236,7 @@
       gap: 8px;
     }
     .widget-header svg { width:16px; height:16px; stroke:var(--accent); flex-shrink:0; }
+    .widget-header .fa-solid { font-size:15px; color:var(--accent); flex-shrink:0; }
     .widget-body { padding:16px 18px; }
 
     .news-item { padding:10px 0; border-bottom:1px solid var(--gray-border); }
@@ -425,42 +427,25 @@
       <div class="section-title">メニュー</div>
       <div class="nav-grid">
         <a href="customer.html" class="nav-btn" data-feature="CUSTOMER_EDIT" data-tooltip="権限がありません">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="7" r="4"/>
-            <path d="M4 21c0-5 3.6-8 8-8s8 3 8 8"/>
-          </svg>
+          <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
           <span class="nav-label">顧客管理システム</span>
         </a>
         <a href="maturity.html" class="nav-btn" data-feature="MATURITY_VIEW" data-tooltip="権限がありません">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-            <polyline points="12,6 12,12 16,14"/>
-          </svg>
+          <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span>
           <span class="nav-label">満期管理システム</span>
         </a>
         <a href="contract.html" class="nav-btn" data-feature="REPORT_VIEW" data-tooltip="権限がありません">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="8" y1="13" x2="16" y2="13"/>
-            <line x1="8" y1="17" x2="13" y2="17"/>
-          </svg>
+          <span class="nav-icon"><i class="fa-solid fa-file-contract"></i></span>
           <span class="nav-label">契約照会システム</span>
         </a>
         <a href="claim.html" class="nav-btn" data-feature="PAYMENT_VIEW" data-tooltip="権限がありません">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-            <text x="12" y="17" text-anchor="middle" style="font-size:12px;font-weight:700;fill:currentColor;stroke:none">¥</text>
-          </svg>
+          <span class="nav-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
           <span class="nav-label">保険金支払状況</span>
         </a>
         <!-- 成績管理ボタン：代理店ユーザーのみ表示 -->
         <a href="sales.html" class="nav-btn agency-only-btn" id="btn-sales" data-tooltip="権限がありません" style="display:none">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22,7 13.5,15.5 8.5,10.5 2,17"/>
-            <polyline points="16,7 22,7 22,13"/>
-          </svg>
-          <span class="nav-label">📈 成績管理</span>
+          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+          <span class="nav-label">成績管理</span>
         </a>
       </div>
     </section>
@@ -470,10 +455,7 @@
       <div class="bottom-grid">
         <div class="widget">
           <div class="widget-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+            <i class="fa-solid fa-bell"></i>
             保険会社からのお知らせ
           </div>
           <div class="widget-body">
@@ -484,10 +466,7 @@
         </div>
         <div class="widget">
           <div class="widget-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9,11 12,14 22,4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
+            <i class="fa-solid fa-list-check"></i>
             TODOタスク
           </div>
           <div class="widget-body">
@@ -511,9 +490,7 @@
         </div>
         <div class="widget">
           <div class="widget-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
+            <i class="fa-solid fa-comments"></i>
             お客様コンタクト履歴
           </div>
           <div class="widget-body" id="contact-widget-body">
