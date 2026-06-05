@@ -349,7 +349,8 @@
       agency_code: currentAgencyCode,
       fiscal_year: fiscalYear,
     });
-    if (staffVal !== '__all__') params.set('staff_code', staffVal);
+    // staff_codeは必須パラメータ。代理店合計の場合は'ALL'を送る
+    params.set('staff_code', staffVal === '__all__' ? 'ALL' : staffVal);
     params.set('token', token);
 
     const [actualData, targetData] = await Promise.all([
