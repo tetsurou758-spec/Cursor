@@ -166,19 +166,20 @@ def get_actual(
 
     conn = _get_db()
     try:
-        # 更改済み契約の月別×種目別に保険料を集計
-        # renewed_premiumがNULLの場合はannual_premiumにフォールバック
+        # 更改済み契約の月別×種目別に renewed_premium を集計
+        # renewed_premiumが入力されている契約のみが集計対象
         if staff_code == "ALL":
             rows = conn.execute("""
                 SELECT
                     CAST(strftime('%m', expiry_date) AS INTEGER) AS month,
                     policy_type,
-                    SUM(COALESCE(renewed_premium, annual_premium)) AS total
+                    SUM(renewed_premium) AS total
                 FROM contracts
                 WHERE agency_code = ?
                   AND expiry_date >= ?
                   AND expiry_date <= ?
                   AND renewal_status = '更改済'
+                  AND renewed_premium IS NOT NULL
                 GROUP BY month, policy_type
             """, (agency_code, date_from, date_to)).fetchall()
         else:
@@ -186,13 +187,14 @@ def get_actual(
                 SELECT
                     CAST(strftime('%m', expiry_date) AS INTEGER) AS month,
                     policy_type,
-                    SUM(COALESCE(renewed_premium, annual_premium)) AS total
+                    SUM(renewed_premium) AS total
                 FROM contracts
                 WHERE agency_code = ?
                   AND staff_code = ?
                   AND expiry_date >= ?
                   AND expiry_date <= ?
                   AND renewal_status = '更改済'
+                  AND renewed_premium IS NOT NULL
                 GROUP BY month, policy_type
             """, (agency_code, staff_code, date_from, date_to)).fetchall()
 
