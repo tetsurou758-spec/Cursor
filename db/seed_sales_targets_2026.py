@@ -29,7 +29,7 @@ POLICY_TYPE_MAP = {
 }
 
 FISCAL_YEAR  = 2026
-TARGET_RATIO = 1.1   # 前年比1.1倍
+TARGET_RATIO = 1.0   # 更改前保険料をそのまま目標値に設定
 DATE_FROM    = "2026-04-01"
 DATE_TO      = "2027-03-31"
 

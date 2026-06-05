@@ -447,8 +447,8 @@
 
     // データ構造：{ [policy_type]: { [month]: amount } }
     // APIレスポンス: actualData.data / targetData.targets
-    const actuals = (actualData && actualData.data)    ? actualData.data    : {};
-    const targets = (targetData && targetData.targets) ? targetData.targets : {};
+    const actuals = (actualData && actualData.data) ? actualData.data : {};
+    const targets = (targetData && targetData.data) ? targetData.data : {};
 
     tbody.innerHTML = POLICY_TYPES.map(pt => {
       const isTotal = (pt.code === 'TOTAL');
