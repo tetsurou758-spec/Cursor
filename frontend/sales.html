@@ -129,13 +129,13 @@
     tbody td:last-child { border-right:none; }
 
     /* セル内レイアウト */
-    .cell-inner { display:flex; flex-direction:column; gap:3px; min-width:100px; }
-    .cell-target { font-size:0.72rem; color:var(--text-sub); }
-    .cell-actual { font-size:0.8rem; font-weight:700; color:var(--primary); }
-    .cell-rate   { font-size:0.7rem; color:var(--text-sub); }
+    .cell-inner  { display:flex; flex-direction:column; gap:2px; min-width:110px; }
+    .cell-target { font-size:0.78rem; color:var(--text-sub); text-align:left; }
+    .cell-actual { font-size:0.78rem; font-weight:700; color:var(--primary); text-align:left; }
+    .cell-rate   { font-size:0.78rem; color:var(--text-sub); text-align:center; }
 
     /* プログレスバー */
-    .progress-wrap { margin-top:3px; }
+    .progress-wrap { margin:3px 0 1px; }
     .progress-bar {
       height:5px; background:var(--gray-border); border-radius:3px; overflow:hidden;
     }
@@ -146,7 +146,6 @@
     .fill-orange { background:#f97316; }
     .fill-blue   { background:var(--primary); }
     .fill-green  { background:#22c55e; }
-    .progress-label { font-size:0.65rem; color:var(--text-sub); margin-top:2px; text-align:right; }
 
     /* 空・ロード */
     .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
@@ -426,15 +425,14 @@
       : '—';
 
     return `<div class="cell-inner">
-      <span class="cell-target">当年度目標：${yen(t)}</span>
-      <span class="cell-actual">当年度実績：${yen(a)}</span>
-      <span class="cell-rate">進捗率：${rateLabel}</span>
+      <span class="cell-target">目標：${yen(t)}</span>
+      <span class="cell-actual">実績：${yen(a)}</span>
       <div class="progress-wrap">
         <div class="progress-bar">
           <div class="progress-fill ${cls}" style="width:${barWidth}%"></div>
         </div>
-        ${rate != null ? `<div class="progress-label">${rateLabel}</div>` : ''}
       </div>
+      <span class="cell-rate">進捗率：${rateLabel}</span>
     </div>`;
   }
 
