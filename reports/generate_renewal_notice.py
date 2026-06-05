@@ -24,7 +24,7 @@ from svglib.svglib import svg2rlg
 
 # ── フォント登録 ──────────────────────────────────────────────────────────────
 
-_ICONS_DIR = os.path.join(os.path.dirname(__file__), "icons", "solid")
+_ICONS_DIR = os.path.join(os.path.dirname(__file__), "icons")
 
 _JP_FONT_PATHS = [
     r"C:\Windows\Fonts\meiryo.ttc",
@@ -81,7 +81,10 @@ def _load_svg(svg_filename: str):
     if not os.path.exists(path):
         _svg_cache[svg_filename] = None
         return None
-    drawing = svg2rlg(path)
+    # 日本語パスをsvglibに直接渡すとURLエンコードで失敗するためBytesIOで回避
+    from io import BytesIO
+    with open(path, "rb") as f:
+        drawing = svg2rlg(BytesIO(f.read()))
     _svg_cache[svg_filename] = drawing
     return drawing
 
