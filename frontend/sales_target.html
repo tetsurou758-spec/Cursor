@@ -146,6 +146,10 @@
       transition:border-color 0.2s; text-align:right;
     }
     .cell-input:focus { border-color:var(--primary); }
+    /* number inputのスピナーを非表示 */
+    .cell-input[type="number"]::-webkit-inner-spin-button,
+    .cell-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+    .cell-input[type="number"] { -moz-appearance:textfield; }
     /* TOTAL行はinputを非表示（集計のみ表示） */
     .row-total .cell-input { display:none; }
     .row-total .cell-label { display:none; }
@@ -468,11 +472,11 @@
           </div>
           <div class="cell-row">
             <span class="cell-label">次年度目標：</span>
-            <input type="text" class="cell-input inp-tgt"
+            <input type="number" min="0" step="1" class="cell-input inp-tgt"
               id="${tgtId}"
               data-policy="${pt.code}" data-month="${mStr}"
               value="${tgtVal != null ? tgtVal : ''}" placeholder="0"
-              oninput="onTgtInput(this)">
+              oninput="updateYearTotal(this.dataset.policy)">
           </div>
         </div></td>`;
       }).join('');
@@ -503,33 +507,30 @@
   }
 
   /**
-   * 目標設定率のonblurハンドラ：前年実績 × 目標設定率 を計算して次年度目標に反映する
+   * 目標設定率のonblurハンドラ
+   * 前年実績 × 目標設定率（円未満切捨て）を次年度目標に反映し、
+   * フォーカスを次年度目標inputへ移動する。
+   * 前年実績がない場合は計算せず直接入力を保護する。
    */
   function onRateBlur(rateInput) {
-    const raw    = rateInput.value.trim();
-    const rate   = parseFloat(raw);
-    // 0.00形式の正常数値のみ計算（不正値はスルー）
+    const raw  = rateInput.value.trim();
+    const rate = parseFloat(raw);
+    // 正常な数値以外はスルー
     if (isNaN(rate) || rate < 0) return;
-    const prev   = parseFloat(rateInput.dataset.prev) || 0;
-    // 前年実績がない場合は次年度目標を上書きしない（直接入力値を保護）
+    const prev = parseFloat(rateInput.dataset.prev) || 0;
+    // 前年実績がない場合は次年度目標を上書きしない
     if (prev <= 0) return;
-    const policy = rateInput.dataset.policy;
-    const month  = rateInput.dataset.month;
+    const policy   = rateInput.dataset.policy;
+    const month    = rateInput.dataset.month;
     const tgtInput = document.getElementById(inputId(policy, parseInt(month), 'tgt'));
     if (!tgtInput) return;
-    // 円未満切捨て
+    // 前年実績 × 目標設定率（円未満切捨て）
     const newTgt = Math.floor(prev * rate);
     tgtInput.value = newTgt;
     updateYearTotal(policy);
-  }
-
-  /**
-   * 次年度目標直接入力ハンドラ：数値以外の文字を除去する
-   */
-  function onTgtInput(tgtInput) {
-    // 数値のみ許可（マイナス・小数点不可）
-    tgtInput.value = tgtInput.value.replace(/[^0-9]/g, '');
-    updateYearTotal(tgtInput.dataset.policy);
+    // フォーカスを次年度目標inputへ移動
+    tgtInput.focus();
+    tgtInput.select();
   }
 
   /**
