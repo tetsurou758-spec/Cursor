@@ -851,7 +851,7 @@
 
     // BearerトークンはAuthorizationヘッダーで渡せないため
     // APIから blob URL を生成して iframe に渡す
-    fetch(`/api/renewal-notice/${encodeURIComponent(contractNo)}`, {
+    fetch(`${API_BASE}/api/renewal-notice/${encodeURIComponent(contractNo)}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(res => {

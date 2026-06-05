@@ -384,7 +384,7 @@
       staffLabel = '代理店合計';
     } else {
       const s = staffListData.find(x => x.staff_code === staffVal);
-      staffLabel = s ? `${s.staff_code}（${s.staff_name}）` : staffVal;
+      staffLabel = s ? `${s.staff_code}（${s.name}）` : staffVal;
     }
     document.getElementById('table-label').innerHTML =
       `表示対象：<strong>${fiscalYear}年度</strong>　担当者：<strong>${staffLabel}</strong>`;
