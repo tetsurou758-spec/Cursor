@@ -137,7 +137,11 @@
 
     /* 目標設定セル */
     .cell-inner { display:flex; flex-direction:column; gap:4px; min-width:110px; padding:2px; }
-    .cell-prev { font-size:0.78rem; color:#000; white-space:nowrap; text-align:left; }
+    /* 前年度実績：見出し左・金額右のflex配置 */
+    .cell-prev { display:flex; justify-content:space-between; align-items:center;
+                 font-size:0.78rem; color:#000; white-space:nowrap; gap:4px; }
+    .cell-prev-label  { text-align:left; flex-shrink:0; }
+    .cell-prev-amount { text-align:right; }
     .cell-row  { display:flex; align-items:center; gap:4px; }
     .cell-label { font-size:0.68rem; color:#000; white-space:nowrap; min-width:70px; text-align:right; }
     .cell-input {
@@ -146,10 +150,7 @@
       transition:border-color 0.2s; text-align:right; color:#000;
     }
     .cell-input:focus { border-color:var(--primary); }
-    /* number inputのスピナーを非表示 */
-    .cell-input[type="number"]::-webkit-inner-spin-button,
-    .cell-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-    .cell-input[type="number"] { -moz-appearance:textfield; }
+    .cell-input::placeholder { color:#ccc; }
     /* TOTAL行はinputを非表示（集計のみ表示） */
     .row-total .cell-input { display:none; }
     .row-total .cell-label { display:none; }
@@ -410,10 +411,46 @@
   }
 
   /**
-   * 金額を円表示にフォーマット
+   * 金額を円表示にフォーマット（表示用）
    */
   function yen(v) {
     return (v != null) ? '¥' + Number(v).toLocaleString() : '—';
+  }
+
+  /**
+   * 数値を通貨フォーマット文字列に変換（input表示用）
+   */
+  function fmtMoney(v) {
+    const n = parseInt(v) || 0;
+    return n > 0 ? '¥' + n.toLocaleString() : '';
+  }
+
+  /**
+   * 次年度目標input フォーカス時：¥・カンマを除去して数値のみ表示
+   */
+  function onTgtFocus(el) {
+    const raw = el.dataset.raw || '';
+    el.value = raw > 0 ? raw : '';
+    el.select();
+  }
+
+  /**
+   * 次年度目標input ブラー時：通貨フォーマット（¥xxx,xxx）で表示
+   */
+  function onTgtBlur(el) {
+    const raw = parseInt(el.value.replace(/[^0-9]/g, '')) || 0;
+    el.dataset.raw = raw;
+    el.value = raw > 0 ? fmtMoney(raw) : '';
+    updateYearTotal(el.dataset.policy);
+  }
+
+  /**
+   * 次年度目標input 入力中：数字のみ許可・data-rawを更新
+   */
+  function onTgtInput(el) {
+    el.value = el.value.replace(/[^0-9]/g, '');
+    el.dataset.raw = parseInt(el.value) || 0;
+    updateYearTotal(el.dataset.policy);
   }
 
   /**
@@ -460,8 +497,12 @@
         const tgtId   = inputId(pt.code, m, 'tgt');
         const prevData = prevVal != null ? prevVal : 0; // data属性用
 
+        const tgtFmt = tgtVal != null && tgtVal > 0 ? fmtMoney(tgtVal) : '';
         return `<td><div class="cell-inner">
-          <span class="cell-prev">前年度実績：${yen(prevVal)}</span>
+          <span class="cell-prev">
+            <span class="cell-prev-label">前年度実績：</span>
+            <span class="cell-prev-amount">${prevVal != null ? yen(prevVal) : '—'}</span>
+          </span>
           <div class="cell-row">
             <span class="cell-label">目標設定率：</span>
             <input type="text" class="cell-input inp-rate"
@@ -472,11 +513,13 @@
           </div>
           <div class="cell-row">
             <span class="cell-label">次年度目標：</span>
-            <input type="number" min="0" step="1" class="cell-input inp-tgt"
+            <input type="text" class="cell-input inp-tgt"
               id="${tgtId}"
-              data-policy="${pt.code}" data-month="${mStr}"
-              value="${tgtVal != null ? tgtVal : ''}" placeholder="0"
-              oninput="updateYearTotal(this.dataset.policy)">
+              data-policy="${pt.code}" data-month="${mStr}" data-raw="${tgtVal ?? 0}"
+              value="${tgtFmt}" placeholder="0"
+              onfocus="onTgtFocus(this)"
+              onblur="onTgtBlur(this)"
+              oninput="onTgtInput(this)">
           </div>
         </div></td>`;
       }).join('');
@@ -489,7 +532,7 @@
           <td>${pt.label}</td>
           ${cells}
           <td><div class="cell-inner">
-            <span class="cell-prev">前年度実績：${yen(prevYearSum)}</span>
+            <span class="cell-prev"><span class="cell-prev-label">前年度実績：</span><span class="cell-prev-amount">${prevYearSum != null ? yen(prevYearSum) : '—'}</span></span>
             <span class="cell-calc" id="year-total-label">次年度目標：${yen(tgtYearSum)}</span>
           </div></td>
         </tr>`;
@@ -499,7 +542,7 @@
         <td>${pt.label}</td>
         ${cells}
         <td><div class="cell-inner">
-          <span class="cell-prev" id="prev-year-${pt.code}">前年度実績：${yen(sumAllMonths(prevActuals[pt.code] || {}))}</span>
+          <span class="cell-prev" id="prev-year-${pt.code}"><span class="cell-prev-label">前年度実績：</span><span class="cell-prev-amount">${yen(sumAllMonths(prevActuals[pt.code] || {})) ?? '—'}</span></span>
           <span class="cell-calc" id="tgt-year-${pt.code}">次年度目標：${yen(sumTgtRow(pt.code))}</span>
         </div></td>
       </tr>`;
@@ -526,9 +569,10 @@
     if (!tgtInput) return;
     // 前年実績 × 目標設定率（円未満切捨て）
     const newTgt = Math.floor(prev * rate);
-    tgtInput.value = newTgt;
+    tgtInput.dataset.raw = newTgt;
+    tgtInput.value = fmtMoney(newTgt);
     updateYearTotal(policy);
-    // フォーカスを次年度目標inputへ移動
+    // フォーカスを次年度目標inputへ移動（focus時にraw数値表示）
     tgtInput.focus();
     tgtInput.select();
   }
@@ -540,7 +584,8 @@
     let sum = 0;
     FISCAL_MONTHS.forEach(m => {
       const tgtInput = document.getElementById(inputId(policyCode, m, 'tgt'));
-      if (tgtInput) sum += parseInt(tgtInput.value || '0') || 0;
+      // フォーマット済みの場合はdata-rawから、未フォーカスの場合はvalueから取得
+      if (tgtInput) sum += parseInt(tgtInput.dataset.raw || tgtInput.value.replace(/[^0-9]/g,'') || '0') || 0;
     });
     const yearEl = document.getElementById(`tgt-year-${policyCode}`);
     if (yearEl) yearEl.textContent = `次年度目標：¥${sum.toLocaleString()}`;
@@ -603,7 +648,8 @@
       FISCAL_MONTHS.forEach(m => {
         const tgtInput = document.getElementById(inputId(pt.code, m, 'tgt'));
         if (!tgtInput) return;
-        const val = parseInt(tgtInput.value || '0') || 0;
+        // フォーマット済みの場合はdata-rawから、それ以外はvalueから取得
+        const val = parseInt(tgtInput.dataset.raw || tgtInput.value.replace(/[^0-9]/g,'') || '0') || 0;
         rows.push({
           policy_code:   pt.code,
           month:         String(m).padStart(2, '0'),
