@@ -22,6 +22,10 @@ app.add_middleware(
 from backend.routers.sales_router import router as sales_router  # noqa: E402
 app.include_router(sales_router, prefix="/api")
 
+# 更改おすすめプランルーターを登録
+from backend.routers.renewal_router import router as renewal_router  # noqa: E402
+app.include_router(renewal_router, prefix="/api")
+
 # JWT設定（本番環境では環境変数から取得すること）
 SECRET_KEY = "CHANGE_THIS_SECRET_IN_PRODUCTION"
 ALGORITHM = "HS256"

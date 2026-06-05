@@ -225,6 +225,41 @@
     .icon-clickable:hover { opacity:.75; }
     .fc-done { font-size:0.75rem; font-weight:700; color:#155724; cursor:pointer; white-space:nowrap; }
     .fc-done:hover { opacity:.75; }
+
+    /* ═══ 更改おすすめプラン通知書 PDFモーダル ═══════════════════ */
+    .pdf-modal-backdrop {
+      display:none; position:fixed; inset:0; z-index:800;
+      background:rgba(0,0,0,.55);
+    }
+    .pdf-modal-backdrop.open { display:flex; align-items:center; justify-content:center; }
+    .pdf-modal {
+      background:#fff; border-radius:8px;
+      box-shadow:0 8px 40px rgba(0,0,0,.3);
+      width:90vw; max-width:1000px;
+      height:90vh;
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .pdf-modal-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 18px;
+      background:var(--primary);
+      color:#fff; flex-shrink:0;
+    }
+    .pdf-modal-title { font-size:0.9rem; font-weight:700; }
+    .pdf-modal-close {
+      background:transparent; border:1.5px solid rgba(255,255,255,.5);
+      color:#fff; border-radius:4px; padding:3px 12px;
+      font-size:0.8rem; cursor:pointer; transition:background .2s;
+    }
+    .pdf-modal-close:hover { background:rgba(255,255,255,.2); }
+    .pdf-modal-body { flex:1; overflow:hidden; }
+    .pdf-modal-body iframe {
+      width:100%; height:100%; border:none; display:block;
+    }
+    .pdf-modal-loading {
+      display:flex; align-items:center; justify-content:center;
+      height:100%; font-size:0.9rem; color:var(--text-sub);
+    }
   </style>
 </head>
 <body>
@@ -780,7 +815,7 @@
           <td>${c.has_change?'<span class="icon-flag">📝</span>':'<span class="icon-none">○</span>'}</td>
           <td id="memo-cell-${c.id}">${memoCell}</td>
           <td>${c.notice_date||'—'}</td>
-          <td>${c.notice_type?`<a class="notice-link" href="#" onclick="return false">${esc(c.notice_type)}</a>`:'—'}</td>
+          <td>${c.notice_type?`<a class="notice-link" href="#" onclick="openPdfModal(event,'${esc(c.contract_no)}','${esc(c.notice_type)}')">${esc(c.notice_type)}</a>`:'—'}</td>
           <td id="fc-cell-${c.id}">${followcallBadge(c.followcall_status, c.id)}</td>
           <td id="renewal-cell-${c.id}">${renewalCell}</td>
         </tr>
@@ -797,6 +832,80 @@
         </tr>`;
     }).join('');
   }
+
+  // ── 更改おすすめプラン通知書 PDFモーダル ──────────────────────────────────
+  function openPdfModal(event, contractNo, noticeType) {
+    event.preventDefault();
+    const token = getToken();
+    if (!token) return;
+
+    const backdrop = document.getElementById('pdfModalBackdrop');
+    const iframe   = document.getElementById('pdfModalIframe');
+    const loading  = document.getElementById('pdfModalLoading');
+    const title    = document.getElementById('pdfModalTitle');
+
+    title.textContent = `更改おすすめプラン通知書　${noticeType}　／　${contractNo}`;
+    iframe.style.display = 'none';
+    loading.style.display = 'flex';
+    backdrop.classList.add('open');
+
+    // BearerトークンはAuthorizationヘッダーで渡せないため
+    // APIから blob URL を生成して iframe に渡す
+    fetch(`/api/renewal-notice/${encodeURIComponent(contractNo)}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => {
+      if (!res.ok) {
+        if (res.status === 404) throw new Error('この契約の更改おすすめプラン通知書はまだ作成されていません。');
+        throw new Error(`エラーが発生しました（HTTP ${res.status}）`);
+      }
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      iframe.onload = () => {
+        loading.style.display = 'none';
+        iframe.style.display  = 'block';
+      };
+      iframe.src = url;
+    })
+    .catch(err => {
+      loading.innerHTML = `<span style="color:#c00">${err.message}</span>`;
+    });
+  }
+
+  function closePdfModal() {
+    const backdrop = document.getElementById('pdfModalBackdrop');
+    const iframe   = document.getElementById('pdfModalIframe');
+    backdrop.classList.remove('open');
+    // blob URLを解放してメモリリークを防ぐ
+    if (iframe.src && iframe.src.startsWith('blob:')) {
+      URL.revokeObjectURL(iframe.src);
+    }
+    iframe.src = '';
+  }
+
+  // 背景クリックで閉じる
+  document.getElementById('pdfModalBackdrop').addEventListener('click', function(e) {
+    if (e.target === this) closePdfModal();
+  });
 </script>
+
+<!-- 更改おすすめプラン通知書 PDFモーダル -->
+<div class="pdf-modal-backdrop" id="pdfModalBackdrop">
+  <div class="pdf-modal">
+    <div class="pdf-modal-header">
+      <span class="pdf-modal-title" id="pdfModalTitle">更改おすすめプラン通知書</span>
+      <button class="pdf-modal-close" onclick="closePdfModal()">✕ 閉じる</button>
+    </div>
+    <div class="pdf-modal-body">
+      <div class="pdf-modal-loading" id="pdfModalLoading">
+        <span>読み込み中...</span>
+      </div>
+      <iframe id="pdfModalIframe" title="更改おすすめプラン通知書"></iframe>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
