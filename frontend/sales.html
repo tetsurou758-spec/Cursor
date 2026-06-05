@@ -445,8 +445,8 @@
     const tbody = document.getElementById('table-body');
 
     // データ構造：{ [policy_type]: { [month]: amount } }
-    // actualData.actuals / targetData.targets の形式を想定
-    const actuals = (actualData && actualData.actuals) ? actualData.actuals : {};
+    // APIレスポンス: actualData.data / targetData.targets
+    const actuals = (actualData && actualData.data)    ? actualData.data    : {};
     const targets = (targetData && targetData.targets) ? targetData.targets : {};
 
     tbody.innerHTML = POLICY_TYPES.map(pt => {
@@ -455,7 +455,7 @@
 
       // 月別セルを生成
       const cells = FISCAL_MONTHS.map(m => {
-        const mStr = String(m).padStart(2, '0');
+        const mStr = String(m); // APIは月キーを1桁文字列で返す（"5","6"等）
         const a = isTotal
           ? sumAllTypes(actuals, mStr)
           : ((actuals[pt.code] || {})[mStr] ?? null);
