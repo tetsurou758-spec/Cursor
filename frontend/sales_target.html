@@ -132,7 +132,7 @@
       text-align:center; font-size:0.78rem; color:var(--text-main);
       vertical-align:middle; border-right:1px solid var(--gray-border);
     }
-    tbody td:first-child { text-align:left; font-weight:600; white-space:nowrap; padding-left:10px; }
+    tbody td:first-child { text-align:center; font-weight:600; white-space:nowrap; padding-left:10px; }
     tbody td:last-child { border-right:none; }
 
     /* 目標設定セル */
@@ -255,14 +255,14 @@
 
   // 保険種目定義（表示順）
   const POLICY_TYPES = [
-    { code: 'AUTO',      label: '自動車(AUTO)' },
-    { code: 'FIRE',      label: '火災(FIRE)' },
-    { code: 'INJURY',    label: '傷害(INJURY)' },
-    { code: 'JIBAI',     label: '自賠責(JIBAI)' },
-    { code: 'LIABILITY', label: '賠償責任(LIABILITY)' },
-    { code: 'CYBER',     label: 'サイバーリスク(CYBER)' },
-    { code: 'INCOME',    label: '所得補償(INCOME)' },
-    { code: 'TOTAL',     label: '合計(TOTAL)' },
+    { code: 'AUTO',      label: '自動車' },
+    { code: 'FIRE',      label: '火災' },
+    { code: 'INJURY',    label: '傷害' },
+    { code: 'JIBAI',     label: '自賠責' },
+    { code: 'LIABILITY', label: '賠償責任' },
+    { code: 'CYBER',     label: 'サイバーリスク' },
+    { code: 'INCOME',    label: '所得補償' },
+    { code: 'TOTAL',     label: '合計' },
   ];
 
   // 会計年度の月順（4〜3月）
@@ -363,17 +363,20 @@
 
     updateLabel(fiscalYear, staffVal);
 
+    // staff_codeは必須パラメータ。代理店合計の場合は'ALL'を送る
+    const staffCode = staffVal === '__all__' ? 'ALL' : staffVal;
+
     const params = new URLSearchParams({
       agency_code: currentAgencyCode,
       fiscal_year: prevYear,
+      staff_code:  staffCode,
     });
-    if (staffVal !== '__all__') params.set('staff_code', staffVal);
 
     const targetParams = new URLSearchParams({
       agency_code: currentAgencyCode,
       fiscal_year: fiscalYear,
+      staff_code:  staffCode,
     });
-    if (staffVal !== '__all__') targetParams.set('staff_code', staffVal);
 
     // 前年度実績・今年度既存目標を並行取得
     const [actualData, targetData] = await Promise.all([
@@ -381,8 +384,8 @@
       fetchJson(`${API_BASE}/api/sales/targets?${targetParams}`, token),
     ]);
 
-    const actuals = (actualData && actualData.actuals) ? actualData.actuals : {};
-    const targets = (targetData && targetData.targets) ? targetData.targets : {};
+    const actuals = (actualData && actualData.data) ? actualData.data : {};
+    const targets = (targetData && targetData.data) ? targetData.data : {};
 
     renderTable(actuals, targets);
   }
@@ -428,7 +431,7 @@
 
       // 月別セルを生成
       const cells = FISCAL_MONTHS.map(m => {
-        const mStr = String(m).padStart(2, '0');
+        const mStr = String(m); // APIは月キーを1桁文字列で返す（"5","6"等）
 
         if (isTotal) {
           // TOTAL行：集計表示のみ（input なし）
@@ -508,6 +511,8 @@
     // 0.00形式の正常数値のみ計算（不正値はスルー）
     if (isNaN(rate) || rate < 0) return;
     const prev   = parseFloat(rateInput.dataset.prev) || 0;
+    // 前年実績がない場合は次年度目標を上書きしない（直接入力値を保護）
+    if (prev <= 0) return;
     const policy = rateInput.dataset.policy;
     const month  = rateInput.dataset.month;
     const tgtInput = document.getElementById(inputId(policy, parseInt(month), 'tgt'));
