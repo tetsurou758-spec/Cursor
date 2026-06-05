@@ -130,8 +130,9 @@
 
     /* セル内レイアウト（高さ統一のため常に同じ構造） */
     .cell-inner  { display:flex; flex-direction:column; gap:2px; min-width:110px; min-height:72px; justify-content:center; }
-    .cell-target { font-size:0.78rem; color:var(--text-sub); text-align:left; }
-    .cell-actual { font-size:0.78rem; font-weight:700; color:var(--primary); text-align:left; }
+    /* 目標・実績：見出し左・金額右のflex配置、両方bold */
+    .cell-target { display:flex; justify-content:space-between; gap:4px; font-size:0.78rem; font-weight:700; color:var(--text-sub); }
+    .cell-actual { display:flex; justify-content:space-between; gap:4px; font-size:0.78rem; font-weight:700; color:var(--primary); }
     .cell-rate   { font-size:0.78rem; color:var(--text-sub); text-align:center; }
     .cell-empty  { color:var(--text-sub); text-align:center; }
 
@@ -431,8 +432,8 @@
       : '—';
 
     return `<div class="cell-inner">
-      <span class="cell-target">目標：${yen(t)}</span>
-      <span class="cell-actual">実績：${yen(a)}</span>
+      <span class="cell-target"><span>目標：</span><span>${yen(t)}</span></span>
+      <span class="cell-actual"><span>実績：</span><span>${yen(a)}</span></span>
       <div class="progress-wrap">
         <div class="progress-bar">
           <div class="progress-fill ${cls}" style="width:${barWidth}%"></div>
