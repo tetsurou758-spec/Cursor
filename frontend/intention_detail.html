@@ -419,14 +419,16 @@
         throw new Error(err.detail || '保存に失敗しました');
       }
 
-      // 保存成功
+      // 保存成功 → DBから最新データを再取得して画面を更新
       const result = await res.json();
       if (!id && result.id) {
         document.getElementById('intention-id').value = result.id;
       }
       document.getElementById('alert-success').style.display = '';
       document.getElementById('alert-error').style.display   = 'none';
-      document.getElementById('info-status').innerHTML = statusBadge(body.status);
+
+      // 再取得で画面全体を最新化（ステータスバッジ・各フォームフィールド）
+      await loadData();
 
       // 3秒後にアラートを非表示
       setTimeout(() => {

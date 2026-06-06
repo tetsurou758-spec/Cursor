@@ -1000,6 +1000,40 @@
       showToastNotify('帳票出力リクエスト中にエラーが発生しました', true);
     }
   }
+
+  // ── 意向バッジ再取得・更新（戻るボタンで復帰した際に呼ぶ） ───────────────────
+  async function refreshIntentionBadges() {
+    const agencyCode = _ssGet('agency_code') || '';
+    const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token') || '';
+    // 検索結果が表示されていない場合はスキップ
+    if (!agencyCode || !token || currentData.length === 0) return;
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/intentions/${agencyCode}?limit=9999`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      // マップを再構築
+      _intentionMap = {};
+      (data.intentions || []).forEach(it => {
+        _intentionMap[it.policy_no] = it.status || '未記録';
+      });
+      // 表示中のすべてのバッジセルを更新
+      currentData.forEach(c => {
+        const rawNo = c.contract_no || c.policy_number || '';
+        const cell  = document.getElementById(`intent-cell-${c.id}`);
+        if (cell && rawNo) {
+          cell.innerHTML = intentionBadge(_intentionMap[rawNo] || '未記録', rawNo);
+        }
+      });
+    } catch (e) { console.warn('意向バッジ更新失敗:', e); }
+  }
+
+  // ブラウザ戻るボタンや画面復帰時に意向バッジを最新化
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) refreshIntentionBadges();
+  });
 </script>
 
 <!-- トースト通知 -->
