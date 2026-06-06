@@ -388,11 +388,12 @@
             <th>発送予定日</th>
             <th>帳票</th>
             <th style="width:66px">ﾌｫﾛｰｺｰﾙ</th>
+            <th style="width:58px">意向</th>
             <th style="width:70px">更改STS</th>
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr><td colspan="17" class="empty-msg">検索ボタンを押してください</td></tr>
+          <tr><td colspan="18" class="empty-msg">検索ボタンを押してください</td></tr>
         </tbody>
       </table>
     </div>
@@ -448,10 +449,12 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   })();
 
-  let currentData  = [];
-  let originalData = [];
-  let sortCol      = null;
-  let sortDir      = 1;
+  let currentData    = [];
+  let originalData   = [];
+  let sortCol        = null;
+  let sortDir        = 1;
+  // 意向確認ステータスマップ（policy_no → status）
+  let _intentionMap  = {};
   let isStaff      = false;
 
   const SORT_COLS = ['expiry_date', 'staff_code', 'annual_premium'];
@@ -542,6 +545,25 @@
       currentData  = [...rows];
       sortCol = null; sortDir = 1;
       updateSortIndicators();
+
+      // 意向確認ステータスをAPIから取得してマップ構築
+      const agencyCode = _ssGet('agency_code') || '';
+      if (agencyCode) {
+        try {
+          const iRes = await fetch(
+            `${API_BASE}/api/intentions/${agencyCode}?limit=9999`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (iRes.ok) {
+            const iData = await iRes.json();
+            _intentionMap = {};
+            (iData.intentions || []).forEach(it => {
+              _intentionMap[it.policy_no] = it.status || '未記録';
+            });
+          }
+        } catch (e) { console.warn('意向確認データ取得失敗:', e); }
+      }
+
       renderTable(currentData);
       document.getElementById('result-info').innerHTML =
         `検索結果：<strong>${currentData.length}</strong> 件`;
@@ -601,6 +623,22 @@
     const cls = {'未対応':'badge-red','対応中':'badge-orange','更改済':'badge-green','落ち':'badge-gray'}[s]||'badge-gray';
     return `<span class="badge ${cls}">${s}</span>`;
   }
+  // 意向確認ボタン生成（ステータスに応じて色変更）
+  function intentionBadge(status, policyNo) {
+    const COLOR = {
+      '未記録': '#f97316',  // オレンジ
+      '記録済': '#6b7280',  // グレー
+      '確認済': '#16a34a',  // 緑
+    };
+    const color = COLOR[status] || COLOR['未記録'];
+    const url = `intention_detail.html?policy_no=${encodeURIComponent(policyNo)}&from=maturity`;
+    return `<a href="${url}" style="
+      display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:700;
+      background:${color}; color:#fff; text-decoration:none; white-space:nowrap;">
+      📝 ${status}
+    </a>`;
+  }
+
   function followcallBadge(s, contractId) {
     // null / '' / '未実施' → 未実施（電話アイコン）
     // 日付文字列 (YYYY-MM-DD) → MM/DD済
@@ -791,7 +829,7 @@
   function renderTable(rows) {
     const tbody = document.getElementById('table-body');
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="17" class="empty-msg">該当するデータがありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="18" class="empty-msg">該当するデータがありません</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map((c, idx) => {
@@ -830,10 +868,11 @@
           <td>${c.notice_date||'—'}</td>
           <td>${c.notice_type?`<a class="notice-link" href="#" onclick="openPdfModal(event,'${esc(c.contract_no)}','${esc(c.notice_type)}')">${esc(c.notice_type)}</a>`:'—'}</td>
           <td id="fc-cell-${c.id}">${followcallBadge(c.followcall_status, c.id)}</td>
+          <td id="intent-cell-${c.id}">${intentionBadge(_intentionMap[rawNo] || '未記録', rawNo)}</td>
           <td id="renewal-cell-${c.id}">${renewalCell}</td>
         </tr>
         <tr class="detail-row" id="detail-${idx}" style="display:none">
-          <td colspan="17">
+          <td colspan="18">
             <div class="detail-inner">
               <div class="detail-item"><label>更改後証券番号</label><span>${esc(c.renewed_policy_number)||'—'}</span></div>
               <div class="detail-item"><label>更改後年換算保険料</label><span>${yen(c.renewed_premium)}</span></div>

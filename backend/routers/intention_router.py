@@ -113,14 +113,20 @@ def get_unrecorded_count(
     agency_code: str,
     payload: dict = Depends(_verify_token),
 ):
-    """代理店の意向確認未記録件数のみ返す。"""
+    """
+    代理店の意向確認未記録件数を返す。
+    intention_confirmationsに存在しないcontractsの件数として算出する。
+    """
     _check_agency_access(payload, agency_code)
 
     conn = _get_db()
     try:
         row = conn.execute("""
-            SELECT COUNT(*) as count FROM intention_confirmations
-            WHERE agency_code = ? AND status = '未記録'
+            SELECT COUNT(*) as count
+            FROM contracts c
+            LEFT OUTER JOIN intention_confirmations i ON c.contract_no = i.policy_no
+            WHERE c.agency_code = ?
+              AND (i.id IS NULL OR i.status = '未記録')
         """, (agency_code,)).fetchone()
 
         return {"count": row["count"] if row else 0, "agency_code": agency_code}
@@ -189,39 +195,72 @@ def get_intentions(
 ):
     """
     代理店の意向確認一覧を返す（絞込・ページネーション対応）。
+    contractsテーブルを基準にLEFT JOINして、意向未記録の契約も含める。
     未記録件数もあわせて返す。
     """
     _check_agency_access(payload, agency_code)
 
     conn = _get_db()
     try:
-        # 絞込条件を動的に組み立てる
-        sql    = "SELECT * FROM intention_confirmations WHERE agency_code = ?"
+        # contractsを基準にLEFT JOINで組み立てる
+        sql = """
+            SELECT
+              c.id              AS contract_id,
+              c.contract_no     AS policy_no,
+              c.agency_code,
+              c.policy_type,
+              c.expiry_date,
+              cu.last_name || ' ' || cu.first_name AS customer_name,
+              c.staff_code,
+              COALESCE(i.status, '未記録') AS status,
+              i.id              AS intention_id,
+              i.customer_needs,
+              i.lapse_reason,
+              i.confirmed_at,
+              i.updated_at
+            FROM contracts c
+            LEFT JOIN customers cu ON cu.customer_id = c.linked_customer_id
+            LEFT OUTER JOIN intention_confirmations i ON c.contract_no = i.policy_no
+            WHERE c.agency_code = ?
+        """
         params = [agency_code]
 
-        if status:
-            sql += " AND status = ?"
+        # statusフィルタ（COALESCE後の値で絞り込む）
+        if status and status != 'all':
+            sql += " AND COALESCE(i.status, '未記録') = ?"
             params.append(status)
         if policy_type:
-            sql += " AND policy_type = ?"
+            sql += " AND c.policy_type = ?"
             params.append(policy_type)
         if staff_code:
-            sql += " AND staff_code = ?"
+            sql += " AND c.staff_code = ?"
             params.append(staff_code)
 
-        sql += " ORDER BY updated_at DESC"
+        # 未記録を先頭・次いで記録済・最後に確認済、同一ステータス内は満期日昇順
+        sql += """
+            ORDER BY
+              CASE COALESCE(i.status, '未記録')
+                WHEN '未記録' THEN 1
+                WHEN '記録済' THEN 2
+                WHEN '確認済' THEN 3
+                ELSE 4
+              END,
+              c.expiry_date ASC
+        """
 
-        # 全件数を取得してからページング
         all_rows = conn.execute(sql, params).fetchall()
         total    = len(all_rows)
 
-        offset   = (page - 1) * limit
-        paged    = all_rows[offset:offset + limit]
+        offset = (page - 1) * limit
+        paged  = all_rows[offset:offset + limit]
 
-        # 未記録件数（絞込なしで算出）
+        # 未記録件数：intention_confirmationsに存在しない契約の件数
         unrecorded_row = conn.execute("""
-            SELECT COUNT(*) as count FROM intention_confirmations
-            WHERE agency_code = ? AND status = '未記録'
+            SELECT COUNT(*) as count
+            FROM contracts c
+            LEFT OUTER JOIN intention_confirmations i ON c.contract_no = i.policy_no
+            WHERE c.agency_code = ?
+              AND (i.id IS NULL OR i.status = '未記録')
         """, (agency_code,)).fetchone()
         unrecorded_count = unrecorded_row["count"] if unrecorded_row else 0
 
