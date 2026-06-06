@@ -143,40 +143,83 @@ def get_intention_by_policy_no(
 ):
     """
     証券番号で意向確認データを1件取得する。
-    存在しない場合は空テンプレートを返す（id=null）。
+    contractsとcustomersをJOINして契約情報も同時に返す。
+    意向確認レコードが存在しない場合は空テンプレートを返す（id=null）。
     """
     conn = _get_db()
     try:
-        row = conn.execute(
+        # まず契約情報を取得（契約が存在することを前提）
+        contract_row = conn.execute("""
+            SELECT
+              c.id          AS contract_id,
+              c.contract_no AS policy_no,
+              c.agency_code,
+              c.policy_type,
+              c.expiry_date,
+              c.staff_code,
+              cu.last_name || ' ' || cu.first_name AS customer_name
+            FROM contracts c
+            LEFT JOIN customers cu ON cu.customer_id = c.linked_customer_id
+            WHERE c.contract_no = ?
+        """, (policy_no,)).fetchone()
+
+        # 意向確認レコードを取得
+        intention_row = conn.execute(
             "SELECT * FROM intention_confirmations WHERE policy_no = ?",
             (policy_no,)
         ).fetchone()
 
-        if row:
-            return dict(row)
-        else:
-            # データがない場合は空テンプレートを返す
-            return {
-                "id":                    None,
-                "policy_no":             policy_no,
-                "status":                "未記録",
-                "contract_id":           None,
-                "agency_code":           None,
-                "customer_name":         None,
-                "staff_code":            None,
-                "policy_type":           None,
-                "customer_needs":        None,
-                "proposed_products":     None,
-                "compared_products":     None,
-                "recommendation_reason": None,
-                "final_product":         None,
-                "customer_confirmed":    0,
-                "confirmed_at":          None,
-                "lapse_reason":          None,
-                "lapse_detail":          None,
-                "created_at":            None,
-                "updated_at":            None,
-            }
+        # 契約情報ベースのテンプレートを組み立てる
+        base = {
+            "id":                    None,
+            "policy_no":             policy_no,
+            "status":                "未記録",
+            "contract_id":           None,
+            "agency_code":           None,
+            "customer_name":         None,
+            "staff_code":            None,
+            "policy_type":           None,
+            "expiry_date":           None,
+            "customer_needs":        None,
+            "proposed_products":     None,
+            "compared_products":     None,
+            "recommendation_reason": None,
+            "final_product":         None,
+            "customer_confirmed":    0,
+            "confirmed_at":          None,
+            "lapse_reason":          None,
+            "lapse_detail":          None,
+            "created_at":            None,
+            "updated_at":            None,
+        }
+
+        # 契約情報をマージ
+        if contract_row:
+            c = dict(contract_row)
+            base["contract_id"]   = c.get("contract_id")
+            base["agency_code"]   = c.get("agency_code")
+            base["customer_name"] = c.get("customer_name")
+            base["staff_code"]    = c.get("staff_code")
+            base["policy_type"]   = c.get("policy_type")
+            base["expiry_date"]   = c.get("expiry_date")
+
+        # 意向確認データをマージ（契約情報を上書き）
+        if intention_row:
+            merged = dict(intention_row)
+            # 契約情報（expiry_dateなど）は契約テーブル優先で補完
+            merged.setdefault("expiry_date", base["expiry_date"])
+            if not merged.get("customer_name"):
+                merged["customer_name"] = base["customer_name"]
+            if not merged.get("agency_code"):
+                merged["agency_code"] = base["agency_code"]
+            if not merged.get("policy_type"):
+                merged["policy_type"] = base["policy_type"]
+            if not merged.get("staff_code"):
+                merged["staff_code"] = base["staff_code"]
+            merged["contract_id"] = base["contract_id"]
+            return merged
+
+        return base
     finally:
         conn.close()
 

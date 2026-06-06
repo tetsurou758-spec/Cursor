@@ -314,8 +314,8 @@
 
   // 画面初期化
   document.addEventListener('DOMContentLoaded', async () => {
-    const token = requireAuth ? requireAuth() : getToken();
-    if (!token) { location.href = 'login.html'; return; }
+    const token = requireAuth();
+    if (!token) return; // requireAuth内でlogin.htmlへリダイレクト済み
 
     if (!_policyNo) {
       document.getElementById('alert-error').style.display = '';
@@ -337,11 +337,11 @@
       const data = await res.json();
 
       // 契約情報エリアに表示
-      document.getElementById('info-policy-no').textContent     = data.policy_no || _policyNo;
+      document.getElementById('info-policy-no').textContent     = data.policy_no    || _policyNo;
       document.getElementById('info-policy-type').textContent   = data.policy_type  || '—';
       document.getElementById('info-customer-name').textContent = data.customer_name || '—';
-      document.getElementById('info-expiry-date').textContent   = data.expiry_date   || '—';
-      document.getElementById('info-staff-code').textContent    = data.staff_code    || '—';
+      document.getElementById('info-expiry-date').textContent   = (data.expiry_date || '').slice(0, 10) || '—';
+      document.getElementById('info-staff-code').textContent    = data.staff_code   || '—';
       document.getElementById('info-status').innerHTML          = statusBadge(data.status);
 
       // 隠しフィールド
@@ -379,8 +379,11 @@
     btn.textContent = '保存中...';
 
     const id         = document.getElementById('intention-id').value;
+    // agency_codeは hidden field → sessionStorage → URLパラメータ の順で取得
     const agencyCode = document.getElementById('intention-agency-code').value
-                     || sessionStorage.getItem('agency_code') || '';
+                     || sessionStorage.getItem('agency_code')
+                     || new URLSearchParams(location.search).get('agency_code')
+                     || '';
 
     const body = {
       policy_no:             _policyNo,
