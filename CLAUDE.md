@@ -101,6 +101,9 @@ session.jsのapplyTheme()でdata-theme属性を切替
 - 保険金支払状況・保険金詳細
 - コンタクト履歴入力
 - 社員専用：代理店マスタ編集
+- 更改おすすめプラン通知書PDF（ReportLab+svglib・BLOB保存・iframeモーダル表示）
+- 成績管理（月別×種目別更改実績集計・進捗率・目標設定）
+- ダッシュボードアイコン Font Awesome Free 統一
 
 ## テスト成果物
 - test/001_UT-ログインテスト/
@@ -112,7 +115,7 @@ session.jsのapplyTheme()でdata-theme属性を切替
 - test/007_UT-顧客管理保険加入状況テスト/
 
 ## 未実装・作業中
-- 帳票出力（ReportLab）
+- なし（2026-06-06時点で全機能実装完了）
 
 ## 開発ルール
 - コメントは日本語
