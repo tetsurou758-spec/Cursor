@@ -1853,7 +1853,7 @@ def get_dashboard_contacts(payload: dict = Depends(verify_token)):
             ph = ",".join("?" * len(groups))
             # agency_id が NULL の場合は顧客の group_code で代替判定
             sql = f"""
-                SELECT ct.id, ct.contact_datetime, ct.contact_type, ct.memo,
+                SELECT ct.id, ct.customer_id, ct.contact_datetime, ct.contact_type, ct.memo,
                        ct.created_by, ct.agency_id,
                        c.last_name || ' ' || c.first_name AS customer_name
                 FROM contacts ct
@@ -1873,7 +1873,7 @@ def get_dashboard_contacts(payload: dict = Depends(verify_token)):
             # 代理店：同じgroup_codeの代理店が登録した履歴
             # agency_id が NULL の場合は顧客の group_code で代替判定
             sql = """
-                SELECT ct.id, ct.contact_datetime, ct.contact_type, ct.memo,
+                SELECT ct.id, ct.customer_id, ct.contact_datetime, ct.contact_type, ct.memo,
                        ct.created_by, ct.agency_id,
                        c.last_name || ' ' || c.first_name AS customer_name
                 FROM contacts ct
