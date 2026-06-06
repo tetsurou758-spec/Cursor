@@ -45,7 +45,7 @@
 
     .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
     .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: #FFD700; }
-    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: var(--white); }
+
 
     .header-user {
       display: flex;
@@ -323,16 +323,12 @@
       </svg>
       <div class="header-logo-text">
         <div class="company">AX損害保険株式会社</div>
-        <div class="system">社員専用システム｜代理店マスタ編集</div>
       </div>
     </div>
+    <span class="header-center-title">代理店マスタ</span>
     <div class="header-user">
       <a href="admin.html" class="header-back-link">← ユーザー管理へ</a>
-      <div class="user-badge">
-        <span class="badge-code" id="hdr-code">--</span>
-        <span class="badge-name" id="hdr-name">--</span>
-        <span class="badge-role" id="hdr-role"></span>
-      </div>
+      <div class="user-badge" id="user-badge"></div>
       <button class="btn-logout" id="btn-logout">ログアウト</button>
     </div>
   </header>
@@ -425,10 +421,7 @@
       token = requireStaffAuth();
       if (!token) return;
 
-      const info = getUserInfo();
-      document.getElementById('hdr-code').textContent = (info?.staff_code || '') + ' ';
-      document.getElementById('hdr-name').textContent = info?.name || '';
-      document.getElementById('hdr-role').textContent = '｜' + (info?.role_name || '');
+      applyUserBadge('user-badge');
 
       document.getElementById('btn-logout').addEventListener('click', doLogout);
 

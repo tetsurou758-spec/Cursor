@@ -358,9 +358,7 @@
     <span class="header-center-title">ダッシュボード</span>
     <div class="header-user">
       <a href="admin.html" class="header-admin-link" id="admin-link">ユーザー管理へ</a>
-      <div class="user-badge">
-        <span class="badge-code" id="hdr-code"></span><span class="badge-login" id="hdr-name">--</span><span class="badge-role" id="hdr-role"></span><span class="badge-buka" id="hdr-buka"></span>
-      </div>
+      <div class="user-badge" id="user-badge"></div>
       <button class="btn-logout" id="btn-logout">ログアウト</button>
     </div>
   </header>
@@ -763,10 +761,7 @@
         const bukaCode  = _ssGet('staff_buka_code') || '';
         const roleId    = parseInt(_ssGet('staff_role_id') || '0');
 
-        document.getElementById('hdr-code').textContent  = staffCode + ' ';
-        document.getElementById('hdr-name').textContent  = staffName;
-        document.getElementById('hdr-role').textContent  = roleName ? '｜' + roleName : '';
-        document.getElementById('hdr-buka').textContent  = bukaCode ? `[${bukaCode}]` : '';
+        applyUserBadge('user-badge');
 
         if (roleId === 1) document.getElementById('admin-link').style.display = 'inline';
 
@@ -778,8 +773,7 @@
       } else {
         const agencyCode = _ssGet('agency_code') || '';
         const loginId    = _ssGet('login_id')    || '';
-        document.getElementById('hdr-code').textContent = agencyCode + ' ';
-        document.getElementById('hdr-name').textContent = loginId;
+        applyUserBadge('user-badge');
 
         try {
           const permRes = await fetch(`${API_BASE}/api/permissions`, {
@@ -787,7 +781,6 @@
           });
           if (permRes.ok) {
             const p = await permRes.json();
-            document.getElementById('hdr-role').textContent = '｜' + p.role_name;
             if (p.role_id === 1) document.getElementById('admin-link').style.display = 'inline';
             applyPermissions(p.permissions);
           }

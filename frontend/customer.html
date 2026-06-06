@@ -220,7 +220,7 @@
   </div>
   <span class="header-center-title">顧客管理</span>
   <div class="header-right">
-    <span class="header-user" id="header-user-info"></span>
+    <div class="user-badge" id="user-badge"></div>
     <a id="btn-back-header" href="dashboard.html" class="btn-back">← ダッシュボードへ</a>
     <button class="btn-logout" onclick="doLogout()">ログアウト</button>
   </div>
@@ -389,14 +389,11 @@
     requireAuth();
     applyTheme();
 
+    applyUserBadge('user-badge');
+
     const info = getUserInfo();
     if (info) {
       const userType = sessionStorage.getItem('user_type') || '';
-      const label    = userType === 'staff'
-        ? `${info.staff_code || ''} ${info.name || ''} ｜ ${info.role_name || ''}`
-        : `[${info.agency_code || ''}] ${info.name || ''} ｜ ${info.role_name || ''}`;
-      document.getElementById('header-user-info').textContent = label;
-
       if (userType === 'staff') {
         document.querySelectorAll('.staff-only').forEach(el => el.style.display = '');
       }

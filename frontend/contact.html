@@ -10,16 +10,14 @@
     body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--gray-bg); color: #333; min-height: 100vh; }
 
     /* ── ヘッダー ── */
-    .header { background: var(--primary); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 12px var(--primary-shadow); position: relative; top: 0; z-index: 100; }
     .header-left { display: flex; align-items: center; gap: 16px; }
     .header-logo { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
-    .header-title { font-size: 14px; color: rgba(255,255,255,.8); }
+    .header-title { display: none; }
     .header-right { display: flex; align-items: center; gap: 16px; }
     .header-user { font-size: 13px; color: rgba(255,255,255,.85); }
     .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; }
     .btn-logout:hover { background: rgba(255,255,255,.15); }
-    .btn-back { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; }
-    .btn-back:hover { background: rgba(255,255,255,.25); }
 
     /* ── メイン ── */
     .main { padding: 20px 24px 40px; }
@@ -89,11 +87,11 @@
 <!-- ── ヘッダー ── -->
 <header class="header">
   <div class="header-left">
-    <div class="header-logo">🛡 AX損害保険</div>
-    <div class="header-title">コンタクト履歴</div>
+    <div class="header-logo">🛡 AX損害保険株式会社</div>
   </div>
+  <span class="header-center-title">コンタクト履歴</span>
   <div class="header-right">
-    <span class="header-user" id="header-user-info"></span>
+    <div class="user-badge" id="user-badge"></div>
     <a id="btn-back" href="customer.html" class="btn-back">← 顧客一覧に戻る</a>
     <button class="btn-logout" onclick="doLogout()">ログアウト</button>
   </div>
@@ -186,14 +184,7 @@
     requireAuth();
     applyTheme();
 
-    const info = getUserInfo();
-    if (info) {
-      const userType = sessionStorage.getItem('user_type') || '';
-      const label    = userType === 'staff'
-        ? `${info.staff_code || ''} ${info.name || ''} ｜ ${info.role_name || ''}`
-        : `[${info.agency_code || ''}] ${info.name || ''} ｜ ${info.role_name || ''}`;
-      document.getElementById('header-user-info').textContent = label;
-    }
+    applyUserBadge('user-badge');
 
     if (!_customerId) {
       document.getElementById('contact-tbody').innerHTML =

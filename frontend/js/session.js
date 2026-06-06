@@ -106,6 +106,32 @@ function getUserInfo() {
 }
 
 /**
+ * ヘッダーのユーザーバッジ要素に統一フォーマットでユーザー情報を表示する。
+ * 代理店：「A001 admin ｜ 田中 一郎 ｜ 管理者」
+ * 社員　：「S001 ｜ 田中 一郎 ｜ 担当者」
+ * @param {string} [elementId='user-badge'] - 対象要素のID
+ */
+function applyUserBadge(elementId) {
+  const el = document.getElementById(elementId || 'user-badge');
+  if (!el) return;
+  const info = getUserInfo();
+  if (!info) { el.textContent = '--'; return; }
+
+  const isStaff = (info.user_type === 'staff');
+  const code = isStaff
+    ? (info.staff_code || '')
+    : ((info.agency_code || '') + ' ' + (info.login_id || '')).trim();
+  const name = info.name || '';
+  const role = info.role_name || '';
+  const ac   = 'var(--accent, #ffc800)';
+
+  el.innerHTML =
+    `<span style="color:${ac};font-weight:700">${code}</span>` +
+    (name ? `<span style="color:#fff;font-weight:400"> ｜ ${name}</span>` : '') +
+    (role ? `<span style="color:${ac};font-weight:600"> ｜ ${role}</span>` : '');
+}
+
+/**
  * JWTトークンを返す。sessionStorage優先、なければlocalStorageから移行する。
  * @returns {string|null}
  */

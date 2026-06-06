@@ -16,15 +16,11 @@
     .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
     .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
     .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); }
-    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: #fff; }
     .header-right { display: flex; align-items: center; gap: 10px; }
-    .page-badge { background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border); color: var(--accent-light); border-radius: 4px; padding: 3px 10px; font-size: 0.75rem; font-weight: 700; }
     .user-badge { background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border); border-radius: 20px; padding: 4px 14px; color: #fff; font-size: 0.8rem; }
     .user-badge span { color: var(--accent); font-weight: 700; margin-right: 6px; }
     .btn-logout { background: transparent; border: 1.5px solid var(--accent-border-btn); color: var(--accent-light); border-radius: 4px; padding: 5px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
     .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
-    .btn-back { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; padding: 5px 12px; font-size: 0.75rem; cursor: pointer; text-decoration: none; transition: background 0.2s; }
-    .btn-back:hover { background: rgba(255,255,255,0.18); }
     .accent-bar { height: 3px; background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%); }
 
     /* ═══ MAIN ══════════════════════════════════════════════════ */
@@ -105,13 +101,12 @@
     </svg>
     <div class="header-logo-text">
       <div class="company">AX損害保険株式会社</div>
-      <div class="system">契約照会システム</div>
     </div>
   </div>
+  <span class="header-center-title">契約照会</span>
   <div class="header-right">
-    <span class="page-badge">契約照会</span>
-    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name">--</span></div>
-    <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <div class="user-badge" id="user-badge"></div>
+    <a href="dashboard.html" class="btn-back">← ダッシュボードへ</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
 </header>
@@ -237,18 +232,7 @@
     const token = requireAuth();
     if (!token) return;
 
-    const isStaff = (_ssGet('user_type') === 'staff');
-    if (isStaff) {
-      const sc = _ssGet('staff_code') || '';
-      const sn = _ssGet('staff_name') || '';
-      document.getElementById('hdr-code').textContent = sc + ' ';
-      document.getElementById('hdr-name').textContent = sn;
-    } else {
-      const ac = _ssGet('agency_code') || '';
-      const lid = _ssGet('login_id') || '';
-      document.getElementById('hdr-code').textContent = ac + ' ';
-      document.getElementById('hdr-name').textContent = lid;
-    }
+    applyUserBadge('user-badge');
     document.getElementById('btn-logout').addEventListener('click', doLogout);
 
     // URLパラメータによる初期検索

@@ -53,7 +53,7 @@
 
     .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: #FFD700; }
 
-    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: var(--white); }
+
 
     .header-user {
       display: flex;
@@ -448,14 +448,12 @@
       </svg>
       <div class="header-logo-text">
         <div class="company">AX損害保険株式会社</div>
-        <div class="system">代理店Webシステム｜ユーザー管理</div>
       </div>
     </div>
+    <span class="header-center-title">権限管理</span>
     <div class="header-user">
       <a href="dashboard.html" class="header-back-link">ダッシュボードへ</a>
-      <div class="user-badge">
-        <span class="badge-agency" id="hdr-agency">--</span><span class="badge-login" id="hdr-name">--</span><span class="badge-role" id="hdr-role"></span>
-      </div>
+      <div class="user-badge" id="user-badge"></div>
       <button class="btn-logout" id="btn-logout">ログアウト</button>
     </div>
   </header>
@@ -905,13 +903,11 @@
       }
 
       // ヘッダー表示
-      document.getElementById('hdr-agency').textContent = (headerCode || '') + ' ';
-      document.getElementById('hdr-name').textContent   = headerName || '';
-      document.getElementById('hdr-role').textContent   = '｜' + permData.role_name;
+      applyUserBadge('user-badge');
 
       // ユーザー種別ごとのUI差分
       if (userType === 'staff') {
-        document.querySelector('.header-logo-text .system').textContent = '社員専用システム｜ユーザー管理';
+        // system テキストは header-center-title に移行したため削除済み
         document.getElementById('staff-tools-bar').style.display = '';
         document.getElementById('form-login-id-label').textContent = '社員番号';
         document.getElementById('form-name-group').style.display   = '';

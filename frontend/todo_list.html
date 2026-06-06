@@ -217,7 +217,7 @@
     <span class="header-center-title">TODOリスト</span>
     <div class="header-right">
       <span class="page-badge"><i class="fa-solid fa-list-check" style="margin-right:5px"></i>TODOリスト</span>
-      <div class="user-badge"><span id="hdr-code"></span><span id="hdr-name">--</span></div>
+      <div class="user-badge" id="user-badge"></div>
       <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
       <button class="btn-logout" id="btn-logout">ログアウト</button>
     </div>
@@ -325,15 +325,7 @@
       const token = requireAuth();
       if (!token) return;
 
-      // ヘッダーにユーザー情報を表示
-      const userType = _ssGet('user_type') || 'agency';
-      if (userType === 'staff') {
-        document.getElementById('hdr-code').textContent = (_ssGet('staff_code') || '') + ' ';
-        document.getElementById('hdr-name').textContent = _ssGet('staff_name') || '';
-      } else {
-        document.getElementById('hdr-code').textContent = (_ssGet('agency_code') || '') + ' ';
-        document.getElementById('hdr-name').textContent = _ssGet('login_id') || '';
-      }
+      applyUserBadge('user-badge');
 
       document.getElementById('btn-logout').addEventListener('click', doLogout);
 

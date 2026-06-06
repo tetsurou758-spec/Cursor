@@ -290,7 +290,7 @@
   </div>
   <span class="header-center-title">満期管理</span>
   <div class="header-right">
-    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <div class="user-badge" id="user-badge"></div>
     <a href="intention.html" class="btn-back" style="background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.4);">📝 意向確認</a>
     <a href="#" class="btn-back" onclick="goToDashboard(); return false;">← ダッシュボードへ</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
@@ -471,16 +471,9 @@
       document.getElementById('page-title').textContent = '満期管理一覧（社員ビュー）';
       document.querySelectorAll('.staff-only').forEach(el => el.style.display = '');
 
-      const staffCode = _ssGet('staff_code') || '';
-      const staffName = _ssGet('staff_name') || '';
-      document.getElementById('hdr-code').textContent = staffCode + ' ';
-      document.getElementById('hdr-name').textContent = staffName;
-    } else {
-      const agencyCode = _ssGet('agency_code') || '';
-      const loginId    = _ssGet('login_id')    || '';
-      document.getElementById('hdr-code').textContent = agencyCode + ' ';
-      document.getElementById('hdr-name').textContent = loginId;
     }
+
+    applyUserBadge('user-badge');
 
     document.getElementById('btn-logout').addEventListener('click', doLogout);
 

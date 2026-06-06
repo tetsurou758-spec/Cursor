@@ -163,7 +163,7 @@
   <span class="header-center-title">帳票管理</span>
   <div class="header-right">
     <span class="page-badge">帳票管理</span>
-    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <div class="user-badge" id="user-badge"></div>
     <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
@@ -409,12 +409,8 @@
     const userType = _ssGet('user_type') || 'agency';
     if (userType === 'staff') {
       document.getElementById('hdr-system-name').textContent = '社員専用システム';
-      document.getElementById('hdr-code').textContent  = (_ssGet('staff_code') || '') + ' ';
-      document.getElementById('hdr-name').textContent  = _ssGet('staff_name') || '';
-    } else {
-      document.getElementById('hdr-code').textContent  = (_ssGet('agency_code') || '') + ' ';
-      document.getElementById('hdr-name').textContent  = _ssGet('login_id') || '';
     }
+    applyUserBadge('user-badge');
 
     document.getElementById('btn-logout').addEventListener('click', doLogout);
 

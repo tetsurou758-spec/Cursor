@@ -189,7 +189,7 @@
   </div>
   <span class="header-center-title">成績管理</span>
   <div class="header-right">
-    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <div class="user-badge" id="user-badge"></div>
     <a href="#" class="btn-back" onclick="goToDashboard(); return false;">← ダッシュボードへ</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
   </div>
@@ -552,8 +552,7 @@
     currentStaffCode  = loginId; // 代理店ユーザーのstaffコードはlogin_idを使用
 
     // ヘッダー設定
-    document.getElementById('hdr-code').textContent = currentAgencyCode + ' ';
-    document.getElementById('hdr-name').textContent = loginId;
+    applyUserBadge('user-badge');
     document.getElementById('btn-logout').addEventListener('click', doLogout);
 
     // 権限確認（管理者かどうか）
