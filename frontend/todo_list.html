@@ -349,9 +349,10 @@
     });
 
     // ── 担当者コード→名前のルックアップマップ ──────────────────
-    const _staffMap = {};  // { "S001": "山田 花子", ... }
+    // キーは "A001 S005" 形式の複合キー（代理店コード＋担当者コード）で一意に管理
+    const _staffMap = {};
 
-    // staff_codeから「S001（山田 花子）」形式の文字列を返す
+    // 複合キー（"A001 S005"）から「A001 S005（林 明美）」形式の文字列を返す
     function staffLabel(code) {
       if (!code) return '—';
       const name = _staffMap[code];
@@ -369,12 +370,13 @@
         const sel = document.getElementById('search-staff');
         const modalSel = document.getElementById('modal-updated-by');
         data.staff_list.forEach(s => {
-          // ルックアップマップに登録
-          if (s.staff_code) _staffMap[s.staff_code] = s.name || '';
-          const label = `${s.agency_code} ${s.staff_code}（${s.name || ''}）`;
+          // 複合キー "A001 S005" でルックアップマップに登録
+          const compositeKey = `${s.agency_code} ${s.staff_code}`;
+          if (compositeKey) _staffMap[compositeKey] = s.name || '';
+          const label = `${compositeKey}（${s.name || ''}）`;
           [sel, modalSel].forEach(el => {
             const opt = document.createElement('option');
-            opt.value = s.staff_code;
+            opt.value = compositeKey;  // "A001 S005" を値として保存
             opt.textContent = label;
             el.appendChild(opt);
           });
@@ -463,9 +465,12 @@
       document.getElementById('modal-todo-title').textContent = title;
       document.getElementById('modal-todo-desc').textContent  = desc;
       document.getElementById('modal-status').value    = status;
-      // デフォルト更新者: 空の場合はログインユーザーIDをセット
-      const userType   = _ssGet('user_type') || 'agency';
-      const defaultUser = _ssGet('staff_code') || _ssGet('login_id') || '';
+      // デフォルト更新者: 空の場合はログインユーザーの複合キー（"A001 S005"形式）をセット
+      const userType    = _ssGet('user_type') || 'agency';
+      const agencyCode  = _ssGet('agency_code') || '';
+      const staffCode   = _ssGet('staff_code') || '';
+      // 複合キー形式に統一（agency_code + " " + staff_code）
+      const defaultUser = staffCode ? `${agencyCode} ${staffCode}`.trim() : (_ssGet('login_id') || '');
       document.getElementById('modal-updated-by').value = updatedBy || defaultUser;
       document.getElementById('modal-memo').value       = memo;
       document.getElementById('modal-backdrop').classList.add('open');

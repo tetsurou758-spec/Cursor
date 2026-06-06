@@ -1,5 +1,8 @@
 from dotenv import load_dotenv
-load_dotenv()  # backend/.env を読み込む（APIキー等）
+import pathlib
+# backend/.env を明示的に指定して読み込む
+_ENV_PATH = pathlib.Path(__file__).parent / ".env"
+load_dotenv(dotenv_path=_ENV_PATH)
 
 from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
