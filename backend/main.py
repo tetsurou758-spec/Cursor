@@ -26,6 +26,10 @@ app.include_router(sales_router, prefix="/api")
 from backend.routers.renewal_router import router as renewal_router  # noqa: E402
 app.include_router(renewal_router, prefix="/api")
 
+# リスクマップルーターを登録
+from backend.routers.riskmap_router import router as riskmap_router  # noqa: E402
+app.include_router(riskmap_router, prefix="/api")
+
 # JWT設定（本番環境では環境変数から取得すること）
 SECRET_KEY = "CHANGE_THIS_SECRET_IN_PRODUCTION"
 ALGORITHM = "HS256"
@@ -1938,5 +1942,194 @@ def update_agency(agency_id: int, request: AgencyUpdateRequest, payload: dict = 
               request.group_code, request.buka_code, agency_id))
         conn.commit()
         return {"message": "代理店情報を更新しました"}
+    finally:
+        conn.close()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# TODOリスト機能
+# ═══════════════════════════════════════════════════════════════════
+
+class TodoCreateRequest(BaseModel):
+    """TODO新規作成リクエストのスキーマ"""
+    title: str
+    description: Optional[str] = None
+    staff_code: Optional[str] = None
+    due_date: Optional[str] = None
+    status: str = "未対応"
+    memo: Optional[str] = None
+
+
+class TodoUpdateRequest(BaseModel):
+    """TODO更新リクエストのスキーマ（ステータス・更新者・メモのみ変更可）"""
+    status: Optional[str] = None
+    updated_by: Optional[str] = None
+    memo: Optional[str] = None
+
+
+def get_agency_codes_for_user(payload: dict) -> List[str]:
+    """
+    ログインユーザーの参照可能な代理店コードリストを返す。
+    - 代理店ユーザー: 同参照グループ内の代理店コード
+    - 社員ユーザー: 管轄代理店コード（ロールに応じる）
+    """
+    user_type = payload.get("user_type", "agency")
+    conn = get_db_connection()
+    try:
+        if user_type == "staff":
+            role_id   = payload.get("role_id", 3)
+            buka_code = payload.get("buka_code", "")
+            if role_id == 1:
+                rows = conn.execute("SELECT agency_code FROM agencies").fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT agency_code FROM agencies WHERE buka_code = ?", (buka_code,)
+                ).fetchall()
+            return [r["agency_code"] for r in rows]
+        else:
+            group_code = payload.get("group_code", "")
+            rows = conn.execute(
+                "SELECT agency_code FROM agencies WHERE group_code = ?", (group_code,)
+            ).fetchall()
+            return [r["agency_code"] for r in rows]
+    finally:
+        conn.close()
+
+
+@app.get("/api/todos")
+def get_todos(
+    status: Optional[str] = Query(default=None, description="ステータス絞込（カンマ区切り可）"),
+    staff_code: Optional[str] = Query(default=None, description="担当者コード絞込"),
+    payload: dict = Depends(verify_token),
+):
+    """
+    TODOリスト取得エンドポイント
+
+    ログインユーザーの参照グループ内のTODOを返す。
+    statusパラメータでカンマ区切りの複数ステータス絞込が可能。
+    ダッシュボード用: status=未対応,対応中 を指定して対応完了を除外する。
+    """
+    agency_codes = get_agency_codes_for_user(payload)
+    if not agency_codes:
+        return {"todos": []}
+
+    conn = get_db_connection()
+    try:
+        placeholders = ",".join("?" * len(agency_codes))
+        params: list = list(agency_codes)
+        sql = f"SELECT * FROM todos WHERE agency_code IN ({placeholders})"
+
+        # ステータス絞込（カンマ区切りで複数指定可）
+        if status:
+            status_list = [s.strip() for s in status.split(",") if s.strip()]
+            if status_list:
+                sp = ",".join("?" * len(status_list))
+                sql += f" AND status IN ({sp})"
+                params.extend(status_list)
+
+        # 担当者コード絞込
+        if staff_code:
+            sql += " AND staff_code = ?"
+            params.append(staff_code)
+
+        sql += " ORDER BY due_date ASC, id DESC"
+        rows = conn.execute(sql, params).fetchall()
+        return {"todos": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+@app.post("/api/todos", status_code=201)
+def create_todo(request: TodoCreateRequest, payload: dict = Depends(verify_token)):
+    """
+    TODO新規作成エンドポイント
+
+    ログインユーザーの代理店コード・参照グループで登録する。
+    """
+    user_type = payload.get("user_type", "agency")
+    if user_type == "staff":
+        # 社員ユーザーは対象代理店コードを指定できないため先頭代理店を使用
+        codes = get_agency_codes_for_user(payload)
+        agency_code = codes[0] if codes else ""
+        ref_group_code = None
+    else:
+        agency_code    = payload.get("agency_code", "")
+        ref_group_code = payload.get("group_code")
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = get_db_connection()
+    try:
+        cur = conn.execute("""
+            INSERT INTO todos (agency_code, ref_group_code, title, description,
+                               staff_code, due_date, status, memo, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (agency_code, ref_group_code, request.title, request.description,
+              request.staff_code, request.due_date, request.status, request.memo, now))
+        conn.commit()
+        return {"message": "TODOを作成しました", "id": cur.lastrowid}
+    finally:
+        conn.close()
+
+
+@app.put("/api/todos/{todo_id}")
+def update_todo(todo_id: int, request: TodoUpdateRequest, payload: dict = Depends(verify_token)):
+    """
+    TODO更新エンドポイント
+
+    ステータス・更新者・更新日時・メモを更新する。
+    参照可能な代理店のTODOのみ更新を許可する。
+    """
+    agency_codes = get_agency_codes_for_user(payload)
+    conn = get_db_connection()
+    try:
+        todo = conn.execute(
+            "SELECT * FROM todos WHERE id = ?", (todo_id,)
+        ).fetchone()
+        if not todo:
+            raise HTTPException(status_code=404, detail="TODOが見つかりません")
+        if todo["agency_code"] not in agency_codes:
+            raise HTTPException(status_code=403, detail="このTODOを更新する権限がありません")
+
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        new_status     = request.status     if request.status     is not None else todo["status"]
+        new_updated_by = request.updated_by if request.updated_by is not None else todo["updated_by"]
+        new_memo       = request.memo       if request.memo       is not None else todo["memo"]
+
+        conn.execute("""
+            UPDATE todos SET status = ?, updated_by = ?, updated_at = ?, memo = ?
+            WHERE id = ?
+        """, (new_status, new_updated_by, now, new_memo, todo_id))
+        conn.commit()
+        return {"message": "TODOを更新しました"}
+    finally:
+        conn.close()
+
+
+@app.delete("/api/todos/{todo_id}")
+def delete_todo(todo_id: int, payload: dict = Depends(verify_token)):
+    """
+    TODO削除エンドポイント（管理者のみ）
+
+    代理店ユーザーはrole_id=1の管理者のみ削除可能。
+    社員ユーザーはrole_id=1のシステム管理者のみ削除可能。
+    """
+    role_id = payload.get("role_id", 0)
+    if role_id != 1:
+        raise HTTPException(status_code=403, detail="管理者権限が必要です")
+
+    agency_codes = get_agency_codes_for_user(payload)
+    conn = get_db_connection()
+    try:
+        todo = conn.execute(
+            "SELECT * FROM todos WHERE id = ?", (todo_id,)
+        ).fetchone()
+        if not todo:
+            raise HTTPException(status_code=404, detail="TODOが見つかりません")
+        if todo["agency_code"] not in agency_codes:
+            raise HTTPException(status_code=403, detail="このTODOを削除する権限がありません")
+
+        conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
+        conn.commit()
+        return {"message": "TODOを削除しました"}
     finally:
         conn.close()

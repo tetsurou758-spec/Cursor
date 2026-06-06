@@ -447,6 +447,11 @@
           <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
           <span class="nav-label">成績管理</span>
         </a>
+        <!-- TODOリストボタン -->
+        <a href="todo_list.html" class="nav-btn" id="btn-todo">
+          <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+          <span class="nav-label">TODOリスト</span>
+        </a>
       </div>
     </section>
 
@@ -480,12 +485,13 @@
                 <div class="todo-bar"><div class="todo-bar-fill sub" id="todo-nxt-bar" style="width:0%"></div></div>
               </div>
             </div>
-            <ul class="todo-list">
-              <li><span class="todo-dot main"></span>更改確認電話 未完了分に架電</li>
-              <li><span class="todo-dot main"></span>保険証書送付の準備・確認</li>
-              <li><span class="todo-dot"></span>翌月更改リストの事前確認</li>
-              <li><span class="todo-dot"></span>代理店研修レポート提出（5/31）</li>
+            <!-- TODOリスト（APIから動的取得：対応完了除く） -->
+            <ul class="todo-list" id="todo-widget-list">
+              <li><span class="todo-dot main"></span><span style="color:#bbb;font-size:11px">読み込み中...</span></li>
             </ul>
+            <div style="text-align:right;margin-top:8px">
+              <a href="todo_list.html" style="font-size:0.72rem;color:var(--primary);font-weight:600;text-decoration:none">すべて見る →</a>
+            </div>
           </div>
         </div>
         <div class="widget">
@@ -728,7 +734,34 @@
         });
         if (cRes.ok) renderContactWidget((await cRes.json()).contacts || []);
       } catch (e) { console.error('コンタクト履歴取得失敗:', e); }
+
+      // TODOウィジェット（対応完了除く・最大5件）
+      try {
+        const tRes = await fetch(
+          `${API_BASE}/api/todos?status=${encodeURIComponent('未対応,対応中')}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (tRes.ok) renderTodoWidget((await tRes.json()).todos || []);
+      } catch (e) { console.error('TODO取得失敗:', e); }
     });
+
+    // ── TODOウィジェット描画 ────────────────────────────────────────
+    function renderTodoWidget(todos) {
+      const list = document.getElementById('todo-widget-list');
+      if (!todos.length) {
+        list.innerHTML = '<li><span style="color:#bbb;font-size:11px">未対応・対応中のTODOはありません</span></li>';
+        return;
+      }
+      // 最大5件表示
+      const STATUS_COLOR = { '未対応': 'var(--danger, #dc2626)', '対応中': '#f97316' };
+      list.innerHTML = todos.slice(0, 5).map(t => {
+        const dot   = t.status === '未対応' ? 'main' : '';
+        const badge = `<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${STATUS_COLOR[t.status] || '#6b7280'};color:#fff;margin-left:6px">${t.status}</span>`;
+        const due   = t.due_date ? `<span style="font-size:10px;color:#6b7280;margin-left:4px">〆${t.due_date}</span>` : '';
+        const staff = t.staff_code ? `<span style="font-size:10px;color:#6b7280;margin-left:4px">[${t.staff_code}]</span>` : '';
+        return `<li><span class="todo-dot ${dot}"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.title}">${t.title}</span>${badge}${staff}${due}</li>`;
+      }).join('');
+    }
 
     function renderContactWidget(contacts) {
       const body = document.getElementById('contact-widget-body');

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TODOリスト｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+    .header-logo svg { width:28px; height:28px; flex-shrink:0; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
+    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:#fff; }
+    .header-right { display:flex; align-items:center; gap:10px; }
+    .page-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
+      color: var(--accent-light); border-radius:4px; padding:3px 10px;
+      font-size:0.75rem; font-weight:700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
+      border-radius:20px; padding:4px 14px; color:#fff; font-size:0.8rem;
+    }
+    .user-badge span { color:var(--accent); font-weight:700; margin-right:6px; }
+    .btn-logout {
+      background:transparent; border:1.5px solid var(--accent-border-btn);
+      color:var(--accent-light); border-radius:4px; padding:5px 14px;
+      font-size:0.78rem; font-weight:600; cursor:pointer;
+      transition:background 0.2s,color 0.2s;
+    }
+    .btn-logout:hover { background:var(--accent); color:var(--primary-dark); border-color:var(--accent); }
+    .btn-back {
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; border-radius:4px; padding:5px 12px;
+      font-size:0.75rem; cursor:pointer; text-decoration:none;
+      transition:background 0.2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,0.18); }
+    .accent-bar { height:3px; background:linear-gradient(90deg,var(--primary-dark) 0%,var(--accent) 50%,var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width:1400px; margin:0 auto; padding:20px 16px 40px; }
+    .page-title {
+      font-size:1.1rem; font-weight:700; color:var(--primary);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .page-title::before { content:''; display:inline-block; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+
+    /* ═══ SEARCH CARD ═══════════════════════════════════════════ */
+    .search-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); padding:18px 20px; margin-bottom:16px; }
+    .search-grid { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+    .field-group { display:flex; flex-direction:column; gap:4px; }
+    .field-group label { font-size:0.72rem; font-weight:600; color:var(--primary); letter-spacing:0.04em; }
+    .field-group input, .field-group select {
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:6px 10px; font-size:0.82rem; color:var(--text-main);
+      outline:none; background:#fff; transition:border-color 0.2s; height:32px;
+    }
+    .field-group input:focus, .field-group select:focus { border-color:var(--primary); box-shadow:0 0 0 2px var(--card-shadow); }
+    .field-group.text input { width:150px; }
+    .field-group.sel select { width:140px; }
+    .btn-group { display:flex; gap:8px; align-items:flex-end; }
+    .btn-search {
+      background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
+      color:#fff; border:none; border-radius:4px;
+      padding:0 20px; height:32px; font-size:0.82rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+    }
+    .btn-search:hover { opacity:0.88; }
+    .btn-clear {
+      background:#fff; color:var(--primary); border:1.5px solid var(--gray-border);
+      border-radius:4px; padding:0 16px; height:32px;
+      font-size:0.82rem; cursor:pointer; transition:border-color 0.2s;
+    }
+    .btn-clear:hover { border-color:var(--primary); }
+
+    .result-info { font-size:0.8rem; color:var(--text-sub); margin-bottom:10px; padding-left:4px; }
+    .result-info strong { color:var(--primary); font-size:1rem; }
+
+    /* ═══ TABLE CARD ═════════════════════════════════════════════ */
+    .table-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); overflow:hidden; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; white-space:nowrap; }
+
+    thead tr { background:var(--primary); }
+    thead th {
+      color:#fff; font-size:0.72rem; font-weight:700;
+      padding:9px 8px; text-align:center; letter-spacing:0.04em;
+      border-right:1px solid rgba(255,255,255,0.1);
+    }
+    thead th:last-child { border-right:none; }
+
+    tbody tr { transition:background 0.15s; }
+    tbody tr:hover { background:var(--gray-card); }
+    tbody td {
+      padding:8px 8px; border-bottom:1px solid var(--gray-border);
+      text-align:center; font-size:0.78rem; color:var(--text-main); vertical-align:middle;
+    }
+    tbody td.td-left { text-align:left; max-width:280px; overflow:hidden; text-overflow:ellipsis; }
+
+    .badge { display:inline-block; border-radius:12px; padding:2px 10px; font-size:0.7rem; font-weight:700; white-space:nowrap; }
+    .badge-mitatai  { background:#f8d7da; color:#721c24; }   /* 未対応：赤 */
+    .badge-taiochu  { background:#fff3cd; color:#856404; }   /* 対応中：オレンジ */
+    .badge-kanryo   { background:#d4edda; color:#155724; }   /* 対応完了：緑 */
+
+    .btn-edit {
+      background:var(--primary); color:#fff; border:none; border-radius:4px;
+      padding:4px 12px; font-size:0.72rem; font-weight:700; cursor:pointer;
+      transition:opacity 0.2s;
+    }
+    .btn-edit:hover { opacity:0.82; }
+    .btn-delete {
+      background:#dc2626; color:#fff; border:none; border-radius:4px;
+      padding:4px 10px; font-size:0.72rem; font-weight:700; cursor:pointer;
+      transition:opacity 0.2s; margin-left:4px;
+    }
+    .btn-delete:hover { opacity:0.82; }
+
+    .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
+
+    .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
+
+    @media (max-width:768px) { .search-grid { flex-direction:column; } .field-group.text input, .field-group.sel select { width:100%; } }
+
+    /* ═══ モーダル ═══════════════════════════════════════════════ */
+    .modal-backdrop {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(0,0,0,0.4);
+    }
+    .modal-backdrop.open { display:flex; align-items:center; justify-content:center; }
+    .modal {
+      background:#fff; border-radius:10px; box-shadow:0 8px 40px rgba(0,0,0,0.22);
+      padding:28px 30px; width:480px; max-width:96vw; max-height:90vh; overflow-y:auto;
+      position:relative;
+    }
+    .modal-title {
+      font-size:1rem; font-weight:700; color:var(--primary);
+      margin-bottom:20px; display:flex; align-items:center; gap:8px;
+    }
+    .modal-title::before { content:''; display:inline-block; width:4px; height:18px; background:var(--accent); border-radius:2px; }
+    .modal-field { margin-bottom:16px; }
+    .modal-field label { display:block; font-size:0.72rem; font-weight:600; color:var(--primary); margin-bottom:5px; letter-spacing:0.04em; }
+    .modal-field select, .modal-field input, .modal-field textarea {
+      width:100%; border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:7px 10px; font-size:0.85rem; color:var(--text-main);
+      outline:none; transition:border-color 0.2s;
+      font-family: inherit;
+    }
+    .modal-field select:focus, .modal-field input:focus, .modal-field textarea:focus { border-color:var(--primary); }
+    .modal-field textarea { height:100px; resize:vertical; }
+    .modal-todo-title { font-size:0.85rem; font-weight:700; color:var(--text-main); margin-bottom:4px; line-height:1.4; }
+    .modal-todo-desc  { font-size:0.78rem; color:var(--text-sub); line-height:1.5; }
+    .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .btn-modal-save {
+      background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
+      color:#fff; border:none; border-radius:4px;
+      padding:8px 24px; font-size:0.85rem; font-weight:700; cursor:pointer;
+      transition:opacity 0.2s;
+    }
+    .btn-modal-save:hover { opacity:0.88; }
+    .btn-modal-cancel {
+      background:#fff; color:var(--primary); border:1.5px solid var(--gray-border);
+      border-radius:4px; padding:8px 18px; font-size:0.85rem; cursor:pointer;
+      transition:border-color 0.2s;
+    }
+    .btn-modal-cancel:hover { border-color:var(--primary); }
+    .modal-close-btn {
+      position:absolute; top:14px; right:16px;
+      background:none; border:none; font-size:1.3rem; color:var(--text-sub); cursor:pointer;
+    }
+    .modal-close-btn:hover { color:var(--primary); }
+    .toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      background:var(--primary); color:#fff; border-radius:6px;
+      padding:10px 24px; font-size:0.85rem; font-weight:600;
+      box-shadow:0 4px 16px rgba(0,0,0,0.2); z-index:900;
+      opacity:0; transition:opacity 0.3s; pointer-events:none;
+    }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+              fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+              fill="rgba(255,255,255,0.15)"/>
+        <polyline points="22,32 29,39 43,25"
+                  stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-logo-text">
+        <div class="company">AX損害保険株式会社</div>
+        <div class="system">代理店Webシステム</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="page-badge"><i class="fa-solid fa-list-check" style="margin-right:5px"></i>TODOリスト</span>
+      <div class="user-badge"><span id="hdr-code"></span><span id="hdr-name">--</span></div>
+      <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+      <button class="btn-logout" id="btn-logout">ログアウト</button>
+    </div>
+  </header>
+  <div class="accent-bar"></div>
+
+  <div class="main-content">
+    <div class="page-title"><i class="fa-solid fa-list-check"></i>TODOリスト</div>
+
+    <!-- 検索エリア -->
+    <div class="search-card">
+      <div class="search-grid">
+        <div class="field-group text">
+          <label>担当者コード</label>
+          <input type="text" id="search-staff" placeholder="例: staff1">
+        </div>
+        <div class="field-group sel">
+          <label>ステータス</label>
+          <select id="search-status">
+            <option value="">すべて</option>
+            <option value="未対応">未対応</option>
+            <option value="対応中">対応中</option>
+            <option value="対応完了">対応完了</option>
+          </select>
+        </div>
+        <div class="btn-group">
+          <button class="btn-search" onclick="loadTodos()"><i class="fa-solid fa-magnifying-glass" style="margin-right:5px"></i>検索</button>
+          <button class="btn-clear" onclick="clearSearch()">クリア</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 件数表示 -->
+    <div class="result-info" id="result-info">読み込み中...</div>
+
+    <!-- テーブル -->
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">ID</th>
+              <th style="width:280px">タイトル</th>
+              <th style="width:90px">担当者</th>
+              <th style="width:100px">期限日</th>
+              <th style="width:90px">ステータス</th>
+              <th style="width:90px">更新者</th>
+              <th style="width:130px">更新日時</th>
+              <th style="width:110px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="todo-tbody">
+            <tr><td colspan="8" class="empty-msg">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+  <!-- 編集モーダル -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+      <button class="modal-close-btn" onclick="closeModal()">×</button>
+      <div class="modal-title"><i class="fa-solid fa-pen-to-square"></i>TODO編集</div>
+      <div class="modal-todo-title" id="modal-todo-title"></div>
+      <div class="modal-todo-desc" id="modal-todo-desc" style="margin-bottom:16px"></div>
+      <input type="hidden" id="modal-todo-id">
+      <div class="modal-field">
+        <label>ステータス</label>
+        <select id="modal-status">
+          <option value="未対応">未対応</option>
+          <option value="対応中">対応中</option>
+          <option value="対応完了">対応完了</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>更新者</label>
+        <input type="text" id="modal-updated-by" placeholder="担当者IDを入力">
+      </div>
+      <div class="modal-field">
+        <label>対応記録・メモ</label>
+        <textarea id="modal-memo" placeholder="対応内容・経過などを記録してください"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeModal()">キャンセル</button>
+        <button class="btn-modal-save" onclick="saveTodo()"><i class="fa-solid fa-floppy-disk" style="margin-right:5px"></i>保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000';
+
+    // ── 初期化 ──────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = requireAuth();
+      if (!token) return;
+
+      // ヘッダーにユーザー情報を表示
+      const userType = _ssGet('user_type') || 'agency';
+      if (userType === 'staff') {
+        document.getElementById('hdr-code').textContent = (_ssGet('staff_code') || '') + ' ';
+        document.getElementById('hdr-name').textContent = _ssGet('staff_name') || '';
+      } else {
+        document.getElementById('hdr-code').textContent = (_ssGet('agency_code') || '') + ' ';
+        document.getElementById('hdr-name').textContent = _ssGet('login_id') || '';
+      }
+
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+      // URLパラメータで初期フィルタを適用
+      const params = new URLSearchParams(location.search);
+      if (params.get('status')) document.getElementById('search-status').value = params.get('status');
+      if (params.get('staff_code')) document.getElementById('search-staff').value = params.get('staff_code');
+
+      await loadTodos();
+    });
+
+    // ── TODO一覧取得・描画 ──────────────────────────────────────
+    async function loadTodos() {
+      const token     = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+      const status    = document.getElementById('search-status').value.trim();
+      const staffCode = document.getElementById('search-staff').value.trim();
+
+      const qs = new URLSearchParams();
+      if (status)    qs.set('status',     status);
+      if (staffCode) qs.set('staff_code', staffCode);
+
+      const tbody    = document.getElementById('todo-tbody');
+      const infoEl   = document.getElementById('result-info');
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">読み込み中...</td></tr>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/todos?${qs.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        renderTable(data.todos || []);
+        const cnt = (data.todos || []).length;
+        infoEl.innerHTML = `該当件数: <strong>${cnt}</strong> 件`;
+      } catch (e) {
+        console.error('TODO取得失敗:', e);
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">データの取得に失敗しました</td></tr>';
+        infoEl.textContent = '';
+      }
+    }
+
+    // ── テーブル描画 ─────────────────────────────────────────────
+    function renderTable(todos) {
+      const tbody = document.getElementById('todo-tbody');
+      if (!todos.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">該当するTODOはありません</td></tr>';
+        return;
+      }
+
+      // ロールIDを取得（管理者のみ削除ボタン表示）
+      const userType = _ssGet('user_type') || 'agency';
+      const roleId   = parseInt(userType === 'staff' ? (_ssGet('staff_role_id') || '0') : (_ssGet('role_id') || '0'));
+      const isAdmin  = roleId === 1;
+
+      tbody.innerHTML = todos.map(t => {
+        const badgeCls = t.status === '未対応' ? 'badge-mitatai'
+                       : t.status === '対応中'  ? 'badge-taiochu'
+                       : 'badge-kanryo';
+        const due     = t.due_date  || '—';
+        const staff   = t.staff_code || '—';
+        const updBy   = t.updated_by || '—';
+        const updAt   = t.updated_at ? t.updated_at.replace('T', ' ').slice(0, 16) : '—';
+        const title   = escHtml(t.title);
+        const delBtn  = isAdmin
+          ? `<button class="btn-delete" onclick="deleteTodo(${t.id})"><i class="fa-solid fa-trash"></i></button>`
+          : '';
+        return `<tr>
+          <td>${t.id}</td>
+          <td class="td-left" title="${title}">${title}</td>
+          <td>${escHtml(staff)}</td>
+          <td>${escHtml(due)}</td>
+          <td><span class="badge ${badgeCls}">${escHtml(t.status)}</span></td>
+          <td>${escHtml(updBy)}</td>
+          <td>${escHtml(updAt)}</td>
+          <td>
+            <button class="btn-edit" onclick="openModal(${t.id}, '${escJs(t.title)}', '${escJs(t.description || '')}', '${escJs(t.status)}', '${escJs(t.updated_by || '')}', '${escJs(t.memo || '')}')">
+              <i class="fa-solid fa-pen"></i> 編集
+            </button>${delBtn}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── モーダル操作 ─────────────────────────────────────────────
+    function openModal(id, title, desc, status, updatedBy, memo) {
+      document.getElementById('modal-todo-id').value   = id;
+      document.getElementById('modal-todo-title').textContent = title;
+      document.getElementById('modal-todo-desc').textContent  = desc;
+      document.getElementById('modal-status').value    = status;
+      // デフォルト更新者: 空の場合はログインユーザーIDをセット
+      const userType   = _ssGet('user_type') || 'agency';
+      const defaultUser = userType === 'staff' ? (_ssGet('staff_code') || '') : (_ssGet('login_id') || '');
+      document.getElementById('modal-updated-by').value = updatedBy || defaultUser;
+      document.getElementById('modal-memo').value       = memo;
+      document.getElementById('modal-backdrop').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-backdrop').classList.remove('open');
+    }
+
+    // モーダル外クリックで閉じる
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('modal-backdrop').addEventListener('click', e => {
+        if (e.target === e.currentTarget) closeModal();
+      });
+    });
+
+    // ── TODO保存（PUT） ──────────────────────────────────────────
+    async function saveTodo() {
+      const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+      const id    = document.getElementById('modal-todo-id').value;
+      const body  = {
+        status:     document.getElementById('modal-status').value,
+        updated_by: document.getElementById('modal-updated-by').value,
+        memo:       document.getElementById('modal-memo').value,
+      };
+      try {
+        const res = await fetch(`${API_BASE}/api/todos/${id}`, {
+          method:  'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showToast('エラー: ' + (err.detail || '更新に失敗しました'), true);
+          return;
+        }
+        closeModal();
+        showToast('TODOを更新しました');
+        await loadTodos();
+      } catch (e) {
+        console.error('TODO更新失敗:', e);
+        showToast('通信エラーが発生しました', true);
+      }
+    }
+
+    // ── TODO削除（DELETE・管理者のみ） ───────────────────────────
+    async function deleteTodo(id) {
+      if (!confirm(`TODO #${id} を削除します。この操作は取り消せません。よろしいですか？`)) return;
+      const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+      try {
+        const res = await fetch(`${API_BASE}/api/todos/${id}`, {
+          method:  'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showToast('エラー: ' + (err.detail || '削除に失敗しました'), true);
+          return;
+        }
+        showToast('TODOを削除しました');
+        await loadTodos();
+      } catch (e) {
+        console.error('TODO削除失敗:', e);
+        showToast('通信エラーが発生しました', true);
+      }
+    }
+
+    // ── 検索クリア ───────────────────────────────────────────────
+    function clearSearch() {
+      document.getElementById('search-staff').value  = '';
+      document.getElementById('search-status').value = '';
+      loadTodos();
+    }
+
+    // ── トースト表示 ─────────────────────────────────────────────
+    function showToast(msg, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.background = isError ? '#dc2626' : 'var(--primary)';
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ── ユーティリティ ───────────────────────────────────────────
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function escJs(s) {
+      return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+    }
+  </script>
+
+</body>
+</html>
