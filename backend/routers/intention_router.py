@@ -233,7 +233,7 @@ def get_intentions(
     policy_type:  Optional[str] = Query(default=None, description="保険種目絞込"),
     staff_code:   Optional[str] = Query(default=None, description="担当者コード絞込"),
     page:         int           = Query(default=1,  ge=1),
-    limit:        int           = Query(default=20, ge=1, le=100),
+    limit:        int           = Query(default=20, ge=1, le=9999),
     payload: dict = Depends(_verify_token),
 ):
     """
