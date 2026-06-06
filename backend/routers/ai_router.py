@@ -14,6 +14,7 @@ import json
 import os
 import pathlib
 import sqlite3
+import threading
 from typing import Optional
 
 import anthropic
@@ -260,20 +261,82 @@ def get_recommend_summary(
         conn.close()
 
 
+# 一括処理の進捗管理（メモリ上で保持）
+_bulk_jobs: dict = {}
+
+
+def _run_bulk_job(bulk_job_id: str, agency_code: str, customer_ids: list, all_type_codes: list):
+    """バックグラウンドスレッドで一括AI分析を実行する"""
+    _bulk_jobs[bulk_job_id] = {"status": "running", "processed": 0, "failed": 0, "total": len(customer_ids)}
+    conn = _get_db()
+    try:
+        for customer_id in customer_ids:
+            try:
+                customer = conn.execute("""
+                    SELECT last_name, first_name, birth_date, gender, group_code
+                    FROM customers WHERE customer_id = ?
+                """, (customer_id,)).fetchone()
+                if not customer:
+                    _bulk_jobs[bulk_job_id]["failed"] += 1
+                    continue
+
+                contract_rows = conn.execute("""
+                    SELECT DISTINCT policy_type FROM contracts
+                    WHERE linked_customer_id = ? AND (status IS NULL OR status != '失効')
+                """, (customer_id,)).fetchall()
+                current_type_names = [r["policy_type"] for r in contract_rows if r["policy_type"]]
+                current_codes      = [_NAME_TO_CODE.get(n, n) for n in current_type_names]
+                uncovered_codes    = [c for c in all_type_codes if c not in current_codes]
+
+                result = _call_claude_recommend(
+                    last_name=customer["last_name"],
+                    first_name=customer["first_name"],
+                    birth_date=customer["birth_date"] or "",
+                    gender=customer["gender"] or "",
+                    current_types=current_type_names,
+                    uncovered_types=[_CODE_TO_NAME.get(c, c) for c in uncovered_codes],
+                )
+
+                conn.execute("""
+                    INSERT INTO ai_recommendations
+                    (customer_id, agency_code, group_code, recommend_types, reason, risk_score, is_bulk, bulk_job_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
+                """, (
+                    customer_id, agency_code,
+                    customer["group_code"] or "",
+                    json.dumps(result.get("recommend_types", []), ensure_ascii=False),
+                    result.get("reason", ""),
+                    float(result.get("risk_score", 0.5)),
+                    bulk_job_id,
+                ))
+                conn.commit()
+                _bulk_jobs[bulk_job_id]["processed"] += 1
+
+            except Exception:
+                _bulk_jobs[bulk_job_id]["failed"] += 1
+
+        _bulk_jobs[bulk_job_id]["status"] = "completed"
+    except Exception:
+        _bulk_jobs[bulk_job_id]["status"] = "error"
+    finally:
+        conn.close()
+
+
 @router.post("/ai/recommend/bulk/{agency_code}")
 def post_recommend_bulk(
     agency_code: str,
     payload: dict = Depends(_verify_token),
 ):
     """
-    指定代理店の全顧客（有効顧客）に対して一括でAI推奨を生成する。
+    指定代理店の全顧客に対して一括でAI推奨を生成する。
+    処理はバックグラウンドスレッドで実行し、即座にjob_idを返す。
+    進捗は GET /api/ai/recommend/bulk/status/{job_id} で確認できる。
     """
     user_type = payload.get("user_type", "agency")
     conn = _get_db()
     try:
         _ensure_table(conn)
 
-        # アクセス制御（サマリーと同様）
         if user_type == "staff":
             role_id   = payload.get("role_id")
             buka_code = payload.get("buka_code")
@@ -288,7 +351,6 @@ def post_recommend_bulk(
             if payload.get("agency_code") != agency_code:
                 raise HTTPException(status_code=403, detail="参照権限がありません")
 
-        # 代理店に紐づく有効顧客IDリストを取得
         cust_rows = conn.execute("""
             SELECT DISTINCT c.linked_customer_id
             FROM contracts c
@@ -298,72 +360,41 @@ def post_recommend_bulk(
         """, (agency_code,)).fetchall()
         customer_ids = [r["linked_customer_id"] for r in cust_rows]
 
+        all_type_codes = [r["type_code"] for r in conn.execute("SELECT type_code FROM policy_types").fetchall()]
+        if not all_type_codes:
+            all_type_codes = list(_CODE_TO_NAME.keys())
+
         bulk_job_id = f"BULK_{agency_code}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-        processed = 0
-        failed    = 0
 
-        # 全7種目を取得
-        all_types_rows = conn.execute("SELECT type_code, type_name FROM policy_types").fetchall()
-        all_type_codes = [r["type_code"] for r in all_types_rows]
-
-        for customer_id in customer_ids:
-            try:
-                # 顧客情報を取得
-                customer = conn.execute("""
-                    SELECT last_name, first_name, birth_date, gender, group_code
-                    FROM customers
-                    WHERE customer_id = ?
-                """, (customer_id,)).fetchone()
-                if not customer:
-                    failed += 1
-                    continue
-
-                # 有効契約の種目を取得
-                contract_rows = conn.execute("""
-                    SELECT DISTINCT policy_type
-                    FROM contracts
-                    WHERE linked_customer_id = ? AND (status IS NULL OR status != '失効')
-                """, (customer_id,)).fetchall()
-                current_type_names = [r["policy_type"] for r in contract_rows if r["policy_type"]]
-                current_codes      = [_NAME_TO_CODE.get(n, n) for n in current_type_names]
-                uncovered_codes    = [c for c in all_type_codes if c not in current_codes]
-
-                # Claude API呼び出し
-                result = _call_claude_recommend(
-                    last_name=customer["last_name"],
-                    first_name=customer["first_name"],
-                    birth_date=customer["birth_date"] or "",
-                    gender=customer["gender"] or "",
-                    current_types=current_type_names,
-                    uncovered_types=[_CODE_TO_NAME.get(c, c) for c in uncovered_codes],
-                )
-
-                recommend_types = result.get("recommend_types", [])
-                reason          = result.get("reason", "")
-                risk_score      = float(result.get("risk_score", 0.5))
-
-                conn.execute("""
-                    INSERT INTO ai_recommendations
-                    (customer_id, agency_code, recommend_types, reason, risk_score, is_bulk, created_at)
-                    VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-                """, (customer_id, agency_code, json.dumps(recommend_types, ensure_ascii=False), reason, risk_score))
-                conn.commit()
-                processed += 1
-
-            except HTTPException:
-                failed += 1
-            except Exception:
-                failed += 1
+        # バックグラウンドスレッドで実行（タイムアウト回避）
+        t = threading.Thread(
+            target=_run_bulk_job,
+            args=(bulk_job_id, agency_code, customer_ids, all_type_codes),
+            daemon=True,
+        )
+        t.start()
 
         return {
-            "bulk_job_id":  bulk_job_id,
-            "agency_code":  agency_code,
-            "processed":    processed,
-            "failed":       failed,
-            "message":      "一括推奨生成が完了しました",
+            "bulk_job_id":     bulk_job_id,
+            "agency_code":     agency_code,
+            "total_customers": len(customer_ids),
+            "status":          "started",
+            "message":         f"{len(customer_ids)}件の一括分析を開始しました。進捗はステータスAPIで確認してください。",
         }
     finally:
         conn.close()
+
+
+@router.get("/ai/recommend/bulk/status/{bulk_job_id}")
+def get_bulk_status(
+    bulk_job_id: str,
+    payload: dict = Depends(_verify_token),
+):
+    """一括処理の進捗状況を返す"""
+    job = _bulk_jobs.get(bulk_job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="ジョブが見つかりません")
+    return {"bulk_job_id": bulk_job_id, **job}
 
 
 # ── 個別顧客エンドポイント ──────────────────────────────────────────────────────
@@ -434,14 +465,15 @@ def post_recommend(
         reason          = result.get("reason", "")
         risk_score      = float(result.get("risk_score", 0.5))
 
-        # DBに保存
+        # DBに保存（group_code は顧客のgroup_codeを使用）
         cur = conn.execute("""
             INSERT INTO ai_recommendations
-            (customer_id, agency_code, recommend_types, reason, risk_score, is_bulk, created_at)
-            VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+            (customer_id, agency_code, group_code, recommend_types, reason, risk_score, is_bulk, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
         """, (
             customer_id,
-            payload.get("agency_code"),
+            payload.get("agency_code", ""),
+            group_code,
             json.dumps(recommend_types, ensure_ascii=False),
             reason,
             risk_score,

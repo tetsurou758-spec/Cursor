@@ -587,13 +587,10 @@
       _modalCustomerId = null;
     }
 
-    // ── 代理店一括AIレコメンド生成 ──────────────────────────────────
+    // ── 代理店一括AIレコメンド生成（バックグラウンド実行＋進捗ポーリング）──
     async function bulkGenerate() {
       const agencyCode = getAgencyCode();
-      if (!agencyCode) {
-        showToast('代理店コードが取得できません', true);
-        return;
-      }
+      if (!agencyCode) { showToast('代理店コードが取得できません', true); return; }
 
       const btn     = document.getElementById('btn-bulk');
       const spinner = document.getElementById('bulk-spinner');
@@ -603,25 +600,46 @@
       btn.disabled       = true;
       spinner.classList.add('active');
       icon.style.display = 'none';
-      text.textContent   = '分析中...';
+      text.textContent   = '分析を開始中...';
 
       try {
+        // ① 一括分析をキックしてjob_idを受け取る（即座にレスポンス）
         const res = await fetch(`${API_BASE}/api/ai/recommend/bulk/${agencyCode}`, {
-          method: 'POST',
-          headers: getAuthHeader()
+          method: 'POST', headers: getAuthHeader()
         });
         const data = await res.json();
-        if (!res.ok) {
-          showToast('生成に失敗しました: ' + (data.detail || res.status), true);
-          return;
-        }
-        showToast(`一括分析が完了しました（${data.analyzed_count ?? ''}件）`);
-        // 結果を再取得して表示
-        await loadSummary();
+        if (!res.ok) { showToast('生成に失敗しました: ' + (data.detail || res.status), true); return; }
+
+        const jobId = data.bulk_job_id;
+        const total = data.total_customers || 0;
+        showToast(`${total}件の分析をバックグラウンドで開始しました`);
+
+        // ② 進捗をポーリング（3秒ごと）
+        const poll = setInterval(async () => {
+          try {
+            const sr = await fetch(`${API_BASE}/api/ai/recommend/bulk/status/${jobId}`, {
+              headers: getAuthHeader()
+            });
+            if (!sr.ok) return;
+            const s = await sr.json();
+            const done = s.processed + s.failed;
+            text.textContent = `分析中... ${done}/${s.total}件`;
+
+            if (s.status === 'completed' || s.status === 'error') {
+              clearInterval(poll);
+              showToast(`一括分析が完了しました（成功:${s.processed}件 / 失敗:${s.failed}件）`);
+              await loadSummary();
+              btn.disabled       = false;
+              spinner.classList.remove('active');
+              icon.style.display = '';
+              text.textContent   = '代理店一括AIレコメンド生成';
+            }
+          } catch (_) {}
+        }, 3000);
+
       } catch (e) {
         console.error('一括生成エラー:', e);
         showToast('通信エラーが発生しました', true);
-      } finally {
         btn.disabled       = false;
         spinner.classList.remove('active');
         icon.style.display = '';
