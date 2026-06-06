@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIレコメンド管理｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+    .header-logo svg { width:28px; height:28px; flex-shrink:0; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
+
+    .header-right { display:flex; align-items:center; gap:10px; }
+    .page-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
+      color: var(--accent-light); border-radius:4px; padding:3px 10px;
+      font-size:0.75rem; font-weight:700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
+      border-radius:20px; padding:4px 14px; color:#fff; font-size:0.8rem;
+    }
+    .user-badge span { color:var(--accent); font-weight:700; margin-right:6px; }
+    .btn-logout {
+      background:transparent; border:1.5px solid var(--accent-border-btn);
+      color:var(--accent-light); border-radius:4px; padding:5px 14px;
+      font-size:0.78rem; font-weight:600; cursor:pointer;
+      transition:background 0.2s,color 0.2s;
+    }
+    .btn-logout:hover { background:var(--accent); color:var(--primary-dark); border-color:var(--accent); }
+    .btn-back {
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; border-radius:4px; padding:5px 12px;
+      font-size:0.75rem; cursor:pointer; text-decoration:none;
+      transition:background 0.2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,0.18); }
+    .accent-bar { height:3px; background:linear-gradient(90deg,var(--primary-dark) 0%,var(--accent) 50%,var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width:1400px; margin:0 auto; padding:20px 16px 40px; }
+    .page-title {
+      font-size:1.1rem; font-weight:700; color:var(--primary);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .page-title::before { content:''; display:inline-block; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+
+    /* ═══ カード共通 ══════════════════════════════════════════════ */
+    .card {
+      background:#fff; border-radius:8px;
+      box-shadow:0 2px 10px var(--card-shadow);
+      padding:20px 24px; margin-bottom:20px;
+    }
+    .card-title {
+      font-size:0.88rem; font-weight:700; color:var(--primary);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+      border-bottom:1px solid var(--gray-border); padding-bottom:10px;
+    }
+    .card-title i { color:var(--accent); }
+
+    /* ═══ セクション1: 一括分析パネル ══════════════════════════════ */
+    .bulk-panel { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+    .btn-bulk-analyze {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color:#fff; border:none; border-radius:6px;
+      padding:10px 28px; font-size:0.9rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+      display:inline-flex; align-items:center; gap:8px;
+      position:relative;
+    }
+    .btn-bulk-analyze:hover { opacity:0.88; }
+    .btn-bulk-analyze:disabled { opacity:0.55; cursor:not-allowed; }
+    /* スピナー */
+    .spinner {
+      display:none; width:18px; height:18px;
+      border:3px solid rgba(255,255,255,0.4);
+      border-top-color:#fff; border-radius:50%;
+      animation:spin 0.7s linear infinite;
+    }
+    .spinner.active { display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .bulk-hint { font-size:0.78rem; color:var(--text-sub); }
+
+    /* ═══ セクション2: サマリー ══════════════════════════════════ */
+    .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media (max-width:768px) { .summary-grid { grid-template-columns:1fr; } }
+
+    .summary-stat {
+      background:var(--gray-bg); border-radius:6px; padding:14px 18px;
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .summary-stat-label { font-size:0.72rem; color:var(--text-sub); font-weight:600; letter-spacing:0.04em; }
+    .summary-stat-value { font-size:1.6rem; font-weight:800; color:var(--primary); }
+    .summary-stat-sub { font-size:0.75rem; color:var(--text-sub); }
+
+    /* 推奨種目バッジカウント */
+    .type-rank-list { display:flex; flex-direction:column; gap:8px; }
+    .type-rank-item { display:flex; align-items:center; gap:10px; }
+    .type-rank-label { width:90px; font-size:0.78rem; font-weight:600; color:var(--text-main); }
+    .type-rank-bar-wrap { flex:1; height:12px; background:var(--gray-border); border-radius:6px; overflow:hidden; }
+    .type-rank-bar { height:100%; border-radius:6px; background:linear-gradient(90deg,var(--primary) 0%,var(--primary-light) 100%); transition:width 0.6s ease; }
+    .type-rank-cnt { width:40px; text-align:right; font-size:0.78rem; font-weight:700; color:var(--primary); }
+
+    /* ═══ セクション3: テーブル ══════════════════════════════════ */
+    .table-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); overflow:hidden; margin-bottom:20px; }
+    .table-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 20px; border-bottom:1px solid var(--gray-border);
+    }
+    .table-header-title { font-size:0.88rem; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:8px; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; white-space:nowrap; }
+
+    thead tr { background:var(--primary); }
+    thead th {
+      color:#fff; font-size:0.72rem; font-weight:700;
+      padding:9px 10px; text-align:center; letter-spacing:0.04em;
+      border-right:1px solid rgba(255,255,255,0.1);
+    }
+    thead th:last-child { border-right:none; }
+    thead th.th-left { text-align:left; }
+
+    tbody tr { transition:background 0.15s; cursor:pointer; }
+    tbody tr:hover { background:var(--gray-card); }
+    tbody td {
+      padding:9px 10px; border-bottom:1px solid var(--gray-border);
+      text-align:center; font-size:0.78rem; color:var(--text-main); vertical-align:middle;
+    }
+    tbody td.td-left { text-align:left; }
+
+    .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; cursor:default; }
+
+    /* ═══ バッジ ══════════════════════════════════════════════ */
+    .badge-type {
+      display:inline-block;
+      background:var(--accent); color:var(--primary-dark);
+      border-radius:12px; padding:2px 10px;
+      font-size:0.68rem; font-weight:700; white-space:nowrap;
+      margin:1px 2px;
+    }
+    .badge-type.recommend {
+      background:#22c55e; color:#fff;
+    }
+
+    /* リスクスコアプログレスバー */
+    .risk-bar-wrap { display:flex; align-items:center; gap:6px; justify-content:center; }
+    .risk-bar { width:70px; height:8px; background:var(--gray-border); border-radius:4px; overflow:hidden; }
+    .risk-bar-fill { height:100%; border-radius:4px; transition:width 0.5s ease; }
+    .risk-bar-fill.high   { background:#ef4444; }  /* 0.7以上 */
+    .risk-bar-fill.medium { background:#f59e0b; }  /* 0.4〜0.7 */
+    .risk-bar-fill.low    { background:#22c55e; }  /* 0.4未満 */
+    .risk-score-text { font-size:0.72rem; font-weight:700; }
+    .risk-score-text.high   { color:#ef4444; }
+    .risk-score-text.medium { color:#f59e0b; }
+    .risk-score-text.low    { color:#22c55e; }
+
+    /* 操作ボタン */
+    .btn-reanalyze {
+      background:var(--primary); color:#fff; border:none; border-radius:4px;
+      padding:4px 12px; font-size:0.72rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s; white-space:nowrap;
+    }
+    .btn-reanalyze:hover { opacity:0.82; }
+    .btn-reanalyze:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* ═══ モーダル ══════════════════════════════════════════════ */
+    .modal-backdrop {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(0,0,0,0.45);
+    }
+    .modal-backdrop.open { display:flex; align-items:center; justify-content:center; }
+    .modal {
+      background:#fff; border-radius:10px; box-shadow:0 8px 40px rgba(0,0,0,0.22);
+      padding:28px 30px; width:560px; max-width:96vw; max-height:90vh; overflow-y:auto;
+      position:relative;
+    }
+    .modal-title {
+      font-size:1rem; font-weight:700; color:var(--primary);
+      margin-bottom:20px; display:flex; align-items:center; gap:8px;
+    }
+    .modal-title::before { content:''; display:inline-block; width:4px; height:18px; background:var(--accent); border-radius:2px; }
+    .modal-close-btn {
+      position:absolute; top:14px; right:16px;
+      background:none; border:none; font-size:1.3rem; color:var(--text-sub); cursor:pointer;
+    }
+    .modal-close-btn:hover { color:var(--primary); }
+
+    /* モーダル内フィールド */
+    .modal-section { margin-bottom:18px; }
+    .modal-section-label {
+      font-size:0.72rem; font-weight:700; color:var(--primary);
+      letter-spacing:0.04em; margin-bottom:6px; display:block;
+    }
+    .modal-name { font-size:1.1rem; font-weight:800; color:var(--text-main); margin-bottom:16px; }
+
+    .badge-row { display:flex; flex-wrap:wrap; gap:4px; }
+
+    /* リスクスコア大型プログレスバー */
+    .risk-progress-wrap { display:flex; flex-direction:column; gap:6px; }
+    .risk-progress-bar { width:100%; height:16px; background:var(--gray-border); border-radius:8px; overflow:hidden; }
+    .risk-progress-fill { height:100%; border-radius:8px; transition:width 0.6s ease; }
+    .risk-progress-fill.high   { background:linear-gradient(90deg,#ef4444,#dc2626); }
+    .risk-progress-fill.medium { background:linear-gradient(90deg,#f59e0b,#d97706); }
+    .risk-progress-fill.low    { background:linear-gradient(90deg,#22c55e,#16a34a); }
+    .risk-progress-label { font-size:0.82rem; font-weight:700; display:flex; justify-content:space-between; }
+
+    .reason-text { font-size:0.82rem; color:var(--text-main); line-height:1.6; white-space:pre-wrap; }
+
+    .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .btn-modal-cancel {
+      background:#fff; color:var(--primary); border:1.5px solid var(--gray-border);
+      border-radius:4px; padding:8px 18px; font-size:0.85rem; cursor:pointer;
+      transition:border-color 0.2s;
+    }
+    .btn-modal-cancel:hover { border-color:var(--primary); }
+    .btn-modal-reanalyze {
+      background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
+      color:#fff; border:none; border-radius:4px;
+      padding:8px 20px; font-size:0.85rem; font-weight:700; cursor:pointer;
+      transition:opacity 0.2s; display:inline-flex; align-items:center; gap:6px;
+    }
+    .btn-modal-reanalyze:hover { opacity:0.88; }
+    .btn-modal-reanalyze:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* ═══ トースト ══════════════════════════════════════════════ */
+    .toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      background:var(--primary); color:#fff; border-radius:6px;
+      padding:10px 24px; font-size:0.85rem; font-weight:600;
+      box-shadow:0 4px 16px rgba(0,0,0,0.2); z-index:900;
+      opacity:0; transition:opacity 0.3s; pointer-events:none;
+    }
+    .toast.show { opacity:1; }
+
+    .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header class="site-header">
+    <div class="header-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+              fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+              fill="rgba(255,255,255,0.15)"/>
+        <polyline points="22,32 29,39 43,25"
+                  stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-logo-text">
+        <div class="company">AX損害保険株式会社</div>
+      </div>
+    </div>
+    <span class="header-center-title">AIレコメンド管理</span>
+    <div class="header-right">
+      <span class="page-badge"><i class="fas fa-robot" style="margin-right:5px"></i>AIレコメンド</span>
+      <div class="user-badge"><span id="hdr-code"></span><span id="hdr-name">--</span></div>
+      <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+      <button class="btn-logout" id="btn-logout">ログアウト</button>
+    </div>
+  </header>
+  <div class="accent-bar"></div>
+
+  <div class="main-content">
+    <div class="page-title"><i class="fas fa-robot"></i>AIレコメンド管理</div>
+
+    <!-- セクション1: 一括分析パネル -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-wand-magic-sparkles"></i>一括AI分析</div>
+      <div class="bulk-panel">
+        <button class="btn-bulk-analyze" id="btn-bulk" onclick="bulkGenerate()"
+          title="当代理店の全顧客にAI分析を実行します">
+          <span class="spinner" id="bulk-spinner"></span>
+          <i class="fas fa-robot" id="bulk-icon"></i>
+          <span id="bulk-btn-text">代理店一括AIレコメンド生成</span>
+        </button>
+        <div class="bulk-hint">
+          <i class="fas fa-circle-info" style="color:var(--accent)"></i>
+          当代理店の全顧客にAI分析を実行し、最適な保険プランを推奨します。
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション2: 推奨サマリー -->
+    <div class="card" id="summary-card" style="display:none">
+      <div class="card-title"><i class="fas fa-chart-bar"></i>分析サマリー</div>
+      <div class="summary-grid">
+        <div>
+          <div class="summary-stat">
+            <div class="summary-stat-label">分析済み顧客数</div>
+            <div class="summary-stat-value"><span id="sum-analyzed">—</span> <span style="font-size:1rem;color:var(--text-sub)">/ <span id="sum-total">—</span> 名</span></div>
+            <div class="summary-stat-sub">直近のAI分析実行結果</div>
+          </div>
+        </div>
+        <div>
+          <div class="card-title" style="border:none;padding:0;margin-bottom:10px;font-size:0.8rem">推奨種目ランキング（上位5種目）</div>
+          <div class="type-rank-list" id="type-rank-list">
+            <div style="color:var(--text-sub);font-size:0.8rem">データなし</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション3: 顧客別推奨一覧テーブル -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-header-title"><i class="fas fa-table-list"></i>顧客別AIレコメンド一覧（ハイリスク上位10件）</div>
+        <span style="font-size:0.72rem;color:var(--text-sub)">行クリックで詳細表示</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="th-left" style="width:140px">顧客名</th>
+              <th style="width:180px">現在の加入種目</th>
+              <th style="width:180px">推奨種目</th>
+              <th style="width:110px">リスクスコア</th>
+              <th class="th-left">推奨理由（要約）</th>
+              <th style="width:80px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="recommend-tbody">
+            <tr><td colspan="6" class="empty-msg">データを読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+  <!-- 推奨詳細モーダル -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+      <button class="modal-close-btn" onclick="closeModal()">×</button>
+      <div class="modal-title"><i class="fas fa-robot"></i>AIレコメンド詳細</div>
+
+      <div class="modal-name" id="modal-customer-name">—</div>
+
+      <div class="modal-section">
+        <span class="modal-section-label">現在の加入種目</span>
+        <div class="badge-row" id="modal-current-types"></div>
+      </div>
+
+      <div class="modal-section">
+        <span class="modal-section-label">推奨種目</span>
+        <div class="badge-row" id="modal-recommend-types"></div>
+      </div>
+
+      <div class="modal-section">
+        <span class="modal-section-label">リスクスコア</span>
+        <div class="risk-progress-wrap">
+          <div class="risk-progress-label">
+            <span id="modal-risk-label">—</span>
+            <span id="modal-risk-pct">0%</span>
+          </div>
+          <div class="risk-progress-bar">
+            <div class="risk-progress-fill" id="modal-risk-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <span class="modal-section-label">推奨理由</span>
+        <div class="reason-text" id="modal-reason">—</div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeModal()">閉じる</button>
+        <button class="btn-modal-reanalyze" id="modal-reanalyze-btn" onclick="modalReanalyze()">
+          <i class="fas fa-rotate"></i>個別再分析
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000';
+
+    // 現在モーダルに表示中の顧客ID
+    let _modalCustomerId = null;
+
+    // ── 認証ヘッダー取得 ─────────────────────────────────────────────
+    function getAuthHeader() {
+      const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+      return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+    }
+
+    // ── 代理店コード取得 ─────────────────────────────────────────────
+    function getAgencyCode() {
+      return _ssGet('agency_code') || '';
+    }
+
+    // ── 初期化 ──────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = requireAuth();
+      if (!token) return;
+
+      // ヘッダーにユーザー情報を表示
+      const userType = _ssGet('user_type') || 'agency';
+      if (userType === 'staff') {
+        document.getElementById('hdr-code').textContent = (_ssGet('staff_code') || '') + ' ';
+        document.getElementById('hdr-name').textContent = _ssGet('staff_name') || '';
+      } else {
+        document.getElementById('hdr-code').textContent = (_ssGet('agency_code') || '') + ' ';
+        document.getElementById('hdr-name').textContent = _ssGet('login_id') || '';
+      }
+
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+      // モーダル外クリックで閉じる
+      document.getElementById('modal-backdrop').addEventListener('click', e => {
+        if (e.target === e.currentTarget) closeModal();
+      });
+
+      // 既存サマリーを取得して表示
+      await loadSummary();
+    });
+
+    // ── サマリー取得 ─────────────────────────────────────────────────
+    async function loadSummary() {
+      const agencyCode = getAgencyCode();
+      if (!agencyCode) {
+        // 社員の場合はテーブルに空表示
+        document.getElementById('recommend-tbody').innerHTML =
+          '<tr><td colspan="6" class="empty-msg">代理店コードが取得できません（社員は代理店を選択してください）</td></tr>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/ai/recommend/summary/${agencyCode}`, {
+          headers: getAuthHeader()
+        });
+        if (!res.ok) {
+          if (res.status === 404) {
+            // まだ分析未実施
+            document.getElementById('recommend-tbody').innerHTML =
+              '<tr><td colspan="6" class="empty-msg">AIレコメンドデータがありません。「代理店一括AIレコメンド生成」ボタンで分析を実行してください。</td></tr>';
+            return;
+          }
+          throw new Error(`API error: ${res.status}`);
+        }
+        const data = await res.json();
+        renderSummary(data);
+        renderTable(data.high_risk_customers || []);
+      } catch (e) {
+        console.warn('サマリー取得失敗:', e);
+        document.getElementById('recommend-tbody').innerHTML =
+          '<tr><td colspan="6" class="empty-msg">データの取得に失敗しました。一括生成を実行してください。</td></tr>';
+      }
+    }
+
+    // ── サマリー描画 ─────────────────────────────────────────────────
+    function renderSummary(data) {
+      // サマリーカードを表示
+      document.getElementById('summary-card').style.display = '';
+      document.getElementById('sum-analyzed').textContent = data.analyzed_count ?? '—';
+      document.getElementById('sum-total').textContent    = data.total_customers ?? '—';
+
+      // 推奨種目ランキング
+      const ranks = data.recommend_type_ranking || [];
+      const maxCnt = ranks.length > 0 ? ranks[0].count : 1;
+      const rankEl = document.getElementById('type-rank-list');
+      if (!ranks.length) {
+        rankEl.innerHTML = '<div style="color:var(--text-sub);font-size:0.8rem">データなし</div>';
+        return;
+      }
+      rankEl.innerHTML = ranks.slice(0, 5).map(r => {
+        const pct = Math.round(r.count / maxCnt * 100);
+        return `<div class="type-rank-item">
+          <div class="type-rank-label">${escHtml(r.policy_type)}</div>
+          <div class="type-rank-bar-wrap">
+            <div class="type-rank-bar" style="width:${pct}%"></div>
+          </div>
+          <div class="type-rank-cnt">${r.count}名</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── テーブル描画 ─────────────────────────────────────────────────
+    function renderTable(customers) {
+      const tbody = document.getElementById('recommend-tbody');
+      if (!customers.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">表示するデータがありません</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = customers.map(c => {
+        // 現在の加入種目バッジ
+        const currentBadges = (c.current_types || []).map(t =>
+          `<span class="badge-type">${escHtml(t)}</span>`
+        ).join('');
+
+        // 推奨種目バッジ（緑色強調）
+        const recommendBadges = (c.recommend_types || []).map(t =>
+          `<span class="badge-type recommend">${escHtml(t)}</span>`
+        ).join('');
+
+        // リスクスコア表示
+        const score = c.risk_score ?? 0;
+        const pct   = Math.round(score * 100);
+        const cls   = score >= 0.7 ? 'high' : score >= 0.4 ? 'medium' : 'low';
+
+        // 推奨理由（省略表示）
+        const reason = c.reason || '';
+        const shortReason = reason.length > 40 ? reason.slice(0, 40) + '…' : reason;
+
+        return `<tr onclick="openModal(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+          <td class="td-left"><strong>${escHtml(c.customer_name || '')}</strong></td>
+          <td>${currentBadges || '<span style="color:var(--text-sub)">—</span>'}</td>
+          <td>${recommendBadges || '<span style="color:var(--text-sub)">—</span>'}</td>
+          <td>
+            <div class="risk-bar-wrap">
+              <div class="risk-bar">
+                <div class="risk-bar-fill ${cls}" style="width:${pct}%"></div>
+              </div>
+              <span class="risk-score-text ${cls}">${pct}%</span>
+            </div>
+          </td>
+          <td class="td-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${escHtml(reason)}">${escHtml(shortReason)}</td>
+          <td>
+            <button class="btn-reanalyze" onclick="event.stopPropagation(); reanalyzeRow(this, ${c.customer_id})">
+              <i class="fas fa-rotate"></i> 再分析
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── モーダル開閉 ─────────────────────────────────────────────────
+    function openModal(customerData) {
+      _modalCustomerId = customerData.customer_id;
+
+      document.getElementById('modal-customer-name').textContent =
+        customerData.customer_name || '—';
+
+      // 現在の加入種目
+      const curTypes = customerData.current_types || [];
+      document.getElementById('modal-current-types').innerHTML =
+        curTypes.length
+          ? curTypes.map(t => `<span class="badge-type">${escHtml(t)}</span>`).join('')
+          : '<span style="color:var(--text-sub);font-size:0.8rem">なし</span>';
+
+      // 推奨種目（緑色）
+      const recTypes = customerData.recommend_types || [];
+      document.getElementById('modal-recommend-types').innerHTML =
+        recTypes.length
+          ? recTypes.map(t => `<span class="badge-type recommend">${escHtml(t)}</span>`).join('')
+          : '<span style="color:var(--text-sub);font-size:0.8rem">なし</span>';
+
+      // リスクスコア
+      const score = customerData.risk_score ?? 0;
+      const pct   = Math.round(score * 100);
+      const cls   = score >= 0.7 ? 'high' : score >= 0.4 ? 'medium' : 'low';
+      const labels = { high: 'ハイリスク', medium: '中リスク', low: '低リスク' };
+      document.getElementById('modal-risk-pct').textContent = pct + '%';
+      document.getElementById('modal-risk-label').textContent = labels[cls];
+      document.getElementById('modal-risk-label').className = `risk-score-text ${cls}`;
+      const bar = document.getElementById('modal-risk-bar');
+      bar.style.width = pct + '%';
+      bar.className   = `risk-progress-fill ${cls}`;
+
+      // 推奨理由
+      document.getElementById('modal-reason').textContent = customerData.reason || '—';
+
+      document.getElementById('modal-backdrop').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-backdrop').classList.remove('open');
+      _modalCustomerId = null;
+    }
+
+    // ── 代理店一括AIレコメンド生成 ──────────────────────────────────
+    async function bulkGenerate() {
+      const agencyCode = getAgencyCode();
+      if (!agencyCode) {
+        showToast('代理店コードが取得できません', true);
+        return;
+      }
+
+      const btn     = document.getElementById('btn-bulk');
+      const spinner = document.getElementById('bulk-spinner');
+      const icon    = document.getElementById('bulk-icon');
+      const text    = document.getElementById('bulk-btn-text');
+
+      btn.disabled       = true;
+      spinner.classList.add('active');
+      icon.style.display = 'none';
+      text.textContent   = '分析中...';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/ai/recommend/bulk/${agencyCode}`, {
+          method: 'POST',
+          headers: getAuthHeader()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast('生成に失敗しました: ' + (data.detail || res.status), true);
+          return;
+        }
+        showToast(`一括分析が完了しました（${data.analyzed_count ?? ''}件）`);
+        // 結果を再取得して表示
+        await loadSummary();
+      } catch (e) {
+        console.error('一括生成エラー:', e);
+        showToast('通信エラーが発生しました', true);
+      } finally {
+        btn.disabled       = false;
+        spinner.classList.remove('active');
+        icon.style.display = '';
+        text.textContent   = '代理店一括AIレコメンド生成';
+      }
+    }
+
+    // ── 個別再分析（テーブル行の「再分析」ボタン）──────────────────
+    async function reanalyzeRow(btn, customerId) {
+      btn.disabled     = true;
+      btn.innerHTML    = '<i class="fas fa-spinner fa-spin"></i> 分析中';
+      try {
+        const res = await fetch(`${API_BASE}/api/ai/recommend/${customerId}`, {
+          method: 'POST',
+          headers: getAuthHeader()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast('再分析に失敗しました: ' + (data.detail || res.status), true);
+          return;
+        }
+        showToast(`再分析が完了しました（${data.customer_name || ''}）`);
+        await loadSummary();
+      } catch (e) {
+        showToast('通信エラーが発生しました', true);
+      } finally {
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="fas fa-rotate"></i> 再分析';
+      }
+    }
+
+    // ── モーダル内「個別再分析」ボタン ──────────────────────────────
+    async function modalReanalyze() {
+      if (!_modalCustomerId) return;
+
+      const btn = document.getElementById('modal-reanalyze-btn');
+      btn.disabled     = true;
+      btn.innerHTML    = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/ai/recommend/${_modalCustomerId}`, {
+          method: 'POST',
+          headers: getAuthHeader()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast('再分析に失敗しました: ' + (data.detail || res.status), true);
+          return;
+        }
+        showToast('個別再分析が完了しました');
+        closeModal();
+        await loadSummary();
+      } catch (e) {
+        showToast('通信エラーが発生しました', true);
+      } finally {
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="fas fa-rotate"></i>個別再分析';
+      }
+    }
+
+    // ── トースト表示 ─────────────────────────────────────────────────
+    function showToast(msg, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.background = isError ? '#dc2626' : 'var(--primary)';
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ── ユーティリティ ───────────────────────────────────────────────
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+
+</body>
+</html>

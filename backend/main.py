@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # backend/.env を読み込む（APIキー等）
+
 from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -31,6 +34,10 @@ app.include_router(renewal_router, prefix="/api")
 # リスクマップルーターを登録
 from backend.routers.riskmap_router import router as riskmap_router  # noqa: E402
 app.include_router(riskmap_router, prefix="/api")
+
+# AIレコメンドルーターを登録
+from backend.routers.ai_router import router as ai_router  # noqa: E402
+app.include_router(ai_router, prefix="/api")
 
 # JWT設定（本番環境では環境変数から取得すること）
 SECRET_KEY = "CHANGE_THIS_SECRET_IN_PRODUCTION"
@@ -1529,15 +1536,18 @@ def get_contract_detail(contract_no: str, payload: dict = Depends(verify_token))
                 cd.fire_quake_flg, cd.fire_quake_amount,
                 cd.fire_flood_flg, cd.fire_deductible,
                 cd.jibai_car_name, cd.jibai_car_model,
-                cd.jibai_plate_no, cd.jibai_coverage_limit,
+                cd.jibai_plate_no, cd.jibai_injury_limit, cd.jibai_death_limit,
                 cd.inj_death_amount, cd.inj_disability_amount,
                 cd.inj_hospital_daily, cd.inj_surgery_benefit,
                 cd.inj_outpatient_daily, cd.inj_coverage_scope,
-                cd.liab_coverage_limit, cd.liab_deductible,
-                cd.liab_jidan_flg, cd.liab_coverage_scope,
+                cd.liab_bodily_limit_per_person, cd.liab_bodily_limit_per_accident,
+                cd.liab_property_limit,
                 cd.cyber_3rd_limit, cd.cyber_leak_limit,
                 cd.cyber_restore_limit, cd.cyber_biz_interruption_flg,
-                cd.cyber_annual_revenue
+                cd.cyber_annual_revenue,
+                cd.income_monthly_benefit, cd.income_deductible_days,
+                cd.income_benefit_period, cd.income_coverage_type,
+                cd.income_occupation_type, cd.income_monthly_income
             FROM contracts c
             JOIN agencies ag ON ag.agency_code = c.agency_code
             LEFT OUTER JOIN contract_details cd ON cd.contract_id = c.id
@@ -2147,11 +2157,12 @@ def get_todo_staff_list(payload: dict = Depends(verify_token)):
     try:
         placeholders = ",".join("?" * len(agency_codes))
         rows = conn.execute(f"""
-            SELECT DISTINCT u.login_id, u.name, u.staff_code, u.agency_code
+            SELECT DISTINCT u.staff_code, u.name, u.agency_code
             FROM users u
             WHERE u.agency_code IN ({placeholders})
+              AND u.staff_code IS NOT NULL
               AND u.is_active = 1
-            ORDER BY u.agency_code, u.login_id
+            ORDER BY u.agency_code, u.staff_code
         """, agency_codes).fetchall()
         return {"staff_list": [dict(r) for r in rows]}
     finally:
@@ -2166,7 +2177,7 @@ class ReportRequestBody(BaseModel):
     """帳票出力リクエストのスキーマ"""
     report_type: str   # customer_list / maturity_list / sales_list
     report_name: str   # 帳票名（例: 顧客一覧_A001_20260606）
-    search_params: Optional[str] = None  # 検索条件JSON文字列
+    search_params: Optional[dict] = None  # 検索条件（dict）
 
 
 def _issue_request_no(conn: sqlite3.Connection) -> str:
@@ -2206,7 +2217,9 @@ def create_report_request(body: ReportRequestBody, payload: dict = Depends(verif
                search_params, status, requested_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, '受付中', ?)
         """, (request_no, agency_code, login_id, user_type,
-              body.report_type, body.report_name, body.search_params, now))
+              body.report_type, body.report_name,
+              json.dumps(body.search_params, ensure_ascii=False) if body.search_params else None,
+              now))
         conn.commit()
         return {"request_no": request_no, "message": f"受付番号 {request_no} で受け付けました"}
     finally:
@@ -2261,10 +2274,14 @@ def download_report(request_no: str, payload: dict = Depends(verify_token)):
 
         file_data = row["file_data"]
         file_name = row["file_name"] or f"{request_no}.xlsx"
+        # 日本語ファイル名はRFC5987形式でエンコード
+        from urllib.parse import quote
+        encoded_name = quote(file_name, safe="")
+        content_disposition = f"attachment; filename*=UTF-8''{encoded_name}"
         return Response(
             content=bytes(file_data),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{file_name}"'}
+            headers={"Content-Disposition": content_disposition}
         )
     finally:
         conn.close()

@@ -29,13 +29,7 @@
     .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
     .header-logo svg { width:28px; height:28px; flex-shrink:0; }
     .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
-    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:#fff; }
     .header-right { display:flex; align-items:center; gap:10px; }
-    .page-badge {
-      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
-      color: var(--accent-light); border-radius:4px; padding:3px 10px;
-      font-size:0.75rem; font-weight:700;
-    }
     .user-badge {
       background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
       border-radius:20px; padding:4px 14px; color:#fff; font-size:0.8rem;
@@ -48,13 +42,6 @@
       transition:background 0.2s,color 0.2s;
     }
     .btn-logout:hover { background:var(--accent); color:var(--primary-dark); border-color:var(--accent); }
-    .btn-back {
-      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
-      color:#fff; border-radius:4px; padding:5px 12px;
-      font-size:0.75rem; cursor:pointer; text-decoration:none;
-      transition:background 0.2s;
-    }
-    .btn-back:hover { background:rgba(255,255,255,0.18); }
     .accent-bar { height:3px; background:linear-gradient(90deg,var(--primary-dark) 0%,var(--accent) 50%,var(--primary-dark) 100%); }
 
     /* ═══ MAIN ══════════════════════════════════════════════════ */
@@ -171,9 +158,9 @@
     </svg>
     <div class="header-logo-text">
       <div class="company">AX損害保険株式会社</div>
-      <div class="system" id="hdr-system-name">帳票管理</div>
     </div>
   </div>
+  <span class="header-center-title">帳票管理</span>
   <div class="header-right">
     <span class="page-badge">帳票管理</span>
     <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>

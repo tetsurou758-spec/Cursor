@@ -2,6 +2,9 @@ fastapi
 uvicorn[standard]
 python-jose[cryptography]
 bcrypt
+python-dotenv
+httpx
 openpyxl
-Pillow
-playwright
+reportlab
+svglib
+anthropic

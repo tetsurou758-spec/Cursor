@@ -29,7 +29,7 @@
     .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
     .header-logo svg { width:28px; height:28px; flex-shrink:0; }
     .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
-    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:#fff; }
+
     .header-right { display:flex; align-items:center; gap:10px; }
     .page-badge {
       background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
@@ -212,9 +212,9 @@
       </svg>
       <div class="header-logo-text">
         <div class="company">AX損害保険株式会社</div>
-        <div class="system">代理店Webシステム</div>
       </div>
     </div>
+    <span class="header-center-title">TODOリスト</span>
     <div class="header-right">
       <span class="page-badge"><i class="fa-solid fa-list-check" style="margin-right:5px"></i>TODOリスト</span>
       <div class="user-badge"><span id="hdr-code"></span><span id="hdr-name">--</span></div>
@@ -230,9 +230,11 @@
     <!-- 検索エリア -->
     <div class="search-card">
       <div class="search-grid">
-        <div class="field-group text">
-          <label>担当者コード</label>
-          <input type="text" id="search-staff" placeholder="例: staff1">
+        <div class="field-group sel">
+          <label>担当者</label>
+          <select id="search-staff">
+            <option value="">すべて</option>
+          </select>
         </div>
         <div class="field-group sel">
           <label>ステータス</label>
@@ -297,7 +299,9 @@
       </div>
       <div class="modal-field">
         <label>更新者</label>
-        <input type="text" id="modal-updated-by" placeholder="担当者IDを入力">
+        <select id="modal-updated-by">
+          <option value="">選択してください</option>
+        </select>
       </div>
       <div class="modal-field">
         <label>対応記録・メモ</label>
@@ -333,6 +337,9 @@
 
       document.getElementById('btn-logout').addEventListener('click', doLogout);
 
+      // 担当者プルダウンをAPIから生成
+      await loadStaffList(token);
+
       // URLパラメータで初期フィルタを適用
       const params = new URLSearchParams(location.search);
       if (params.get('status')) document.getElementById('search-status').value = params.get('status');
@@ -340,6 +347,42 @@
 
       await loadTodos();
     });
+
+    // ── 担当者コード→名前のルックアップマップ ──────────────────
+    const _staffMap = {};  // { "S001": "山田 花子", ... }
+
+    // staff_codeから「S001（山田 花子）」形式の文字列を返す
+    function staffLabel(code) {
+      if (!code) return '—';
+      const name = _staffMap[code];
+      return name ? `${code}（${name}）` : code;
+    }
+
+    // ── 担当者プルダウン生成 ────────────────────────────────────
+    async function loadStaffList(token) {
+      try {
+        const res = await fetch(`${API_BASE}/api/todos/staff-list`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const sel = document.getElementById('search-staff');
+        const modalSel = document.getElementById('modal-updated-by');
+        data.staff_list.forEach(s => {
+          // ルックアップマップに登録
+          if (s.staff_code) _staffMap[s.staff_code] = s.name || '';
+          const label = `${s.agency_code} ${s.staff_code}（${s.name || ''}）`;
+          [sel, modalSel].forEach(el => {
+            const opt = document.createElement('option');
+            opt.value = s.staff_code;
+            opt.textContent = label;
+            el.appendChild(opt);
+          });
+        });
+      } catch (e) {
+        console.warn('担当者一覧取得失敗:', e);
+      }
+    }
 
     // ── TODO一覧取得・描画 ──────────────────────────────────────
     async function loadTodos() {
@@ -390,8 +433,8 @@
                        : t.status === '対応中'  ? 'badge-taiochu'
                        : 'badge-kanryo';
         const due     = t.due_date  || '—';
-        const staff   = t.staff_code || '—';
-        const updBy   = t.updated_by || '—';
+        const staff   = staffLabel(t.staff_code);
+        const updBy   = staffLabel(t.updated_by);
         const updAt   = t.updated_at ? t.updated_at.replace('T', ' ').slice(0, 16) : '—';
         const title   = escHtml(t.title);
         const delBtn  = isAdmin
@@ -422,7 +465,7 @@
       document.getElementById('modal-status').value    = status;
       // デフォルト更新者: 空の場合はログインユーザーIDをセット
       const userType   = _ssGet('user_type') || 'agency';
-      const defaultUser = userType === 'staff' ? (_ssGet('staff_code') || '') : (_ssGet('login_id') || '');
+      const defaultUser = _ssGet('staff_code') || _ssGet('login_id') || '';
       document.getElementById('modal-updated-by').value = updatedBy || defaultUser;
       document.getElementById('modal-memo').value       = memo;
       document.getElementById('modal-backdrop').classList.add('open');

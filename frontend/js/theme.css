@@ -1,5 +1,64 @@
 /* theme.css - user_typeによる動的テーマ定義 */
 
+/* ═══ ヘッダー共通スタイル ═══════════════════════════════════════════════════ */
+
+/* 機能名を中央に絶対配置 */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.site-header .header-center-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 現在ページバッジ（非押下感） */
+.page-badge {
+  background: rgba(255,255,255,0.1) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  color: rgba(255,255,255,0.55) !important;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* 遷移ボタン共通（押下感・強調） */
+.btn-back,
+.header-back-link,
+.header-admin-link {
+  background: var(--accent) !important;
+  border: 1.5px solid var(--accent) !important;
+  color: var(--primary-dark) !important;
+  border-radius: 4px;
+  padding: 5px 13px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.1s;
+  display: inline-block;
+}
+
+.btn-back:hover,
+.header-back-link:hover,
+.header-admin-link:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+  background: var(--accent) !important;
+  color: var(--primary-dark) !important;
+}
+
 :root[data-theme="agency"] {
     --primary:       #1a2d5a;
     --primary-dark:  #0f1d3d;

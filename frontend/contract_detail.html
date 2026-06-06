@@ -28,13 +28,7 @@
     .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
     .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
     .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); }
-    .header-logo-text .system  { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; color: #fff; }
     .header-right { display: flex; align-items: center; gap: 10px; }
-    .page-badge {
-      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
-      color: var(--accent-light); border-radius: 4px; padding: 3px 10px;
-      font-size: 0.75rem; font-weight: 700;
-    }
     .user-badge {
       background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
       border-radius: 20px; padding: 4px 14px; color: #fff; font-size: 0.8rem;
@@ -47,13 +41,6 @@
       transition: background 0.2s, color 0.2s;
     }
     .btn-logout:hover { background: var(--accent); color: var(--primary-dark); border-color: var(--accent); }
-    .btn-back {
-      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
-      color: #fff; border-radius: 4px; padding: 5px 12px;
-      font-size: 0.75rem; cursor: pointer; text-decoration: none;
-      transition: background 0.2s;
-    }
-    .btn-back:hover { background: rgba(255,255,255,0.18); }
     .accent-bar { height: 3px; background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 50%, var(--primary-dark) 100%); }
 
     /* ═══ MAIN ══════════════════════════════════════════════════ */
@@ -175,6 +162,41 @@
     @media (max-width: 600px) {
       .detail-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ═══ リスクマップボタン・モーダル ═══════════════════════════ */
+    .btn-riskmap {
+      background: linear-gradient(135deg, #4A90D9 0%, #2563b0 100%);
+      color: #fff; border: none; border-radius: 5px;
+      padding: 8px 18px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-riskmap:hover { opacity: 0.85; }
+
+    .riskmap-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+    }
+    .riskmap-modal {
+      background: #fff; border-radius: 10px;
+      width: min(860px, 95vw); max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .riskmap-modal-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 14px 20px; display: flex; align-items: center;
+      justify-content: space-between; color: #fff;
+      font-size: 0.95rem; font-weight: 700;
+    }
+    .riskmap-modal-close {
+      background: transparent; border: none; color: rgba(255,255,255,0.8);
+      font-size: 1.1rem; cursor: pointer; padding: 2px 6px;
+      border-radius: 4px; transition: color 0.2s;
+    }
+    .riskmap-modal-close:hover { color: #fff; }
+    .riskmap-modal-body { flex: 1; overflow: auto; padding: 0; }
   </style>
 </head>
 <body>
@@ -190,11 +212,10 @@
     </svg>
     <div class="header-logo-text">
       <div class="company">AX損害保険株式会社</div>
-      <div class="system">契約詳細</div>
     </div>
   </div>
+  <span class="header-center-title">契約詳細</span>
   <div class="header-right">
-    <span class="page-badge">契約詳細</span>
     <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
     <a id="btn-back" href="maturity.html" class="btn-back">← 満期管理に戻る</a>
     <button class="btn-logout" id="btn-logout">ログアウト</button>
@@ -215,6 +236,12 @@
     <div class="detail-card">
       <div class="card-title">契約基本情報</div>
       <div class="detail-grid" id="card-basic"></div>
+      <!-- リスクマップボタン -->
+      <div style="margin-top:14px; text-align:right;">
+        <button class="btn-riskmap" id="btn-contract-riskmap" onclick="openContractRiskmap()">
+          <i class="fa-solid fa-chart-pie"></i> リスクマップ
+        </button>
+      </div>
     </div>
 
     <!-- カード2: 被保険者/契約者情報 -->
@@ -235,6 +262,22 @@
       <div id="card-accident-body"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- リスクマップPDFモーダル -->
+<div id="riskmap-modal-overlay" class="riskmap-overlay" style="display:none" onclick="closeRiskmapModal(event)">
+  <div class="riskmap-modal">
+    <div class="riskmap-modal-header">
+      <span id="riskmap-modal-title">リスクマップ</span>
+      <button class="riskmap-modal-close" onclick="closeRiskmapModal(null)">✕</button>
+    </div>
+    <div class="riskmap-modal-body">
+      <div id="riskmap-loading" style="display:none; text-align:center; padding:40px 0; color:#666;">
+        <i class="fa-solid fa-spinner fa-spin"></i> PDF生成中...
+      </div>
+      <iframe id="riskmap-iframe" src="" style="width:100%; height:70vh; border:none; display:none;"></iframe>
+    </div>
   </div>
 </div>
 
@@ -373,13 +416,14 @@
     return `<div class="detail-grid">${basic}</div>${amounts}${quake}${options}`;
   }
 
-  // 自賠責（jibai_coverage_limitはTEXTなのでval()を使用）
+  // 自賠責
   function renderJibai(c) {
     return `<div class="detail-grid">
       ${item('車名', val(esc(c.jibai_car_name)))}
       ${item('型式', val(esc(c.jibai_car_model)))}
       ${item('ナンバープレート', val(esc(c.jibai_plate_no)))}
-      ${item('保険金限度額', val(esc(c.jibai_coverage_limit)))}
+      ${item('傷害限度額', yen(c.jibai_injury_limit))}
+      ${item('死亡限度額', yen(c.jibai_death_limit))}
     </div>`;
   }
 
@@ -396,17 +440,26 @@
     </div>`;
   }
 
-  // 賠償責任（liab_coverage_limitはTEXTなのでval()を使用）
+  // 賠償責任
   function renderLiability(c) {
-    const deductibleVal = (c.liab_deductible === 0 || c.liab_deductible === '0' || c.liab_deductible === null)
-      ? 'なし'
-      : yen(c.liab_deductible);
     return `<div class="detail-grid">
       ${item('商品名', val(esc(c.product_name)))}
-      ${item('補償範囲', val(esc(c.liab_coverage_scope)))}
-      ${item('賠償責任保険金額限度額', val(esc(c.liab_coverage_limit)))}
-      ${item('免責金額', deductibleVal)}
-      ${item('示談交渉サービス', flag(c.liab_jidan_flg))}
+      ${item('対人賠償（1名）', val(esc(c.liab_bodily_limit_per_person)))}
+      ${item('対人賠償（1事故）', val(esc(c.liab_bodily_limit_per_accident)))}
+      ${item('対物賠償限度額', val(esc(c.liab_property_limit)))}
+    </div>`;
+  }
+
+  // 所得補償
+  function renderIncome(c) {
+    return `<div class="detail-grid">
+      ${item('商品名', val(esc(c.product_name)))}
+      ${item('補償対象', val(esc(c.income_coverage_type)))}
+      ${item('職業区分', val(esc(c.income_occupation_type)))}
+      ${item('月額保険金額', yen(c.income_monthly_benefit))}
+      ${item('月間平均所得', yen(c.income_monthly_income))}
+      ${item('免責期間', c.income_deductible_days != null ? `${c.income_deductible_days}日` : '—')}
+      ${item('てん補期間', val(esc(c.income_benefit_period)))}
     </div>`;
   }
 
@@ -439,6 +492,7 @@
       case '傷害':         return renderInjury(c);
       case '賠償責任':     return renderLiability(c);
       case 'サイバーリスク': return renderCyber(c);
+      case '所得補償':     return renderIncome(c);
       default:             return renderOther(c);
     }
   }
@@ -499,6 +553,65 @@
   }
 
   /* ─── 初期化 ─────────────────────────────────────────────── */
+
+  /* ─── リスクマップモーダル ───────────────────────────────────── */
+
+  // 契約リスクマップを生成してiframeモーダルで表示する
+  async function openContractRiskmap() {
+    if (!_contractNo) return;
+    const token = requireAuth();
+    if (!token) return;
+
+    // モーダル表示・ローディング開始
+    const overlay  = document.getElementById('riskmap-modal-overlay');
+    const loading  = document.getElementById('riskmap-loading');
+    const iframe   = document.getElementById('riskmap-iframe');
+    const titleEl  = document.getElementById('riskmap-modal-title');
+    titleEl.textContent = `リスクマップ（${_contractNo}）`;
+    overlay.style.display = 'flex';
+    loading.style.display = 'block';
+    iframe.style.display  = 'none';
+    iframe.src = '';
+
+    try {
+      // POST でPDFを生成
+      const res = await fetch(`${API_BASE}/api/riskmap/contract/${encodeURIComponent(_contractNo)}`, {
+        method:  'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert('リスクマップの生成に失敗しました: ' + (err.detail || res.status));
+        overlay.style.display = 'none';
+        return;
+      }
+      const data = await res.json();
+      // base64 → Blob URL → iframe表示
+      const binary = atob(data.pdf_data);
+      const bytes  = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob   = new Blob([bytes], { type: 'application/pdf' });
+      const url    = URL.createObjectURL(blob);
+      iframe.src           = url;
+      loading.style.display = 'none';
+      iframe.style.display  = 'block';
+    } catch (e) {
+      console.error('リスクマップ生成エラー:', e);
+      alert('リスクマップの生成中にエラーが発生しました。');
+      overlay.style.display = 'none';
+    }
+  }
+
+  // モーダルを閉じる（オーバーレイクリックまたは✕ボタン）
+  function closeRiskmapModal(event) {
+    if (event && event.target !== document.getElementById('riskmap-modal-overlay')) return;
+    const overlay = document.getElementById('riskmap-modal-overlay');
+    const iframe  = document.getElementById('riskmap-iframe');
+    // Blob URLを解放
+    if (iframe.src && iframe.src.startsWith('blob:')) URL.revokeObjectURL(iframe.src);
+    iframe.src = '';
+    overlay.style.display = 'none';
+  }
 
   document.addEventListener('DOMContentLoaded', async () => {
     // 認証ガード

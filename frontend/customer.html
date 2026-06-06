@@ -11,16 +11,14 @@
     body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--gray-bg); color: #333; min-height: 100vh; }
 
     /* ── ヘッダー ── */
-    .header { background: var(--primary); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 12px var(--primary-shadow); position: relative; top: 0; z-index: 100; }
     .header-left { display: flex; align-items: center; gap: 16px; }
     .header-logo { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
-    .header-title { font-size: 14px; color: rgba(255,255,255,.8); }
+    .header-title { display: none; }
     .header-right { display: flex; align-items: center; gap: 16px; }
     .header-user { font-size: 13px; color: rgba(255,255,255,.85); }
     .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; }
     .btn-logout:hover { background: rgba(255,255,255,.15); }
-    .btn-back { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; text-decoration: none; }
-    .btn-back:hover { background: rgba(255,255,255,.25); }
 
     /* ── 説明バナー ── */
     .info-banner { background: #fffbe6; border-left: 4px solid #f59e0b; padding: 10px 20px; margin: 16px 24px 0; border-radius: 4px; font-size: 13px; color: #6b4800; }
@@ -218,12 +216,12 @@
 <!-- ── ヘッダー ── -->
 <header class="header">
   <div class="header-left">
-    <div class="header-logo">🛡 AX損害保険</div>
-    <div class="header-title">顧客管理システム</div>
+    <div class="header-logo">🛡 AX損害保険株式会社</div>
   </div>
+  <span class="header-center-title">顧客管理</span>
   <div class="header-right">
     <span class="header-user" id="header-user-info"></span>
-    <a id="btn-back-header" href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <a id="btn-back-header" href="dashboard.html" class="btn-back">← ダッシュボードへ</a>
     <button class="btn-logout" onclick="doLogout()">ログアウト</button>
   </div>
 </header>
@@ -313,6 +311,7 @@
           <th>代理店</th>
           <th>電話番号</th>
           <th style="width:90px" class="center">コンタクト</th>
+          <th style="width:80px" class="center">AI分析</th>
           <th class="ps-th">車</th>
           <th class="ps-th">火</th>
           <th class="ps-th">傷</th>
@@ -323,7 +322,7 @@
         </tr>
       </thead>
       <tbody id="customer-tbody">
-        <tr><td colspan="14" class="loading">読み込み中...</td></tr>
+        <tr><td colspan="15" class="loading">読み込み中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -431,7 +430,7 @@
   // ── 単一顧客表示（満期管理リンクからの遷移）──────────────────
   async function loadSingleCustomer(customerId) {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="14" class="loading">読み込み中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" class="loading">読み込み中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
 
     try {
@@ -439,7 +438,7 @@
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       if (!res.ok) {
-        tbody.innerHTML = `<tr><td colspan="14" class="empty">顧客が見つかりません（ID: ${customerId}）</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" class="empty">顧客が見つかりません（ID: ${customerId}）</td></tr>`;
         return;
       }
       const data = await res.json();
@@ -450,14 +449,14 @@
         await toggleDetail(customerId);
       }
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
   // ── 検索 ────────────────────────────────────────────────────────
   async function searchCustomers() {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="14" class="loading">検索中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" class="loading">検索中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
 
     const params = new URLSearchParams();
@@ -491,13 +490,13 @@
       document.getElementById('result-count').textContent = data.total;
       renderTable(data.customers);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
   async function searchCustomersByTel(tel) {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="14" class="loading">検索中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" class="loading">検索中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
     const params = new URLSearchParams({ tel });
     try {
@@ -509,13 +508,13 @@
       document.getElementById('result-count').textContent = data.total;
       renderTable(data.customers);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
   async function searchCustomersByContract(contractNo) {
     const tbody = document.getElementById('customer-tbody');
-    tbody.innerHTML = '<tr><td colspan="14" class="loading">検索中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" class="loading">検索中...</td></tr>';
     document.getElementById('result-count').textContent = '-';
     const params = new URLSearchParams({ contract_no: contractNo });
     try {
@@ -527,7 +526,7 @@
       document.getElementById('result-count').textContent = data.total;
       renderTable(data.customers);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="14" class="empty">通信エラーが発生しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">通信エラーが発生しました</td></tr>';
     }
   }
 
@@ -554,7 +553,7 @@
   function renderTable(customers) {
     const tbody = document.getElementById('customer-tbody');
     if (!customers.length) {
-      tbody.innerHTML = '<tr><td colspan="14" class="empty">該当する顧客が見つかりません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" class="empty">該当する顧客が見つかりません</td></tr>';
       return;
     }
 
@@ -594,6 +593,12 @@
         <td>${agencyBadges}</td>
         <td class="tel-masked">${maskTel(c.tel)}</td>
         <td class="center">${contactCell}</td>
+        <td class="center">
+          <button onclick="event.stopPropagation(); analyzeCustomer(event, ${c.customer_id})"
+            style="background:var(--accent);color:var(--primary-dark);border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;">
+            <i class="fas fa-robot"></i> AI分析
+          </button>
+        </td>
         ${psTds}
       `;
       tbody.appendChild(mainRow);
@@ -603,7 +608,7 @@
       detailRow.id    = detailId;
       detailRow.className = 'detail-row';
       detailRow.style.display = 'none';
-      detailRow.innerHTML = `<td colspan="14" class="detail-cell" id="detail-content-${c.customer_id}">
+      detailRow.innerHTML = `<td colspan="15" class="detail-cell" id="detail-content-${c.customer_id}">
         <div style="color:#999;font-size:12px">読み込み中...</div>
       </td>`;
       tbody.appendChild(detailRow);
@@ -755,13 +760,67 @@
 
   function showError(tbody, status) {
     const msg = status === 401 ? '認証エラー。再ログインしてください' : `エラー（${status}）`;
-    tbody.innerHTML = `<tr><td colspan="14" class="empty">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" class="empty">${msg}</td></tr>`;
   }
 
   // Enter キーで検索
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter') searchCustomers();
   });
+
+  // ── AI分析（個別顧客） ───────────────────────────────────────────
+  async function analyzeCustomer(event, customerId) {
+    const btn = event.target.closest('button');
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/recommend/${customerId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert('AI分析に失敗しました: ' + (data.detail || res.status));
+        return;
+      }
+      showAiRecommendModal(data);
+    } catch (e) {
+      alert('AI分析に失敗しました');
+    } finally {
+      btn.disabled  = false;
+      btn.innerHTML = '<i class="fas fa-robot"></i> AI分析';
+    }
+  }
+
+  // ── AIレコメンド結果モーダル表示 ────────────────────────────────
+  function showAiRecommendModal(data) {
+    const types = (data.recommend_types || []).join('、');
+    const score = Math.round((data.risk_score || 0) * 100);
+    const cls   = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
+    const levelLabels = { high: 'ハイリスク', medium: '中リスク', low: '低リスク' };
+    const levelColors = { high: '#ef4444', medium: '#f59e0b', low: '#22c55e' };
+
+    // モーダル内容を更新
+    document.getElementById('ai-modal-name').textContent    = `${data.customer_name || ''} 様`;
+    document.getElementById('ai-modal-types').innerHTML     =
+      (data.recommend_types || []).map(t =>
+        `<span style="display:inline-block;background:#22c55e;color:#fff;border-radius:12px;padding:2px 10px;font-size:0.72rem;font-weight:700;margin:2px">${t}</span>`
+      ).join('') || '<span style="color:#999">なし</span>';
+    document.getElementById('ai-modal-score-pct').textContent  = score + '%';
+    document.getElementById('ai-modal-score-label').textContent = levelLabels[cls];
+    document.getElementById('ai-modal-score-label').style.color = levelColors[cls];
+    const barEl = document.getElementById('ai-modal-score-bar');
+    barEl.style.width      = score + '%';
+    barEl.style.background = levelColors[cls];
+    document.getElementById('ai-modal-reason').textContent = data.reason || '—';
+
+    document.getElementById('ai-recommend-modal-overlay').classList.add('open');
+  }
+
+  // AIレコメンドモーダルを閉じる
+  function closeAiRecommendModal() {
+    document.getElementById('ai-recommend-modal-overlay').classList.remove('open');
+  }
 
   // ── トースト通知 ──────────────────────────────────────────────────
   function showToastNotify(msg, isError = false) {
@@ -881,6 +940,52 @@
 
 <!-- トースト通知 -->
 <div class="toast-notify" id="toast-notify"></div>
+
+<!-- AIレコメンド結果モーダル -->
+<div id="ai-recommend-modal-overlay"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1200;align-items:center;justify-content:center;"
+  onclick="if(event.target===this)closeAiRecommendModal()">
+  <div style="background:#fff;border-radius:10px;width:480px;max-width:95vw;padding:28px 30px;position:relative;box-shadow:0 8px 40px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;">
+    <button onclick="closeAiRecommendModal()"
+      style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.3rem;color:#999;cursor:pointer;">×</button>
+    <div style="font-size:1rem;font-weight:700;color:var(--primary);margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+      <span style="display:inline-block;width:4px;height:18px;background:var(--accent);border-radius:2px;"></span>
+      <i class="fas fa-robot" style="color:var(--accent)"></i> AIレコメンド結果
+    </div>
+    <div id="ai-modal-name" style="font-size:1.1rem;font-weight:800;color:#333;margin-bottom:18px;"></div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--primary);letter-spacing:0.04em;margin-bottom:6px;">推奨種目</div>
+      <div id="ai-modal-types"></div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--primary);letter-spacing:0.04em;margin-bottom:6px;">
+        リスクスコア：<span id="ai-modal-score-pct" style="font-size:1rem;font-weight:800;">0%</span>
+        <span id="ai-modal-score-label" style="font-size:0.8rem;margin-left:8px;font-weight:700;"></span>
+      </div>
+      <div style="width:100%;height:12px;background:#e5e7eb;border-radius:6px;overflow:hidden;">
+        <div id="ai-modal-score-bar" style="height:100%;border-radius:6px;transition:width 0.5s ease;width:0%;"></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;color:var(--primary);letter-spacing:0.04em;margin-bottom:6px;">推奨理由</div>
+      <div id="ai-modal-reason" style="font-size:0.82rem;color:#333;line-height:1.6;white-space:pre-wrap;"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+      <button onclick="closeAiRecommendModal()"
+        style="background:#fff;color:var(--primary);border:1.5px solid #d1d5db;border-radius:4px;padding:8px 18px;font-size:0.85rem;cursor:pointer;">
+        閉じる
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  // AIレコメンドモーダルはdisplay:flexで表示する
+  document.getElementById('ai-recommend-modal-overlay').style.display = 'none';
+  // openクラスでflex表示
+  const _aiModalStyle = document.createElement('style');
+  _aiModalStyle.textContent = '#ai-recommend-modal-overlay.open{display:flex!important;}';
+  document.head.appendChild(_aiModalStyle);
+</script>
 
 <!-- 顧客リスクマップPDFモーダル -->
 <div id="customer-riskmap-overlay" class="riskmap-overlay" onclick="closeCustomerRiskmapModal(event)">

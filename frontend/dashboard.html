@@ -37,7 +37,7 @@
     .header-logo svg { width:28px; height:28px; flex-shrink:0; }
     .header-logo-text { line-height:1.2; }
     .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
-    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:#fff; }
+
 
     .header-user { display:flex; align-items:center; gap:12px; }
 
@@ -167,7 +167,7 @@
 
     /* ═══ NAV ═══════════════════════════════════════════════════ */
     .nav-section { margin-bottom:28px; }
-    .nav-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+    .nav-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; }
 
     .nav-btn {
       background: #fff;
@@ -312,8 +312,10 @@
     /* ═══ RESPONSIVE ════════════════════════════════════════════ */
     @media (max-width:1100px) { .charts-grid { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:700px)  { .charts-grid { grid-template-columns:1fr; } }
-    @media (max-width:900px) { .nav-grid { grid-template-columns:repeat(2,1fr); } .bottom-grid { grid-template-columns:1fr; } }
-    @media (max-width:520px) { .nav-grid { grid-template-columns:repeat(2,1fr); } .site-header { padding:0 14px; } .header-logo-text .company { display:none; } }
+    @media (max-width:1100px) { .nav-grid { grid-template-columns:repeat(4,1fr); } }
+    @media (max-width:900px)  { .nav-grid { grid-template-columns:repeat(3,1fr); } .bottom-grid { grid-template-columns:1fr; } }
+    @media (max-width:620px)  { .nav-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:520px)  { .site-header { padding:0 14px; } .header-logo-text .company { display:none; } }
   </style>
 </head>
 <body>
@@ -330,11 +332,11 @@
       </svg>
       <div class="header-logo-text">
         <div class="company">AX損害保険株式会社</div>
-        <div class="system" id="hdr-system-name">代理店Webシステム</div>
       </div>
     </div>
+    <span class="header-center-title">ダッシュボード</span>
     <div class="header-user">
-      <a href="admin.html" class="header-admin-link" id="admin-link">ユーザー管理</a>
+      <a href="admin.html" class="header-admin-link" id="admin-link">ユーザー管理へ</a>
       <div class="user-badge">
         <span class="badge-code" id="hdr-code"></span><span class="badge-login" id="hdr-name">--</span><span class="badge-role" id="hdr-role"></span><span class="badge-buka" id="hdr-buka"></span>
       </div>
@@ -456,6 +458,11 @@
         <a href="report_list.html" class="nav-btn" id="btn-report">
           <span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span>
           <span class="nav-label">帳票管理</span>
+        </a>
+        <!-- AIレコメンドボタン -->
+        <a href="ai_recommend.html" class="nav-btn" id="btn-ai-recommend">
+          <span class="nav-icon"><i class="fa-solid fa-robot"></i></span>
+          <span class="nav-label">AIレコメンド</span>
         </a>
       </div>
     </section>
@@ -683,7 +690,7 @@
       }
 
       if (userType === 'staff') {
-        document.getElementById('hdr-system-name').textContent = '社員専用システム';
+        // hdr-system-name は header-center-title に移行したため削除済み
         const staffCode = _ssGet('staff_code') || '';
         const staffName = _ssGet('staff_name') || '';
         const roleName  = _ssGet('staff_role_name') || '';
