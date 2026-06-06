@@ -172,6 +172,8 @@
     .nav-btn {
       background: #fff;
       border: 1.5px solid var(--gray-border);
+      font-family: inherit; /* buttonタグのフォント継承 */
+      cursor: pointer;      /* buttonタグにもポインタ */
       border-radius: 10px;
       padding: 28px 16px 22px;
       text-align: center;
@@ -444,23 +446,33 @@
           <span class="nav-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
           <span class="nav-label">保険金支払状況</span>
         </a>
-        <!-- 成績管理ボタン：代理店ユーザーのみ表示 -->
-        <a href="sales.html" class="nav-btn agency-only-btn" id="btn-sales" data-tooltip="権限がありません" style="display:none">
-          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
-          <span class="nav-label">成績管理</span>
-        </a>
-        <!-- TODOリストボタン -->
-        <a href="todo_list.html" class="nav-btn" id="btn-todo">
-          <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
-          <span class="nav-label">TODOリスト</span>
-        </a>
-        <!-- 帳票管理ボタン -->
+        <!-- 帳票管理ボタン（行1の5番目） -->
         <a href="report_list.html" class="nav-btn" id="btn-report">
           <span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span>
           <span class="nav-label">帳票管理</span>
         </a>
-        <!-- AIレコメンドボタン -->
-        <a href="ai_recommend.html" class="nav-btn" id="btn-ai-recommend">
+        <!-- 成績管理ボタン：代理店ユーザーのみ表示（行2の1番目） -->
+        <a href="sales.html" class="nav-btn agency-only-btn" id="btn-sales" data-tooltip="権限がありません" style="display:none">
+          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+          <span class="nav-label">成績管理</span>
+        </a>
+        <!-- TODOリストボタン（行2の2番目） -->
+        <a href="todo_list.html" class="nav-btn" id="btn-todo">
+          <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+          <span class="nav-label">TODOリスト</span>
+        </a>
+        <!-- 手数料管理ボタン（準備中・行2の3番目） -->
+        <button class="nav-btn" id="btn-commission" onclick="showComingSoon('手数料管理')">
+          <span class="nav-icon"><i class="fa-solid fa-coins"></i></span>
+          <span class="nav-label">手数料管理</span>
+        </button>
+        <!-- 意向確認ボタン（準備中・行2の4番目） -->
+        <button class="nav-btn" id="btn-intent" onclick="showComingSoon('意向確認')">
+          <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+          <span class="nav-label">意向確認</span>
+        </button>
+        <!-- AIレコメンドボタン（代理店のみ・行2の5番目） -->
+        <a href="ai_recommend.html" class="nav-btn agency-only-btn" id="btn-ai-recommend" style="display:none">
           <span class="nav-icon"><i class="fa-solid fa-robot"></i></span>
           <span class="nav-label">AIレコメンド</span>
         </a>
@@ -522,9 +534,45 @@
 
   <footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
 
+  <!-- ═══ 準備中モーダル ════════════════════════════════════════════ -->
+  <div id="coming-soon-modal" style="
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    z-index:9000; align-items:center; justify-content:center;">
+    <div style="
+      background:#fff; border-radius:14px; padding:40px 48px; text-align:center;
+      box-shadow:0 8px 40px rgba(0,0,0,0.22); min-width:300px; max-width:380px;">
+      <div style="font-size:2.8rem; margin-bottom:14px;">🚧</div>
+      <div style="font-size:1.25rem; font-weight:700; color:var(--primary-dark); margin-bottom:10px;">準備中</div>
+      <div id="coming-soon-name" style="font-size:0.95rem; color:var(--text-sub); margin-bottom:20px;"></div>
+      <p style="font-size:0.9rem; color:var(--text-main); line-height:1.6; margin-bottom:28px;">
+        この機能は現在開発中です。<br>もうしばらくお待ちください。
+      </p>
+      <button onclick="closeComingSoon()" style="
+        background:var(--primary); color:#fff; border:none; border-radius:8px;
+        padding:10px 36px; font-size:0.95rem; font-weight:700; cursor:pointer;
+        transition:opacity 0.2s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+        閉じる
+      </button>
+    </div>
+  </div>
+
   <script>
     const API_BASE = 'http://127.0.0.1:8000';
     let chartPrev, chartCurrent, chartNext;
+
+    // ── 準備中モーダル ──────────────────────────────────────────────
+    function showComingSoon(featureName) {
+      document.getElementById('coming-soon-name').textContent = `「${featureName}」`;
+      const modal = document.getElementById('coming-soon-modal');
+      modal.style.display = 'flex';
+    }
+    function closeComingSoon() {
+      document.getElementById('coming-soon-modal').style.display = 'none';
+    }
+    // モーダル外クリックで閉じる
+    document.getElementById('coming-soon-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeComingSoon();
+    });
 
     function buildDonut(canvasId, color, bgColor) {
       const ctx = document.getElementById(canvasId).getContext('2d');
@@ -683,10 +731,12 @@
       document.getElementById('legend-dot1').style.background = c1;
       document.getElementById('legend-dot2').style.background = c2;
 
-      // 代理店ユーザーのみ成績管理ボタンを表示
+      // 代理店ユーザーのみ表示するボタン（成績管理・AIレコメンド）
       if (userType !== 'staff') {
         const salesBtn = document.getElementById('btn-sales');
         if (salesBtn) salesBtn.style.display = '';
+        const aiBtn = document.getElementById('btn-ai-recommend');
+        if (aiBtn) aiBtn.style.display = '';
       }
 
       if (userType === 'staff') {
