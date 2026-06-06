@@ -1082,6 +1082,12 @@ def get_customer_detail(customer_id: int, payload: dict = Depends(verify_token))
         cust_dict["multi_agency"]   = len(held_agencies) > 1
         cust_dict["contract_count"] = len(contracts)
 
+        # コンタクト履歴件数（顧客一覧APIと同形式で付与）
+        cnt_row = conn.execute(
+            "SELECT COUNT(*) AS cnt FROM contacts WHERE customer_id = ?", (customer_id,)
+        ).fetchone()
+        cust_dict["contact_count"] = cnt_row["cnt"] if cnt_row else 0
+
         return {"customer": cust_dict, "contracts": contracts}
     finally:
         conn.close()
