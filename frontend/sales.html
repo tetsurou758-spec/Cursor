@@ -129,11 +129,11 @@
     tbody td:last-child { border-right:none; }
 
     /* セル内レイアウト（高さ統一のため常に同じ構造） */
-    .cell-inner  { display:flex; flex-direction:column; gap:2px; min-width:110px; min-height:72px; justify-content:center; }
+    .cell-inner  { display:flex; flex-direction:column; gap:2px; min-width:128px; min-height:72px; justify-content:center; }
     /* 目標・実績：見出し左・金額右のflex配置、両方bold */
-    .cell-target { display:flex; justify-content:space-between; gap:4px; font-size:0.78rem; font-weight:700; color:var(--text-sub); }
-    .cell-actual { display:flex; justify-content:space-between; gap:4px; font-size:0.78rem; font-weight:700; color:var(--primary); }
-    .cell-rate   { font-size:0.78rem; color:var(--text-sub); text-align:center; }
+    .cell-target { display:flex; justify-content:space-between; gap:4px; font-size:0.70rem; font-weight:700; color:var(--text-sub); white-space:nowrap; }
+    .cell-actual { display:flex; justify-content:space-between; gap:4px; font-size:0.70rem; font-weight:700; color:var(--primary); white-space:nowrap; }
+    .cell-rate   { font-size:0.70rem; color:var(--text-sub); text-align:center; }
     .cell-empty  { color:var(--text-sub); text-align:center; }
 
     /* プログレスバー */

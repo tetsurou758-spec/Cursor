@@ -138,21 +138,25 @@
     /* 目標設定セル */
     .cell-inner { display:flex; flex-direction:column; gap:4px; min-width:110px; padding:2px; }
     /* cell-inner全体をgridにして全行を揃える */
-    .cell-inner { display:grid; grid-template-columns:68px 82px; gap:3px 3px; align-items:center; }
-    .cell-prev-label  { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
-    .cell-prev-amount { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
-    .cell-label       { font-size:0.78rem; color:#000; white-space:nowrap; text-align:right; }
+    .cell-inner { display:grid; grid-template-columns:62px 90px; gap:3px 3px; align-items:center; }
+    .cell-prev-label  { font-size:0.70rem; color:#000; white-space:nowrap; text-align:right; }
+    .cell-label       { font-size:0.70rem; color:#000; white-space:nowrap; text-align:right; }
     .cell-input {
       border:1.5px solid var(--gray-border); border-radius:3px;
-      padding:2px 6px; font-size:0.78rem; width:80px; outline:none;
+      padding:2px 6px; font-size:0.70rem; width:88px; outline:none;
       transition:border-color 0.2s; text-align:right; color:#000;
     }
     .cell-input:focus { border-color:var(--primary); }
     .cell-input::placeholder { color:#ccc; }
+    /* 前年度実績・次年度目標の非活性input：通常のdisabledより濃くBOLDで表示 */
+    .cell-input.inp-prev {
+      background:var(--gray-card); border-color:transparent;
+      color:#333; font-weight:700; cursor:default; pointer-events:none;
+    }
     /* TOTAL行はinputを非表示（集計のみ表示） */
     .row-total .cell-input { display:none; }
     .row-total .cell-label { display:none; }
-    .row-total .cell-calc { font-size:0.78rem; font-weight:700; color:var(--primary); }
+    .row-total .cell-calc { font-size:0.70rem; font-weight:700; color:var(--primary); }
 
     /* トースト通知 */
     .toast {
@@ -498,7 +502,8 @@
         const tgtFmt = tgtVal != null && tgtVal > 0 ? fmtMoney(tgtVal) : '';
         return `<td><div class="cell-inner">
           <span class="cell-prev-label">前年度実績：</span>
-          <span class="cell-prev-amount">${prevVal != null ? yen(prevVal) : '—'}</span>
+          <input type="text" class="cell-input inp-prev" readonly tabindex="-1"
+            value="${prevVal != null ? yen(prevVal) : '—'}">
           <span class="cell-label">目標設定率：</span>
           <input type="text" class="cell-input inp-rate"
             id="${rateId}"
@@ -524,7 +529,9 @@
           <td>${pt.label}</td>
           ${cells}
           <td><div class="cell-inner">
-            <span class="cell-prev-label">前年度実績：</span><span class="cell-prev-amount">${prevYearSum != null ? yen(prevYearSum) : '—'}</span>
+            <span class="cell-prev-label">前年度実績：</span>
+            <input type="text" class="cell-input inp-prev" readonly tabindex="-1"
+              value="${prevYearSum != null ? yen(prevYearSum) : '—'}">
             <span class="cell-calc" id="year-total-label">次年度目標：${yen(tgtYearSum)}</span>
           </div></td>
         </tr>`;
@@ -534,7 +541,9 @@
         <td>${pt.label}</td>
         ${cells}
         <td><div class="cell-inner">
-          <span class="cell-prev-label" id="prev-year-${pt.code}">前年度実績：</span><span class="cell-prev-amount">${yen(sumAllMonths(prevActuals[pt.code] || {}))}</span>
+          <span class="cell-prev-label" id="prev-year-${pt.code}">前年度実績：</span>
+          <input type="text" class="cell-input inp-prev" readonly tabindex="-1"
+            value="${yen(sumAllMonths(prevActuals[pt.code] || {}))}">
           <span class="cell-calc" id="tgt-year-${pt.code}">次年度目標：${yen(sumTgtRow(pt.code))}</span>
         </div></td>
       </tr>`;
