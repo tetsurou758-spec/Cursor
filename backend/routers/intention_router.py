@@ -297,19 +297,24 @@ def get_intentions(
         offset = (page - 1) * limit
         paged  = all_rows[offset:offset + limit]
 
-        # 未記録件数：intention_confirmationsに存在しない契約の件数
-        unrecorded_row = conn.execute("""
-            SELECT COUNT(*) as count
+        # ステータス別件数を全件（フィルタ前）から集計
+        count_rows = conn.execute("""
+            SELECT COALESCE(i.status, '未記録') AS status, COUNT(*) AS cnt
             FROM contracts c
             LEFT OUTER JOIN intention_confirmations i ON c.contract_no = i.policy_no
             WHERE c.agency_code = ?
-              AND (i.id IS NULL OR i.status = '未記録')
-        """, (agency_code,)).fetchone()
-        unrecorded_count = unrecorded_row["count"] if unrecorded_row else 0
+            GROUP BY COALESCE(i.status, '未記録')
+        """, (agency_code,)).fetchall()
+        count_map = {r["status"]: r["cnt"] for r in count_rows}
+        unrecorded_count = count_map.get("未記録", 0)
+        recorded_count   = count_map.get("記録済", 0)
+        confirmed_count  = count_map.get("確認済", 0)
 
         return {
             "total":            total,
             "unrecorded_count": unrecorded_count,
+            "recorded_count":   recorded_count,
+            "confirmed_count":  confirmed_count,
             "page":             page,
             "limit":            limit,
             "intentions":       [dict(r) for r in paged],

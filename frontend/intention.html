@@ -276,13 +276,13 @@
           <label>保険種目</label>
           <select id="search-policy-type">
             <option value="">すべて</option>
-            <option value="AUTO">自動車</option>
-            <option value="FIRE">火災</option>
-            <option value="INJURY">傷害</option>
-            <option value="JIBAI">自賠責</option>
-            <option value="LIABILITY">賠償責任</option>
-            <option value="CYBER">サイバーリスク</option>
-            <option value="INCOME">所得補償</option>
+            <option value="自動車">自動車</option>
+            <option value="火災">火災</option>
+            <option value="傷害">傷害</option>
+            <option value="自賠責">自賠責</option>
+            <option value="賠償責任">賠償責任</option>
+            <option value="サイバーリスク">サイバーリスク</option>
+            <option value="所得補償">所得補償</option>
           </select>
         </div>
         <div class="field-group text">
@@ -475,7 +475,7 @@
     // テーブルを描画
     function renderTable(data) {
       const tbody = document.getElementById('intention-tbody');
-      const items = data.items || [];
+      const items = data.intentions || [];  // APIはintentionsキーで返す
       if (!items.length) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">該当する意向確認記録はありません</td></tr>';
         return;
@@ -491,7 +491,8 @@
           ? `<button class="btn-record" onclick="openModal(${JSON.stringify(item).replace(/"/g,'&quot;')})">記録</button>`
           : `<button class="btn-edit"   onclick="openModal(${JSON.stringify(item).replace(/"/g,'&quot;')})">編集</button>`;
 
-        const policyTypeLabel = POLICY_TYPE_LABEL[item.policy_type] || item.policy_type || '—';
+        // DBのpolicy_typeは日本語のためそのまま表示
+        const policyTypeLabel = item.policy_type || '—';
         const updAt = item.updated_at ? item.updated_at.replace('T', ' ').slice(0, 16) : '—';
 
         return `<tr>
@@ -506,12 +507,12 @@
       }).join('');
     }
 
-    // 集計バッジを描画
+    // 集計バッジを描画（APIキー名に合わせる）
     function renderBadges(data) {
-      document.getElementById('cnt-total').textContent      = (data.total        || 0).toLocaleString();
-      document.getElementById('cnt-unrecorded').textContent = (data.unrecorded   || 0).toLocaleString();
-      document.getElementById('cnt-recorded').textContent   = (data.recorded     || 0).toLocaleString();
-      document.getElementById('cnt-confirmed').textContent  = (data.confirmed    || 0).toLocaleString();
+      document.getElementById('cnt-total').textContent      = (data.total            || 0).toLocaleString();
+      document.getElementById('cnt-unrecorded').textContent = (data.unrecorded_count || 0).toLocaleString();
+      document.getElementById('cnt-recorded').textContent   = (data.recorded_count   || 0).toLocaleString();
+      document.getElementById('cnt-confirmed').textContent  = (data.confirmed_count  || 0).toLocaleString();
     }
 
     // ページネーションを描画

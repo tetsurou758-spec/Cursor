@@ -419,21 +419,23 @@
         throw new Error(err.detail || '保存に失敗しました');
       }
 
-      // 保存成功 → DBから最新データを再取得して画面を更新
+      // 保存成功
       const result = await res.json();
       if (!id && result.id) {
         document.getElementById('intention-id').value = result.id;
       }
+      // 成功メッセージを確実に表示（loadDataより先に設定）
       document.getElementById('alert-success').style.display = '';
       document.getElementById('alert-error').style.display   = 'none';
-
-      // 再取得で画面全体を最新化（ステータスバッジ・各フォームフィールド）
-      await loadData();
-
-      // 3秒後にアラートを非表示
+      // 3秒後にアラートを非表示（loadDataの成否に関わらず動作）
       setTimeout(() => {
         document.getElementById('alert-success').style.display = 'none';
       }, 3000);
+
+      // DBから最新データを再取得して画面を更新（失敗してもメッセージには影響させない）
+      try {
+        await loadData();
+      } catch (_) { /* 再取得失敗は無視 */ }
 
     } catch (e) {
       console.error('保存エラー:', e);
