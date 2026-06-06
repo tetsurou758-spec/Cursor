@@ -42,6 +42,14 @@ app.include_router(riskmap_router, prefix="/api")
 from backend.routers.ai_router import router as ai_router  # noqa: E402
 app.include_router(ai_router, prefix="/api")
 
+# 手数料管理ルーターを登録
+from backend.routers.commission_router import router as commission_router  # noqa: E402
+app.include_router(commission_router, prefix="/api")
+
+# 意向確認ルーターを登録
+from backend.routers.intention_router import router as intention_router  # noqa: E402
+app.include_router(intention_router, prefix="/api")
+
 # JWT設定（本番環境では環境変数から取得すること）
 SECRET_KEY = "CHANGE_THIS_SECRET_IN_PRODUCTION"
 ALGORITHM = "HS256"

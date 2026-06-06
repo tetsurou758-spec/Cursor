@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>手数料管理｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+    .header-logo svg { width:28px; height:28px; flex-shrink:0; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
+
+    .header-right { display:flex; align-items:center; gap:10px; }
+    .page-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
+      color: var(--accent-light); border-radius:4px; padding:3px 10px;
+      font-size:0.75rem; font-weight:700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
+      border-radius:20px; padding:4px 14px; color:#fff; font-size:0.8rem;
+    }
+    .user-badge span { color:var(--accent); font-weight:700; margin-right:6px; }
+    .btn-logout {
+      background:transparent; border:1.5px solid var(--accent-border-btn);
+      color:var(--accent-light); border-radius:4px; padding:5px 14px;
+      font-size:0.78rem; font-weight:600; cursor:pointer;
+      transition:background 0.2s,color 0.2s;
+    }
+    .btn-logout:hover { background:var(--accent); color:var(--primary-dark); border-color:var(--accent); }
+    .btn-back {
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; border-radius:4px; padding:5px 12px;
+      font-size:0.75rem; cursor:pointer; text-decoration:none;
+      transition:background 0.2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,0.18); }
+    .accent-bar { height:3px; background:linear-gradient(90deg,var(--primary-dark) 0%,var(--accent) 50%,var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width:1400px; margin:0 auto; padding:20px 16px 40px; }
+    .page-title {
+      font-size:1.1rem; font-weight:700; color:var(--primary);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .page-title::before { content:''; display:inline-block; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+
+    /* ═══ CARD ══════════════════════════════════════════════════ */
+    .card {
+      background:#fff; border-radius:8px;
+      box-shadow:0 2px 10px var(--card-shadow);
+      padding:18px 20px; margin-bottom:16px;
+    }
+    .card-title {
+      font-size:0.85rem; font-weight:700; color:var(--primary);
+      margin-bottom:14px; display:flex; align-items:center; gap:6px;
+    }
+    .card-title::before { content:''; display:inline-block; width:3px; height:16px; background:var(--accent); border-radius:2px; }
+
+    /* ═══ 年度・月選択パネル ═══════════════════════════════════ */
+    .filter-row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+    .field-group { display:flex; flex-direction:column; gap:4px; }
+    .field-group label { font-size:0.72rem; font-weight:600; color:var(--primary); letter-spacing:0.04em; }
+    .field-group select {
+      border:1.5px solid var(--gray-border); border-radius:4px;
+      padding:6px 10px; font-size:0.82rem; color:var(--text-main);
+      outline:none; background:#fff; transition:border-color 0.2s; height:32px;
+    }
+    .field-group select:focus { border-color:var(--primary); }
+    .btn-display {
+      background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
+      color:#fff; border:none; border-radius:4px;
+      padding:0 20px; height:32px; font-size:0.82rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+    }
+    .btn-display:hover { opacity:0.88; }
+
+    /* ═══ ワークフローバー ══════════════════════════════════════ */
+    .workflow-bar {
+      display:flex; align-items:center; flex-wrap:wrap; gap:4px;
+    }
+    .wf-step {
+      border-radius:6px; background:#fff; border:1px solid var(--gray-border);
+      padding:8px 16px; font-size:0.78rem; font-weight:500;
+      white-space:nowrap;
+    }
+    .wf-step.done {
+      background:#dcfce7; border-color:#16a34a; color:#15803d;
+    }
+    .wf-step.current {
+      background:var(--primary); border-color:var(--primary);
+      color:#fff; font-weight:700;
+    }
+    .wf-arrow { color:var(--text-sub); padding:0 4px; font-size:0.85rem; }
+
+    /* ═══ サマリーカード（3列） ════════════════════════════════ */
+    .summary-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+    }
+    .summary-card {
+      background:#fff; border-radius:8px; border:1.5px solid var(--gray-border);
+      padding:18px 20px; text-align:center;
+    }
+    .summary-card .s-label { font-size:0.75rem; color:var(--text-sub); margin-bottom:8px; font-weight:600; }
+    .summary-card .s-amount { font-size:1.4rem; font-weight:700; color:var(--primary); }
+
+    /* ═══ TABLE CARD ════════════════════════════════════════════ */
+    .table-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); overflow:hidden; margin-bottom:16px; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; white-space:nowrap; }
+
+    thead tr { background:var(--primary); }
+    thead th {
+      color:#fff; font-size:0.72rem; font-weight:700;
+      padding:9px 10px; text-align:center; letter-spacing:0.04em;
+      border-right:1px solid rgba(255,255,255,0.1);
+    }
+    thead th:last-child { border-right:none; }
+    thead th.th-left { text-align:left; }
+
+    tbody tr { transition:background 0.15s; }
+    tbody tr:hover { background:var(--gray-card); }
+    tbody td {
+      padding:8px 10px; border-bottom:1px solid var(--gray-border);
+      text-align:right; font-size:0.78rem; color:var(--text-main); vertical-align:middle;
+    }
+    tbody td.td-left { text-align:left; }
+    tbody td.td-center { text-align:center; }
+
+    /* ステータスバッジ */
+    .badge { display:inline-block; border-radius:12px; padding:2px 10px; font-size:0.7rem; font-weight:700; white-space:nowrap; }
+    .badge-done    { background:#dcfce7; color:#15803d; }
+    .badge-send    { background:#dbeafe; color:#1d4ed8; }
+    .badge-confirm { background:#fef9c3; color:#854d0e; }
+    .badge-assess  { background:#ffedd5; color:#9a3412; }
+    .badge-draft   { background:#e5e7eb; color:#374151; }
+
+    .empty-msg { text-align:center; padding:40px; color:var(--text-sub); font-size:0.9rem; }
+
+    /* ═══ FOOTER ════════════════════════════════════════════════ */
+    .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
+
+    @media (max-width:768px) {
+      .summary-grid { grid-template-columns:1fr; }
+      .filter-row { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header class="site-header">
+    <div class="header-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+              fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+              fill="rgba(255,255,255,0.15)"/>
+        <polyline points="22,32 29,39 43,25"
+                  stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-logo-text">
+        <div class="company">AX損害保険株式会社</div>
+      </div>
+    </div>
+    <span class="header-center-title">手数料管理</span>
+    <div class="header-right">
+      <span class="page-badge"><i class="fa-solid fa-coins" style="margin-right:5px"></i>手数料管理</span>
+      <div class="user-badge"><span id="hdr-code"></span><span id="hdr-name">--</span></div>
+      <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+      <button class="btn-logout" id="btn-logout">ログアウト</button>
+    </div>
+  </header>
+  <div class="accent-bar"></div>
+
+  <div class="main-content">
+    <div class="page-title"><i class="fa-solid fa-coins"></i>手数料管理</div>
+
+    <!-- セクション1: 年度・月選択パネル -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-calendar"></i>表示条件</div>
+      <div class="filter-row">
+        <div class="field-group">
+          <label>年度</label>
+          <select id="sel-year">
+            <option value="2025">2025年度</option>
+            <option value="2026" selected>2026年度</option>
+            <option value="2027">2027年度</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>月</label>
+          <select id="sel-month">
+            <option value="0" selected>年度合計</option>
+            <option value="4">4月</option>
+            <option value="5">5月</option>
+            <option value="6">6月</option>
+            <option value="7">7月</option>
+            <option value="8">8月</option>
+            <option value="9">9月</option>
+            <option value="10">10月</option>
+            <option value="11">11月</option>
+            <option value="12">12月</option>
+            <option value="1">1月</option>
+            <option value="2">2月</option>
+            <option value="3">3月</option>
+          </select>
+        </div>
+        <button class="btn-display" id="btn-display">
+          <i class="fa-solid fa-magnifying-glass" style="margin-right:5px"></i>表示
+        </button>
+      </div>
+    </div>
+
+    <!-- セクション2: ワークフロー進捗バー -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-arrow-right-arrow-left"></i>ワークフロー進捗</div>
+      <div class="workflow-bar" id="workflow-bar">
+        <!-- APIから動的に生成 -->
+        <div class="wf-step">読み込み中...</div>
+      </div>
+    </div>
+
+    <!-- セクション3: サマリーカード -->
+    <div class="summary-grid" id="summary-grid">
+      <div class="summary-card">
+        <div class="s-label">合計手数料</div>
+        <div class="s-amount" id="sum-total">--</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">初年度手数料</div>
+        <div class="s-amount" id="sum-first">--</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">次年度手数料</div>
+        <div class="s-amount" id="sum-renewal">--</div>
+      </div>
+    </div>
+
+    <!-- セクション4: 保険会社別手数料テーブル -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-table"></i>保険会社別手数料</div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="th-left">保険会社</th>
+                <th>初年度手数料</th>
+                <th>次年度手数料</th>
+                <th>その他</th>
+                <th>合計</th>
+                <th>ステータス</th>
+              </tr>
+            </thead>
+            <tbody id="insurer-tbody">
+              <tr><td colspan="6" class="empty-msg">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション5: 月別×保険会社別詳細テーブル（年度合計選択時のみ） -->
+    <div id="detail-section" style="display:none">
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-chart-bar"></i>月別×保険会社別詳細</div>
+        <div class="table-card">
+          <div class="table-wrap">
+            <table id="detail-table">
+              <thead id="detail-thead"></thead>
+              <tbody id="detail-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000';
+
+    // 認証ヘッダーを返す
+    function getAuthHeader() {
+      const userType = sessionStorage.getItem('user_type') || 'agency';
+      const token = userType === 'staff'
+        ? sessionStorage.getItem('staff_token')
+        : sessionStorage.getItem('token');
+      return { 'Authorization': `Bearer ${token}` };
+    }
+
+    // ワークフロー進捗を読み込んで描画
+    async function loadWorkflow(agencyCode) {
+      const bar = document.getElementById('workflow-bar');
+      // ワークフローステップ定義
+      const steps = ['作成中', '自己査定待ち', '初級確認待ち', '給与担当者送付待ち', '完了'];
+      try {
+        const res = await fetch(`${API_BASE}/api/commissions/workflow/${agencyCode}`, {
+          headers: getAuthHeader()
+        });
+        let currentStep = '自己査定待ち'; // デフォルト
+        if (res.ok) {
+          const data = await res.json();
+          currentStep = data.current_step || currentStep;
+        }
+        // ワークフローバーを描画
+        const currentIdx = steps.indexOf(currentStep);
+        bar.innerHTML = steps.map((step, idx) => {
+          let cls = 'wf-step';
+          if (idx < currentIdx) cls += ' done';
+          else if (idx === currentIdx) cls += ' current';
+          const check = idx < currentIdx ? '<span class="wf-check"> ✓</span>' : '';
+          const arrow = idx < steps.length - 1 ? '<div class="wf-arrow">→</div>' : '';
+          return `<div class="${cls}">${step}${check}</div>${arrow}`;
+        }).join('');
+      } catch (e) {
+        console.error('ワークフロー取得失敗:', e);
+        bar.innerHTML = steps.map((step, idx) => {
+          const arrow = idx < steps.length - 1 ? '<div class="wf-arrow">→</div>' : '';
+          return `<div class="wf-step${idx === 1 ? ' current' : ''}">${step}</div>${arrow}`;
+        }).join('');
+      }
+    }
+
+    // サマリーを読み込んで描画
+    async function loadSummary(agencyCode) {
+      const year = document.getElementById('sel-year').value;
+      try {
+        const res = await fetch(`${API_BASE}/api/commissions/summary/${agencyCode}?fiscal_year=${year}`, {
+          headers: getAuthHeader()
+        });
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        document.getElementById('sum-total').textContent   = '¥' + (data.total   || 0).toLocaleString();
+        document.getElementById('sum-first').textContent   = '¥' + (data.first_year  || 0).toLocaleString();
+        document.getElementById('sum-renewal').textContent = '¥' + (data.renewal_year || 0).toLocaleString();
+
+        // 保険会社別テーブルを描画
+        renderInsurerTable(data.by_insurer || []);
+      } catch (e) {
+        console.error('サマリー取得失敗:', e);
+        document.getElementById('sum-total').textContent   = '読み込みに失敗しました';
+        document.getElementById('sum-first').textContent   = '--';
+        document.getElementById('sum-renewal').textContent = '--';
+        document.getElementById('insurer-tbody').innerHTML =
+          '<tr><td colspan="6" class="empty-msg" style="color:#ef4444">読み込みに失敗しました</td></tr>';
+      }
+    }
+
+    // ステータスバッジHTMLを返す
+    function statusBadge(status) {
+      const map = {
+        '完了':           'badge-done',
+        '給与担当者送付待ち': 'badge-send',
+        '初級確認待ち':    'badge-confirm',
+        '自己査定待ち':    'badge-assess',
+        '作成中':          'badge-draft',
+      };
+      const cls = map[status] || 'badge-draft';
+      return `<span class="badge ${cls}">${status}</span>`;
+    }
+
+    // 保険会社別テーブルを描画
+    function renderInsurerTable(rows) {
+      const tbody = document.getElementById('insurer-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">データがありません</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td class="td-left">${escHtml(r.insurer_name || '—')}</td>
+          <td>¥${(r.first_year || 0).toLocaleString()}</td>
+          <td>¥${(r.renewal_year || 0).toLocaleString()}</td>
+          <td>¥${(r.other || 0).toLocaleString()}</td>
+          <td style="font-weight:700">¥${(r.total || 0).toLocaleString()}</td>
+          <td class="td-center">${statusBadge(r.status || '作成中')}</td>
+        </tr>
+      `).join('');
+    }
+
+    // 月別×保険会社別詳細を読み込んで描画
+    async function loadDetail(agencyCode) {
+      const year = document.getElementById('sel-year').value;
+      const month = document.getElementById('sel-month').value;
+      const section = document.getElementById('detail-section');
+
+      // 月別詳細は年度合計（month=0）のときのみ表示
+      if (month !== '0') {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/commissions/${agencyCode}?fiscal_year=${year}`, {
+          headers: getAuthHeader()
+        });
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        renderDetailTable(data);
+      } catch (e) {
+        console.error('詳細データ取得失敗:', e);
+        document.getElementById('detail-tbody').innerHTML =
+          '<tr><td class="empty-msg" style="color:#ef4444">読み込みに失敗しました</td></tr>';
+      }
+    }
+
+    // 月別×保険会社別テーブルを描画
+    function renderDetailTable(data) {
+      const months = [4,5,6,7,8,9,10,11,12,1,2,3];
+      const monthLabels = { 4:'4月',5:'5月',6:'6月',7:'7月',8:'8月',9:'9月',10:'10月',11:'11月',12:'12月',1:'1月',2:'2月',3:'3月' };
+      const insurers = data.insurers || [];
+      const rows = data.rows || [];
+
+      // ヘッダー生成
+      const thead = document.getElementById('detail-thead');
+      thead.innerHTML = `<tr>
+        <th class="th-left">月</th>
+        ${insurers.map(i => `<th>${escHtml(i)}</th>`).join('')}
+        <th>合計</th>
+      </tr>`;
+
+      // ボディ生成
+      const tbody = document.getElementById('detail-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="${insurers.length + 2}" class="empty-msg">データがありません</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = months.map(m => {
+        const row = rows.find(r => r.month === m) || {};
+        const cells = insurers.map(i => `<td>¥${(row[i] || 0).toLocaleString()}</td>`).join('');
+        const total = insurers.reduce((s, i) => s + (row[i] || 0), 0);
+        return `<tr>
+          <td class="td-left" style="font-weight:600">${monthLabels[m]}</td>
+          ${cells}
+          <td style="font-weight:700">¥${total.toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // HTMLエスケープ
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── 初期化 ──────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 認証チェック
+      const token = requireAuth();
+      if (!token) return;
+
+      // ヘッダーにユーザー情報を表示
+      const userType = sessionStorage.getItem('user_type') || 'agency';
+      if (userType === 'staff') {
+        document.getElementById('hdr-code').textContent = (sessionStorage.getItem('staff_code') || '') + ' ';
+        document.getElementById('hdr-name').textContent = sessionStorage.getItem('staff_name') || '';
+      } else {
+        document.getElementById('hdr-code').textContent = (sessionStorage.getItem('agency_code') || '') + ' ';
+        document.getElementById('hdr-name').textContent = sessionStorage.getItem('login_id') || '';
+      }
+
+      document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+      const agencyCode = sessionStorage.getItem('agency_code') || 'A001';
+
+      await loadSummary(agencyCode);
+      await loadWorkflow(agencyCode);
+      await loadDetail(agencyCode);
+
+      // 表示ボタンクリック時にデータを再読み込み
+      document.getElementById('btn-display').addEventListener('click', async () => {
+        await loadSummary(agencyCode);
+        await loadWorkflow(agencyCode);
+        await loadDetail(agencyCode);
+      });
+    });
+  </script>
+
+</body>
+</html>
