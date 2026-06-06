@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from jose import jwt, JWTError
 from typing import Optional, List
 import bcrypt
 import sqlite3
 import datetime
+import json
 import os
 
 app = FastAPI(title="AX損害保険 代理店システムAPI")
@@ -2131,5 +2133,164 @@ def delete_todo(todo_id: int, payload: dict = Depends(verify_token)):
         conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
         conn.commit()
         return {"message": "TODOを削除しました"}
+    finally:
+        conn.close()
+
+
+@app.get("/api/todos/staff-list")
+def get_todo_staff_list(payload: dict = Depends(verify_token)):
+    """
+    TODOの担当者コードプルダウン用：ログインユーザーの参照グループ内の担当者一覧を返す
+    """
+    agency_codes = get_agency_codes_for_user(payload)
+    conn = get_db_connection()
+    try:
+        placeholders = ",".join("?" * len(agency_codes))
+        rows = conn.execute(f"""
+            SELECT DISTINCT u.login_id, u.name, u.staff_code, u.agency_code
+            FROM users u
+            WHERE u.agency_code IN ({placeholders})
+              AND u.is_active = 1
+            ORDER BY u.agency_code, u.login_id
+        """, agency_codes).fetchall()
+        return {"staff_list": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ディレード帳票管理API
+# ═══════════════════════════════════════════════════════════════════════
+
+class ReportRequestBody(BaseModel):
+    """帳票出力リクエストのスキーマ"""
+    report_type: str   # customer_list / maturity_list / sales_list
+    report_name: str   # 帳票名（例: 顧客一覧_A001_20260606）
+    search_params: Optional[str] = None  # 検索条件JSON文字列
+
+
+def _issue_request_no(conn: sqlite3.Connection) -> str:
+    """当日の最大連番を取得して受付番号を発番する"""
+    now = datetime.datetime.now()
+    prefix = f"RPT-{now.strftime('%Y%m%d')}-"
+    row = conn.execute(
+        "SELECT MAX(CAST(SUBSTR(request_no, 13) AS INTEGER)) as max_seq "
+        "FROM report_requests WHERE request_no LIKE ?",
+        (prefix + "%",)
+    ).fetchone()
+    next_seq = (row["max_seq"] or 0) + 1
+    return f"{prefix}{next_seq:04d}"
+
+
+@app.post("/api/reports/request", status_code=201)
+def create_report_request(body: ReportRequestBody, payload: dict = Depends(verify_token)):
+    """
+    帳票出力リクエスト登録エンドポイント
+
+    受付番号を発番してDBに挿入し、受付番号を返す。
+    認証必須・agency_codeはJWTから取得。
+    """
+    user_type   = payload.get("user_type", "agency")
+    login_id    = payload.get("login_id") or payload.get("staff_code", "")
+    agency_code = payload.get("agency_code", "")
+    if user_type == "staff":
+        agency_code = payload.get("staff_code", "")  # 社員は社員番号をキーに使う
+
+    conn = get_db_connection()
+    try:
+        request_no = _issue_request_no(conn)
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute("""
+            INSERT INTO report_requests
+              (request_no, agency_code, login_id, user_type, report_type, report_name,
+               search_params, status, requested_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, '受付中', ?)
+        """, (request_no, agency_code, login_id, user_type,
+              body.report_type, body.report_name, body.search_params, now))
+        conn.commit()
+        return {"request_no": request_no, "message": f"受付番号 {request_no} で受け付けました"}
+    finally:
+        conn.close()
+
+
+@app.get("/api/reports/list")
+def list_reports(payload: dict = Depends(verify_token)):
+    """
+    帳票一覧取得エンドポイント
+
+    ログインユーザー（login_id一致）の帳票を新しい順・最大50件返す。
+    """
+    user_type = payload.get("user_type", "agency")
+    login_id  = payload.get("login_id") or payload.get("staff_code", "")
+
+    conn = get_db_connection()
+    try:
+        rows = conn.execute("""
+            SELECT id, request_no, report_name, report_type, status,
+                   requested_at, completed_at, record_count, file_size, file_name
+            FROM report_requests
+            WHERE login_id = ?
+            ORDER BY requested_at DESC
+            LIMIT 50
+        """, (login_id,)).fetchall()
+        return {"reports": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+@app.get("/api/reports/{request_no}/download")
+def download_report(request_no: str, payload: dict = Depends(verify_token)):
+    """
+    帳票ダウンロードエンドポイント
+
+    statusが「完了」でないときは423、自分の帳票でないときは403を返す。
+    """
+    login_id = payload.get("login_id") or payload.get("staff_code", "")
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            "SELECT * FROM report_requests WHERE request_no = ?", (request_no,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="帳票が見つかりません")
+        if row["login_id"] != login_id:
+            raise HTTPException(status_code=403, detail="この帳票をダウンロードする権限がありません")
+        if row["status"] != "完了":
+            raise HTTPException(status_code=423, detail="帳票がまだ完了していません")
+
+        file_data = row["file_data"]
+        file_name = row["file_name"] or f"{request_no}.xlsx"
+        return Response(
+            content=bytes(file_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'}
+        )
+    finally:
+        conn.close()
+
+
+@app.delete("/api/reports/{request_no}")
+def delete_report(request_no: str, payload: dict = Depends(verify_token)):
+    """
+    帳票削除エンドポイント
+
+    自分の帳票のみ削除可能。
+    """
+    login_id = payload.get("login_id") or payload.get("staff_code", "")
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            "SELECT * FROM report_requests WHERE request_no = ?", (request_no,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="帳票が見つかりません")
+        if row["login_id"] != login_id:
+            raise HTTPException(status_code=403, detail="この帳票を削除する権限がありません")
+
+        conn.execute("DELETE FROM report_requests WHERE request_no = ?", (request_no,))
+        conn.commit()
+        return {"message": "帳票を削除しました"}
     finally:
         conn.close()

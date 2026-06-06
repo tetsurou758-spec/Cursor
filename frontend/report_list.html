@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>帳票管理｜AX損害保険株式会社</title>
+  <link rel="stylesheet" href="js/theme.css">
+  <script src="js/session.js"></script>
+  <script>applyTheme()</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--gray-bg);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .site-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px var(--primary-shadow);
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+    .header-logo svg { width:28px; height:28px; flex-shrink:0; }
+    .header-logo-text .company { font-size:1.02rem; font-weight:700; letter-spacing:0.08em; color:var(--accent); }
+    .header-logo-text .system  { font-size:1.05rem; font-weight:700; letter-spacing:0.04em; color:#fff; }
+    .header-right { display:flex; align-items:center; gap:10px; }
+    .page-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid var(--accent-border);
+      color: var(--accent-light); border-radius:4px; padding:3px 10px;
+      font-size:0.75rem; font-weight:700;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid var(--accent-border);
+      border-radius:20px; padding:4px 14px; color:#fff; font-size:0.8rem;
+    }
+    .user-badge span { color:var(--accent); font-weight:700; margin-right:6px; }
+    .btn-logout {
+      background:transparent; border:1.5px solid var(--accent-border-btn);
+      color:var(--accent-light); border-radius:4px; padding:5px 14px;
+      font-size:0.78rem; font-weight:600; cursor:pointer;
+      transition:background 0.2s,color 0.2s;
+    }
+    .btn-logout:hover { background:var(--accent); color:var(--primary-dark); border-color:var(--accent); }
+    .btn-back {
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; border-radius:4px; padding:5px 12px;
+      font-size:0.75rem; cursor:pointer; text-decoration:none;
+      transition:background 0.2s;
+    }
+    .btn-back:hover { background:rgba(255,255,255,0.18); }
+    .accent-bar { height:3px; background:linear-gradient(90deg,var(--primary-dark) 0%,var(--accent) 50%,var(--primary-dark) 100%); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════════ */
+    .main-content { max-width:1400px; margin:0 auto; padding:20px 16px 40px; }
+    .page-title {
+      font-size:1.1rem; font-weight:700; color:var(--primary);
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .page-title::before { content:''; display:inline-block; width:4px; height:20px; background:var(--accent); border-radius:2px; }
+
+    /* ═══ INFO BAR ══════════════════════════════════════════════ */
+    .info-bar {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:10px; flex-wrap:wrap; gap:8px;
+    }
+    .info-bar .hint { font-size:0.8rem; color:var(--text-sub); }
+    .refresh-indicator {
+      font-size:0.75rem; color:var(--text-sub);
+      display:flex; align-items:center; gap:6px;
+    }
+    .refresh-indicator .dot {
+      width:8px; height:8px; border-radius:50%;
+      background:#22c55e; display:inline-block;
+    }
+    .refresh-indicator .dot.active {
+      background:#f97316;
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ═══ TABLE CARD ════════════════════════════════════════════ */
+    .table-card { background:#fff; border-radius:8px; box-shadow:0 2px 10px var(--card-shadow); overflow:hidden; }
+    .table-wrap { overflow-x:auto; }
+
+    table { width:100%; border-collapse:collapse; }
+    thead tr { background:var(--primary); }
+    thead th {
+      color:#fff; font-size:0.72rem; font-weight:700;
+      padding:9px 10px; text-align:left; letter-spacing:0.04em;
+      border-right:1px solid rgba(255,255,255,0.1); white-space:nowrap;
+    }
+    thead th.center { text-align:center; }
+    thead th:last-child { border-right:none; }
+
+    tbody tr { transition:background 0.15s; }
+    tbody tr:hover { background:var(--gray-card); }
+    tbody td {
+      padding:10px 10px; border-bottom:1px solid var(--gray-border);
+      font-size:0.8rem; vertical-align:middle;
+      border-right:1px solid var(--gray-border);
+    }
+    tbody td:last-child { border-right:none; }
+    tbody td.center { text-align:center; }
+
+    /* ═══ STATUS BADGE ══════════════════════════════════════════ */
+    .badge {
+      display:inline-block; padding:2px 10px; border-radius:12px;
+      font-size:0.7rem; font-weight:700; white-space:nowrap;
+    }
+    .badge-pending   { background:#e5e7eb; color:#6b7280; }
+    .badge-working   { background:#fed7aa; color:#c2410c; animation:blink-badge 1.2s ease-in-out infinite; }
+    .badge-done      { background:#bbf7d0; color:#15803d; }
+    .badge-error     { background:#fee2e2; color:#dc2626; }
+    @keyframes blink-badge { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+    /* ═══ BUTTONS ═══════════════════════════════════════════════ */
+    .btn-dl {
+      display:inline-flex; align-items:center; gap:5px;
+      background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);
+      color:#fff; border:none; border-radius:4px;
+      padding:5px 12px; font-size:0.78rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s; white-space:nowrap;
+    }
+    .btn-dl:hover { opacity:0.85; }
+    .btn-dl:disabled { background:#d1d5db; color:#9ca3af; cursor:not-allowed; opacity:1; }
+
+    .btn-del {
+      display:inline-flex; align-items:center; gap:4px;
+      background:transparent; color:#ef4444; border:1.5px solid #fca5a5;
+      border-radius:4px; padding:4px 10px; font-size:0.78rem; font-weight:700;
+      cursor:pointer; transition:background 0.2s, color 0.2s;
+    }
+    .btn-del:hover { background:#fee2e2; color:#dc2626; }
+
+    /* ═══ EMPTY / LOADING ═══════════════════════════════════════ */
+    .empty-msg { text-align:center; padding:48px; color:var(--text-sub); font-size:0.9rem; }
+
+    /* ═══ TOAST ════════════════════════════════════════════════= */
+    .toast {
+      position:fixed; bottom:24px; right:24px; z-index:9000;
+      background:var(--primary-dark); color:#fff;
+      padding:12px 20px; border-radius:8px;
+      font-size:0.85rem; box-shadow:0 4px 16px rgba(0,0,0,0.25);
+      opacity:0; transform:translateY(10px);
+      transition:opacity 0.3s, transform 0.3s;
+      max-width:380px; line-height:1.5;
+    }
+    .toast.show { opacity:1; transform:translateY(0); }
+
+    .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="site-header">
+  <div class="header-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+            fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+            fill="rgba(255,255,255,0.15)"/>
+      <polyline points="22,32 29,39 43,25" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo-text">
+      <div class="company">AX損害保険株式会社</div>
+      <div class="system" id="hdr-system-name">帳票管理</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="page-badge">帳票管理</span>
+    <div class="user-badge"><span id="hdr-code">--</span><span id="hdr-name" style="color:#fff;font-weight:400">--</span></div>
+    <a href="dashboard.html" class="btn-back">← ダッシュボード</a>
+    <button class="btn-logout" id="btn-logout">ログアウト</button>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<div class="main-content">
+  <div class="page-title"><i class="fa-solid fa-file-lines" style="font-size:1rem;color:var(--accent)"></i> 帳票管理</div>
+
+  <div class="info-bar">
+    <div class="hint">帳票の生成状況を確認し、完了した帳票をダウンロードできます。</div>
+    <div class="refresh-indicator">
+      <span class="dot" id="refresh-dot"></span>
+      <span id="refresh-label">次回更新まで <strong id="refresh-countdown">30</strong> 秒</span>
+    </div>
+  </div>
+
+  <!-- 一覧テーブル -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>受付番号</th>
+            <th>帳票名</th>
+            <th>帳票種別</th>
+            <th class="center">ステータス</th>
+            <th>受付日時</th>
+            <th>完了日時</th>
+            <th class="center">件数</th>
+            <th class="center">サイズ</th>
+            <th class="center">ダウンロード</th>
+            <th class="center">削除</th>
+          </tr>
+        </thead>
+        <tbody id="report-tbody">
+          <tr><td colspan="10" class="empty-msg">読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">&copy; 2026 AX損害保険株式会社. All Rights Reserved.</footer>
+
+<!-- トースト通知 -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+  let refreshTimer  = null;  // 自動リフレッシュタイマー
+  let countdownTimer = null; // カウントダウンタイマー
+  let countdownSec  = 30;
+
+  // 帳票種別の日本語マッピング
+  const REPORT_TYPE_LABEL = {
+    customer_list: '顧客一覧',
+    maturity_list: '満期契約一覧',
+    sales_list:    '成績一覧',
+  };
+
+  // ステータスバッジHTML生成
+  function statusBadge(status) {
+    const map = {
+      '受付中':   'badge-pending',
+      '作成中':   'badge-working',
+      '完了':     'badge-done',
+      '異常終了': 'badge-error',
+    };
+    const cls = map[status] || 'badge-pending';
+    return `<span class="badge ${cls}">${status}</span>`;
+  }
+
+  // ファイルサイズの表示形式変換
+  function fmtSize(bytes) {
+    if (bytes == null) return '—';
+    if (bytes < 1024)        return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  // 日時文字列フォーマット（秒まで表示）
+  function fmtDt(dt) {
+    if (!dt) return '—';
+    return dt.replace('T', ' ').slice(0, 16);
+  }
+
+  // ── 帳票一覧の読み込みと描画 ─────────────────────────────────────
+  async function loadReports() {
+    const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+    const tbody = document.getElementById('report-tbody');
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/list`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.status === 401) { doLogout(); return; }
+      if (!res.ok) throw new Error('API error');
+
+      const data   = await res.json();
+      const reports = data.reports || [];
+
+      if (!reports.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">帳票データがありません。各画面の「帳票出力」ボタンから帳票を出力してください。</td></tr>';
+        stopAutoRefresh();
+        return;
+      }
+
+      // 作成中の件があれば自動リフレッシュ継続
+      const hasWorking = reports.some(r => r.status === '受付中' || r.status === '作成中');
+      if (hasWorking) {
+        startAutoRefresh();
+      } else {
+        stopAutoRefresh();
+      }
+
+      tbody.innerHTML = reports.map(r => {
+        const isDone = r.status === '完了';
+        const dlBtn  = isDone
+          ? `<button class="btn-dl" onclick="downloadReport('${r.request_no}','${r.file_name || r.request_no}')">
+               <i class="fa-solid fa-file-excel"></i> DL
+             </button>`
+          : `<button class="btn-dl" disabled><i class="fa-solid fa-file-excel"></i> DL</button>`;
+
+        return `<tr>
+          <td style="font-size:0.72rem;font-family:monospace;color:var(--text-sub)">${r.request_no}</td>
+          <td style="font-weight:600">${r.report_name}</td>
+          <td>${REPORT_TYPE_LABEL[r.report_type] || r.report_type}</td>
+          <td class="center">${statusBadge(r.status)}</td>
+          <td style="font-size:0.75rem">${fmtDt(r.requested_at)}</td>
+          <td style="font-size:0.75rem">${fmtDt(r.completed_at)}</td>
+          <td class="center">${r.record_count != null ? r.record_count.toLocaleString() + '件' : '—'}</td>
+          <td class="center">${fmtSize(r.file_size)}</td>
+          <td class="center">${dlBtn}</td>
+          <td class="center">
+            <button class="btn-del" onclick="deleteReport('${r.request_no}')">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+
+    } catch (e) {
+      console.error('帳票一覧取得エラー:', e);
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-msg" style="color:#ef4444">帳票一覧の取得に失敗しました</td></tr>';
+    }
+  }
+
+  // ── ダウンロード ────────────────────────────────────────────────────
+  async function downloadReport(requestNo, fileName) {
+    const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/${requestNo}/download`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast('ダウンロードに失敗しました: ' + (err.detail || res.status), true);
+        return;
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showToast('ダウンロード中にエラーが発生しました', true);
+    }
+  }
+
+  // ── 削除 ────────────────────────────────────────────────────────────
+  async function deleteReport(requestNo) {
+    if (!confirm(`受付番号 ${requestNo} の帳票を削除しますか？`)) return;
+
+    const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/${requestNo}`, {
+        method:  'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast('削除に失敗しました: ' + (err.detail || res.status), true);
+        return;
+      }
+      showToast('帳票を削除しました');
+      loadReports();
+    } catch (e) {
+      showToast('削除中にエラーが発生しました', true);
+    }
+  }
+
+  // ── 自動リフレッシュ（作成中件あり）─────────────────────────────
+  function startAutoRefresh() {
+    const dot   = document.getElementById('refresh-dot');
+    const label = document.getElementById('refresh-label');
+    dot.classList.add('active');
+    label.style.display = '';
+
+    if (refreshTimer) return; // 既に起動中
+
+    countdownSec = 30;
+    document.getElementById('refresh-countdown').textContent = countdownSec;
+
+    countdownTimer = setInterval(() => {
+      countdownSec--;
+      document.getElementById('refresh-countdown').textContent = countdownSec;
+      if (countdownSec <= 0) {
+        countdownSec = 30;
+        loadReports();
+      }
+    }, 1000);
+    refreshTimer = countdownTimer; // 同一タイマーを参照
+  }
+
+  function stopAutoRefresh() {
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+      refreshTimer   = null;
+      countdownTimer = null;
+    }
+    document.getElementById('refresh-dot').classList.remove('active');
+    document.getElementById('refresh-label').style.display = 'none';
+  }
+
+  // ── トースト通知 ─────────────────────────────────────────────────
+  function showToast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = isError ? '#dc2626' : 'var(--primary-dark)';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+
+  // ── 初期化 ──────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const token = requireAuth();
+    if (!token) return;
+
+    const userType = _ssGet('user_type') || 'agency';
+    if (userType === 'staff') {
+      document.getElementById('hdr-system-name').textContent = '社員専用システム';
+      document.getElementById('hdr-code').textContent  = (_ssGet('staff_code') || '') + ' ';
+      document.getElementById('hdr-name').textContent  = _ssGet('staff_name') || '';
+    } else {
+      document.getElementById('hdr-code').textContent  = (_ssGet('agency_code') || '') + ' ';
+      document.getElementById('hdr-name').textContent  = _ssGet('login_id') || '';
+    }
+
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+    loadReports();
+  });
+</script>
+
+</body>
+</html>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>顧客管理システム｜AX損害保険</title>
   <link rel="stylesheet" href="js/theme.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--gray-bg); color: #333; min-height: 100vh; }
@@ -63,6 +64,28 @@
       border: 1px solid #d1d5db; border-radius: 5px; cursor: pointer; font-size: 13px;
     }
     .btn-reset:hover { background: #e5e7eb; }
+
+    /* ── 帳票出力ボタン ── */
+    .btn-report-export {
+      height: 34px; padding: 0 14px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #fff; border: none; border-radius: 5px; cursor: pointer;
+      font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;
+      transition: opacity 0.2s;
+    }
+    .btn-report-export:hover { opacity: 0.85; }
+
+    /* ── トースト通知 ── */
+    .toast-notify {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9000;
+      background: var(--primary-dark); color: #fff;
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 0.85rem; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      opacity: 0; transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      max-width: 400px; line-height: 1.5;
+    }
+    .toast-notify.show { opacity: 1; transform: translateY(0); }
 
     /* ── 件数バー ── */
     .result-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -142,6 +165,25 @@
     /* ── ローディング ── */
     .loading { text-align: center; padding: 40px; color: #999; font-size: 14px; }
     .empty { text-align: center; padding: 40px; color: #bbb; font-size: 14px; }
+
+    /* ── リスクマップボタン ── */
+    .btn-customer-riskmap {
+      background: linear-gradient(135deg, #4A90D9 0%, #2563b0 100%);
+      color: #fff; border: none; border-radius: 5px;
+      padding: 5px 14px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-customer-riskmap:hover { opacity: 0.85; }
+
+    /* ── リスクマップモーダル ── */
+    .riskmap-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1100; align-items: center; justify-content: center; }
+    .riskmap-overlay.open { display: flex; }
+    .riskmap-modal { background: #fff; border-radius: 10px; width: min(860px,95vw); max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,.3); overflow: hidden; }
+    .riskmap-modal-header { background: linear-gradient(135deg, var(--primary-dark,#001f4d) 0%, var(--primary,#003366) 100%); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: .95rem; font-weight: 700; }
+    .riskmap-modal-close { background: transparent; border: none; color: rgba(255,255,255,.8); font-size: 1.1rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .riskmap-modal-close:hover { color: #fff; }
+    .riskmap-modal-body { flex: 1; overflow: auto; padding: 0; }
 
     /* ── モーダル（名寄せ確認）── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: center; justify-content: center; }
@@ -247,6 +289,9 @@
       </div>
       <button class="btn-search" onclick="searchCustomers()">検索</button>
       <button class="btn-reset" onclick="resetSearch()">リセット</button>
+      <button class="btn-report-export" onclick="requestCustomerReport()" title="帳票出力">
+        <i class="fa-solid fa-file-lines"></i> 帳票出力
+      </button>
     </div>
   </div>
 
@@ -620,7 +665,12 @@
         <div class="detail-item"><div class="detail-label">資産情報</div><div class="detail-value">${c.assets_info || '—'}</div></div>
       </div>
       <div class="contract-list">
-        <div class="contract-list-title">📋 保有契約一覧（${contracts.length}件）</div>
+        <div class="contract-list-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>📋 保有契約一覧（${contracts.length}件）</span>
+          <button class="btn-customer-riskmap" onclick="openCustomerRiskmap(${customerId})">
+            <i class="fa-solid fa-chart-pie"></i> リスクマップ
+          </button>
+        </div>
         <table class="contract-table">
           <thead>
             <tr>
@@ -712,6 +762,141 @@
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter') searchCustomers();
   });
+
+  // ── トースト通知 ──────────────────────────────────────────────────
+  function showToastNotify(msg, isError = false) {
+    const el = document.getElementById('toast-notify');
+    el.textContent = msg;
+    el.style.background = isError ? '#dc2626' : '#1e3a5f';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 5000);
+  }
+
+  // ── 帳票出力（顧客一覧）─────────────────────────────────────────
+  async function requestCustomerReport() {
+    const token = getToken();
+    if (!token) { alert('再ログインしてください。'); return; }
+
+    // 現在の検索条件を収集
+    const lastName   = document.getElementById('q-last-name')?.value.trim() || '';
+    const firstName  = document.getElementById('q-first-name')?.value.trim() || '';
+    const agencyCode = document.getElementById('q-agency-code')?.value.trim() || '';
+    const groupCode  = document.getElementById('q-group-code')?.value || '';
+    const tel        = document.getElementById('q-tel')?.value.trim() || '';
+    const contractNo = document.getElementById('q-contract-no')?.value.trim() || '';
+    const checkedTypes = [...document.querySelectorAll('.not-insured-check:checked')].map(el => el.value);
+
+    const searchParams = JSON.stringify({
+      last_name:          lastName,
+      first_name:         firstName,
+      agency_code:        agencyCode,
+      group_code:         groupCode,
+      tel:                tel,
+      contract_no:        contractNo,
+      not_insured_types:  checkedTypes,
+    });
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const agCode  = sessionStorage.getItem('agency_code') || '';
+    const reportName = `顧客一覧_${agCode}_${dateStr}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/request`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          report_type:   'customer_list',
+          report_name:   reportName,
+          search_params: searchParams,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToastNotify('帳票の受付に失敗しました: ' + (data.detail || res.status), true);
+        return;
+      }
+      showToastNotify(`受付番号 ${data.request_no} で受け付けました。帳票管理画面でご確認ください。`);
+    } catch (e) {
+      showToastNotify('帳票出力リクエスト中にエラーが発生しました', true);
+    }
+  }
+
+  /* ─── 顧客リスクマップモーダル ─────────────────────────────────── */
+
+  // 顧客リスクマップを生成してiframeモーダルで表示する
+  async function openCustomerRiskmap(customerId) {
+    const token = getToken();
+    if (!token) { alert('再ログインしてください。'); return; }
+
+    const overlay = document.getElementById('customer-riskmap-overlay');
+    const loading = document.getElementById('customer-riskmap-loading');
+    const iframe  = document.getElementById('customer-riskmap-iframe');
+    const titleEl = document.getElementById('customer-riskmap-title');
+    titleEl.textContent = `顧客リスクマップ（ID: ${customerId}）`;
+    overlay.classList.add('open');
+    loading.style.display = 'block';
+    iframe.style.display  = 'none';
+    iframe.src = '';
+
+    try {
+      // POST でPDFを生成
+      const res = await fetch(`${API_BASE}/api/riskmap/customer/${encodeURIComponent(customerId)}`, {
+        method:  'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert('リスクマップの生成に失敗しました: ' + (err.detail || res.status));
+        overlay.classList.remove('open');
+        return;
+      }
+      const data = await res.json();
+      // base64 → Blob URL → iframe表示
+      const binary = atob(data.pdf_data);
+      const bytes  = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob   = new Blob([bytes], { type: 'application/pdf' });
+      const url    = URL.createObjectURL(blob);
+      iframe.src            = url;
+      loading.style.display = 'none';
+      iframe.style.display  = 'block';
+    } catch (e) {
+      console.error('顧客リスクマップ生成エラー:', e);
+      alert('リスクマップの生成中にエラーが発生しました。');
+      overlay.classList.remove('open');
+    }
+  }
+
+  // 顧客リスクマップモーダルを閉じる
+  function closeCustomerRiskmapModal(event) {
+    if (event && event.target !== document.getElementById('customer-riskmap-overlay')) return;
+    const overlay = document.getElementById('customer-riskmap-overlay');
+    const iframe  = document.getElementById('customer-riskmap-iframe');
+    if (iframe.src && iframe.src.startsWith('blob:')) URL.revokeObjectURL(iframe.src);
+    iframe.src = '';
+    overlay.classList.remove('open');
+  }
 </script>
+
+<!-- トースト通知 -->
+<div class="toast-notify" id="toast-notify"></div>
+
+<!-- 顧客リスクマップPDFモーダル -->
+<div id="customer-riskmap-overlay" class="riskmap-overlay" onclick="closeCustomerRiskmapModal(event)">
+  <div class="riskmap-modal">
+    <div class="riskmap-modal-header">
+      <span id="customer-riskmap-title">顧客リスクマップ</span>
+      <button class="riskmap-modal-close" onclick="closeCustomerRiskmapModal(null)">✕</button>
+    </div>
+    <div class="riskmap-modal-body">
+      <div id="customer-riskmap-loading" style="display:none; text-align:center; padding:40px 0; color:#666;">
+        <i class="fa-solid fa-spinner fa-spin"></i> PDF生成中...
+      </div>
+      <iframe id="customer-riskmap-iframe" src="" style="width:100%; height:70vh; border:none; display:none;"></iframe>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

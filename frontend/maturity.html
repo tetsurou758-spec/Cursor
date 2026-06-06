@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="js/theme.css">
   <script src="js/session.js"></script>
   <script>applyTheme()</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -92,6 +93,29 @@
       font-size:0.82rem; cursor:pointer; transition:border-color 0.2s;
     }
     .btn-clear:hover { border-color:var(--primary); }
+
+    /* 帳票出力ボタン */
+    .btn-report-export {
+      height:32px; padding:0 14px;
+      background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+      color:#fff; border:none; border-radius:4px; cursor:pointer;
+      font-size:0.82rem; font-weight:700;
+      display:inline-flex; align-items:center; gap:5px;
+      transition:opacity 0.2s;
+    }
+    .btn-report-export:hover { opacity:0.85; }
+
+    /* トースト通知 */
+    .toast-notify {
+      position:fixed; bottom:24px; right:24px; z-index:9000;
+      background:#1e3a5f; color:#fff;
+      padding:12px 20px; border-radius:8px;
+      font-size:0.85rem; box-shadow:0 4px 16px rgba(0,0,0,0.25);
+      opacity:0; transform:translateY(10px);
+      transition:opacity 0.3s, transform 0.3s;
+      max-width:400px; line-height:1.5;
+    }
+    .toast-notify.show { opacity:1; transform:translateY(0); }
 
     .result-info { font-size:0.8rem; color:var(--text-sub); margin-bottom:10px; padding-left:4px; }
     .result-info strong { color:var(--primary); font-size:1rem; }
@@ -348,6 +372,9 @@
       <div class="btn-group">
         <button class="btn-search" onclick="doSearch()">検索</button>
         <button class="btn-clear"  onclick="clearSearch()">クリア</button>
+        <button class="btn-report-export" onclick="requestMaturityReport()" title="帳票出力">
+          <i class="fa-solid fa-file-lines"></i> 帳票出力
+        </button>
       </div>
     </div>
   </div>
@@ -889,7 +916,69 @@
   document.getElementById('pdfModalBackdrop').addEventListener('click', function(e) {
     if (e.target === this) closePdfModal();
   });
+
+  // ── トースト通知 ──────────────────────────────────────────────────
+  function showToastNotify(msg, isError = false) {
+    const el = document.getElementById('toast-notify');
+    el.textContent = msg;
+    el.style.background = isError ? '#dc2626' : '#1e3a5f';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 5000);
+  }
+
+  // ── 帳票出力（満期契約一覧）────────────────────────────────────
+  async function requestMaturityReport() {
+    const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
+    if (!token) { alert('再ログインしてください。'); return; }
+
+    // 現在の検索条件を収集
+    const dateFrom      = document.getElementById('date-from')?.value || '';
+    const dateTo        = document.getElementById('date-to')?.value || '';
+    const customerName  = document.getElementById('customer-name')?.value.trim() || '';
+    const staffCode     = document.getElementById('staff-code')?.value.trim() || '';
+    const policyType    = document.getElementById('policy-type')?.value || '';
+    const renewalStatus = document.getElementById('renewal-status')?.value || '';
+    const agencyCode    = document.getElementById('agency-code-filter')?.value.trim() || '';
+
+    const searchParams = JSON.stringify({
+      date_from:      dateFrom,
+      date_to:        dateTo,
+      customer_name:  customerName,
+      staff_code:     staffCode,
+      policy_type:    policyType,
+      renewal_status: renewalStatus,
+      agency_code:    agencyCode || _ssGet('agency_code') || '',
+    });
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM
+    const agCode  = _ssGet('agency_code') || agencyCode || '';
+    const reportName = `満期契約一覧_${agCode}_${dateStr}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/request`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          report_type:   'maturity_list',
+          report_name:   reportName,
+          search_params: searchParams,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToastNotify('帳票の受付に失敗しました: ' + (data.detail || res.status), true);
+        return;
+      }
+      showToastNotify(`受付番号 ${data.request_no} で受け付けました。帳票管理画面でご確認ください。`);
+    } catch (e) {
+      showToastNotify('帳票出力リクエスト中にエラーが発生しました', true);
+    }
+  }
 </script>
+
+<!-- トースト通知 -->
+<div class="toast-notify" id="toast-notify"></div>
 
 <!-- 更改おすすめプラン通知書 PDFモーダル -->
 <div class="pdf-modal-backdrop" id="pdfModalBackdrop">
