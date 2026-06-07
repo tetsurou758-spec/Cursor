@@ -63,11 +63,24 @@ TOKEN_EXPIRE_MINUTES = 60
 DB_PATH = os.path.join(os.path.dirname(__file__), "../db/users.sqlite")
 
 # 社員ロール別の利用可能機能リスト
-STAFF_PERMISSIONS = {
-    1: ["PAYMENT_VIEW", "CUSTOMER_EDIT", "MATURITY_VIEW", "REPORT_VIEW", "USER_ADMIN"],
-    2: ["CUSTOMER_EDIT", "MATURITY_VIEW", "REPORT_VIEW", "USER_ADMIN"],
-    3: [],
-}
+def _load_staff_permissions() -> dict:
+    """staff_role_permissionsテーブルから社員ロール権限を読み込む"""
+    try:
+        conn = get_db_connection()
+        rows = conn.execute(
+            "SELECT role_id, feature_code FROM staff_role_permissions"
+        ).fetchall()
+        conn.close()
+        result: dict = {}
+        for r in rows:
+            result.setdefault(r["role_id"], []).append(r["feature_code"])
+        return result
+    except Exception:
+        # フォールバック（テーブルなし時）
+        return {1: ["PAYMENT_VIEW", "CUSTOMER_EDIT", "MATURITY_VIEW", "REPORT_VIEW", "USER_ADMIN"],
+                2: ["CUSTOMER_EDIT", "MATURITY_VIEW", "REPORT_VIEW"], 3: []}
+
+STAFF_PERMISSIONS: dict = _load_staff_permissions()
 
 
 class LoginRequest(BaseModel):
@@ -750,7 +763,13 @@ def get_staff_role_matrix(payload: dict = Depends(require_staff_admin)):
         features = [dict(f) for f in conn.execute(
             "SELECT feature_code, feature_name FROM features"
         ).fetchall()]
-        return {"roles": roles, "features": features, "permissions": STAFF_PERMISSIONS}
+        perms = conn.execute(
+            "SELECT role_id, feature_code FROM staff_role_permissions"
+        ).fetchall()
+        perm_map: dict = {}
+        for p in perms:
+            perm_map.setdefault(p["role_id"], []).append(p["feature_code"])
+        return {"roles": roles, "features": features, "permissions": perm_map}
     finally:
         conn.close()
 

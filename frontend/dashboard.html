@@ -133,6 +133,42 @@
 
     /* ═══ CALENDARS（下段: カレンダー3枚）══════════════════════════ */
     .calendars-section { margin-bottom: 28px; }
+    .calendars-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .calendars-section-header .section-title { margin-bottom: 0; }
+    .cal-toggle-btn {
+      background: none;
+      border: 1.5px solid var(--gray-border);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      transition: transform 0.3s, background 0.2s;
+      flex-shrink: 0;
+    }
+    .cal-toggle-btn:hover { background: var(--gray-bg); }
+    .cal-toggle-btn.collapsed { transform: rotate(-90deg); }
+    .calendars-collapsible {
+      overflow: hidden;
+      max-height: 1200px;
+      opacity: 1;
+      transition: max-height 0.35s ease, opacity 0.3s;
+    }
+    .calendars-collapsible.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
     .calendars-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -490,6 +526,21 @@
       <span id="scope-label">集計範囲: 読み込み中...</span>
     </div>
 
+    <!-- ダイレクト検索（最上部） -->
+    <section class="direct-search-section">
+      <div class="section-title">ダイレクト検索</div>
+      <div class="direct-search-card">
+        <div class="direct-search-row">
+          <input type="text" id="direct-search-input" class="direct-search-input"
+            placeholder="名前 / 証券番号（POL-... / CUST-...） / 電話番号（10〜11桁）"
+            onblur="detectSearchType()" oninput="detectSearchType()">
+          <button class="btn-go btn-go-customer" onclick="goToCustomer()">顧客へ Go!</button>
+          <button class="btn-go btn-go-maturity" onclick="goToMaturity()">契約照会へ Go!</button>
+        </div>
+        <div class="direct-search-hint" id="direct-search-hint"></div>
+      </div>
+    </section>
+
     <section class="charts-section">
       <div class="section-title">更改状況インフォグラフィックス</div>
       <div class="charts-grid">
@@ -547,6 +598,11 @@
 
     <!-- カレンダーセクション（下段: 先月・今月・翌月） -->
     <section class="calendars-section">
+      <div class="calendars-section-header" onclick="toggleCalendars()">
+        <div class="section-title" style="margin-bottom:0">スケジュールカレンダー</div>
+        <button class="cal-toggle-btn" id="cal-toggle-btn" title="カレンダーを開閉">▼</button>
+      </div>
+      <div class="calendars-collapsible" id="calendars-collapsible">
       <div class="calendars-grid">
 
         <!-- カレンダーウィジェット: 先月 -->
@@ -598,21 +654,7 @@
         </div>
 
       </div>
-    </section>
-
-    <!-- ダイレクト検索 -->
-    <section class="direct-search-section">
-      <div class="section-title">ダイレクト検索</div>
-      <div class="direct-search-card">
-        <div class="direct-search-row">
-          <input type="text" id="direct-search-input" class="direct-search-input"
-            placeholder="名前 / 証券番号（POL-... / CUST-...） / 電話番号（10〜11桁）"
-            onblur="detectSearchType()" oninput="detectSearchType()">
-          <button class="btn-go btn-go-customer" onclick="goToCustomer()">顧客へ Go!</button>
-          <button class="btn-go btn-go-maturity" onclick="goToMaturity()">契約照会へ Go!</button>
-        </div>
-        <div class="direct-search-hint" id="direct-search-hint"></div>
-      </div>
+      </div><!-- /.calendars-collapsible -->
     </section>
 
     <section class="nav-section">
@@ -849,6 +891,22 @@
       if (/^\d/.test(val)) return 'tel';           // 数字始まり → 電話番号
       if (/^[^\x00-\x7F]/.test(val)) return 'name'; // 全角文字始まり → 名前
       return 'contract';                             // それ以外 → 証券番号・顧客番号
+    }
+
+    /* ── カレンダーセクション開閉 ─────────────────────────────── */
+    function toggleCalendars() {
+      const col = document.getElementById('calendars-collapsible');
+      const btn = document.getElementById('cal-toggle-btn');
+      const isCollapsed = col.classList.contains('collapsed');
+      if (isCollapsed) {
+        col.classList.remove('collapsed');
+        btn.classList.remove('collapsed');
+        btn.textContent = '▼';
+      } else {
+        col.classList.add('collapsed');
+        btn.classList.add('collapsed');
+        btn.textContent = '▶';
+      }
     }
 
     function detectSearchType() {
