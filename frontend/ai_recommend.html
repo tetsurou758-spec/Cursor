@@ -90,6 +90,13 @@
     }
     .btn-bulk-analyze:hover { opacity:0.88; }
     .btn-bulk-analyze:disabled { opacity:0.55; cursor:not-allowed; }
+    .btn-bulk-cancel {
+      background:#dc2626; color:#fff; border:none; border-radius:6px;
+      padding:10px 20px; font-size:0.9rem; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .btn-bulk-cancel:hover { opacity:0.85; }
     /* スピナー */
     .spinner {
       display:none; width:18px; height:18px;
@@ -295,6 +302,11 @@
           <i class="fas fa-robot" id="bulk-icon"></i>
           <span id="bulk-btn-text">代理店一括AIレコメンド生成</span>
         </button>
+        <!-- キャンセルボタン（分析中のみ表示） -->
+        <button class="btn-bulk-cancel" id="btn-cancel" onclick="cancelBulk()" style="display:none"
+          title="実行中の一括分析を中断します">
+          <i class="fas fa-xmark"></i> キャンセル
+        </button>
         <div class="bulk-hint">
           <i class="fas fa-circle-info" style="color:var(--accent)"></i>
           当代理店の全顧客にAI分析を実行し、最適な保険プランを推奨します。
@@ -404,6 +416,25 @@
     // 現在モーダルに表示中の顧客ID
     let _modalCustomerId = null;
 
+    // 実行中のバルクジョブID（キャンセル用）
+    let _currentBulkJobId = null;
+    let _bulkPollTimer    = null;
+
+    // 種目コード→日本語名の変換マップ
+    const POLICY_TYPE_JA = {
+      'AUTO':      '自動車',
+      'FIRE':      '火災',
+      'INJURY':    '傷害',
+      'JIBAI':     '自賠責',
+      'LIABILITY': '賠償責任',
+      'CYBER':     'サイバーリスク',
+      'INCOME':    '所得補償',
+    };
+    /** 種目コードまたは日本語名をそのまま日本語で返す */
+    function policyTypeJa(code) {
+      return POLICY_TYPE_JA[code] || code;
+    }
+
     // ── 認証ヘッダー取得 ─────────────────────────────────────────────
     function getAuthHeader() {
       const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
@@ -470,7 +501,7 @@
     function renderSummary(data) {
       // サマリーカードを表示
       document.getElementById('summary-card').style.display = '';
-      document.getElementById('sum-analyzed').textContent = data.analyzed_count ?? '—';
+      document.getElementById('sum-analyzed').textContent = data.analyzed_customers ?? '—';
       document.getElementById('sum-total').textContent    = data.total_customers ?? '—';
 
       // 推奨種目ランキング
@@ -502,14 +533,14 @@
       }
 
       tbody.innerHTML = customers.map(c => {
-        // 現在の加入種目バッジ
+        // 現在の加入種目バッジ（日本語表示）
         const currentBadges = (c.current_types || []).map(t =>
-          `<span class="badge-type">${escHtml(t)}</span>`
+          `<span class="badge-type">${escHtml(policyTypeJa(t))}</span>`
         ).join('');
 
-        // 推奨種目バッジ（緑色強調）
+        // 推奨種目バッジ（緑色強調・日本語表示）
         const recommendBadges = (c.recommend_types || []).map(t =>
-          `<span class="badge-type recommend">${escHtml(t)}</span>`
+          `<span class="badge-type recommend">${escHtml(policyTypeJa(t))}</span>`
         ).join('');
 
         // リスクスコア表示
@@ -550,18 +581,18 @@
       document.getElementById('modal-customer-name').textContent =
         customerData.customer_name || '—';
 
-      // 現在の加入種目
+      // 現在の加入種目（日本語表示）
       const curTypes = customerData.current_types || [];
       document.getElementById('modal-current-types').innerHTML =
         curTypes.length
-          ? curTypes.map(t => `<span class="badge-type">${escHtml(t)}</span>`).join('')
+          ? curTypes.map(t => `<span class="badge-type">${escHtml(policyTypeJa(t))}</span>`).join('')
           : '<span style="color:var(--text-sub);font-size:0.8rem">なし</span>';
 
-      // 推奨種目（緑色）
+      // 推奨種目（緑色・日本語表示）
       const recTypes = customerData.recommend_types || [];
       document.getElementById('modal-recommend-types').innerHTML =
         recTypes.length
-          ? recTypes.map(t => `<span class="badge-type recommend">${escHtml(t)}</span>`).join('')
+          ? recTypes.map(t => `<span class="badge-type recommend">${escHtml(policyTypeJa(t))}</span>`).join('')
           : '<span style="color:var(--text-sub);font-size:0.8rem">なし</span>';
 
       // リスクスコア
@@ -587,20 +618,38 @@
       _modalCustomerId = null;
     }
 
+    // ── バルク分析ボタンのUIをリセットする ────────────────────────────
+    function _resetBulkUI() {
+      const btn     = document.getElementById('btn-bulk');
+      const spinner = document.getElementById('bulk-spinner');
+      const icon    = document.getElementById('bulk-icon');
+      const text    = document.getElementById('bulk-btn-text');
+      const cancelBtn = document.getElementById('btn-cancel');
+      btn.disabled         = false;
+      spinner.classList.remove('active');
+      icon.style.display   = '';
+      text.textContent     = '代理店一括AIレコメンド生成';
+      cancelBtn.style.display = 'none';
+      _currentBulkJobId    = null;
+      if (_bulkPollTimer) { clearInterval(_bulkPollTimer); _bulkPollTimer = null; }
+    }
+
     // ── 代理店一括AIレコメンド生成（バックグラウンド実行＋進捗ポーリング）──
     async function bulkGenerate() {
       const agencyCode = getAgencyCode();
       if (!agencyCode) { showToast('代理店コードが取得できません', true); return; }
 
-      const btn     = document.getElementById('btn-bulk');
-      const spinner = document.getElementById('bulk-spinner');
-      const icon    = document.getElementById('bulk-icon');
-      const text    = document.getElementById('bulk-btn-text');
+      const btn       = document.getElementById('btn-bulk');
+      const spinner   = document.getElementById('bulk-spinner');
+      const icon      = document.getElementById('bulk-icon');
+      const text      = document.getElementById('bulk-btn-text');
+      const cancelBtn = document.getElementById('btn-cancel');
 
-      btn.disabled       = true;
+      btn.disabled         = true;
       spinner.classList.add('active');
-      icon.style.display = 'none';
-      text.textContent   = '分析を開始中...';
+      icon.style.display   = 'none';
+      text.textContent     = '分析を開始中...';
+      cancelBtn.style.display = 'none';
 
       try {
         // ① 一括分析をキックしてjob_idを受け取る（即座にレスポンス）
@@ -608,14 +657,20 @@
           method: 'POST', headers: getAuthHeader()
         });
         const data = await res.json();
-        if (!res.ok) { showToast('生成に失敗しました: ' + (data.detail || res.status), true); return; }
+        if (!res.ok) {
+          showToast('生成に失敗しました: ' + (data.detail || res.status), true);
+          _resetBulkUI();
+          return;
+        }
 
         const jobId = data.bulk_job_id;
         const total = data.total_customers || 0;
+        _currentBulkJobId = jobId;
+        cancelBtn.style.display = '';   // キャンセルボタンを表示
         showToast(`${total}件の分析をバックグラウンドで開始しました`);
 
         // ② 進捗をポーリング（3秒ごと）
-        const poll = setInterval(async () => {
+        _bulkPollTimer = setInterval(async () => {
           try {
             const sr = await fetch(`${API_BASE}/api/ai/recommend/bulk/status/${jobId}`, {
               headers: getAuthHeader()
@@ -625,14 +680,13 @@
             const done = s.processed + s.failed;
             text.textContent = `分析中... ${done}/${s.total}件`;
 
-            if (s.status === 'completed' || s.status === 'error') {
-              clearInterval(poll);
-              showToast(`一括分析が完了しました（成功:${s.processed}件 / 失敗:${s.failed}件）`);
+            if (s.status === 'completed' || s.status === 'error' || s.status === 'cancelled') {
+              const msg = s.status === 'cancelled'
+                ? `一括分析をキャンセルしました（完了:${s.processed}件）`
+                : `一括分析が完了しました（成功:${s.processed}件 / 失敗:${s.failed}件）`;
+              showToast(msg, s.status === 'error');
               await loadSummary();
-              btn.disabled       = false;
-              spinner.classList.remove('active');
-              icon.style.display = '';
-              text.textContent   = '代理店一括AIレコメンド生成';
+              _resetBulkUI();
             }
           } catch (_) {}
         }, 3000);
@@ -640,10 +694,28 @@
       } catch (e) {
         console.error('一括生成エラー:', e);
         showToast('通信エラーが発生しました', true);
-        btn.disabled       = false;
-        spinner.classList.remove('active');
-        icon.style.display = '';
-        text.textContent   = '代理店一括AIレコメンド生成';
+        _resetBulkUI();
+      }
+    }
+
+    // ── 一括分析キャンセル ───────────────────────────────────────────
+    async function cancelBulk() {
+      if (!_currentBulkJobId) return;
+      if (!confirm('実行中の一括分析を中断しますか？\n（処理済み分のデータは保存されます）')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/ai/recommend/bulk/cancel/${_currentBulkJobId}`, {
+          method: 'POST', headers: getAuthHeader()
+        });
+        if (res.ok) {
+          showToast('キャンセルリクエストを送信しました。処理中の件が完了次第、停止します。');
+          document.getElementById('btn-cancel').disabled = true;
+          document.getElementById('btn-cancel').textContent = 'キャンセル中...';
+        } else {
+          const d = await res.json();
+          showToast('キャンセルに失敗しました: ' + (d.detail || res.status), true);
+        }
+      } catch (e) {
+        showToast('通信エラーが発生しました', true);
       }
     }
 

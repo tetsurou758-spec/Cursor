@@ -241,21 +241,38 @@ def get_recommend_summary(
             # ハイリスク顧客（risk_score >= 0.7）
             risk_score = row["risk_score"] or 0.0
             if risk_score >= 0.7:
+                # 現在の加入種目を取得
+                cur_rows = conn.execute("""
+                    SELECT DISTINCT policy_type FROM contracts
+                    WHERE linked_customer_id = ? AND (status IS NULL OR status != '失効')
+                """, (row["customer_id"],)).fetchall()
+                current_types = [r["policy_type"] for r in cur_rows if r["policy_type"]]
                 high_risk_customers.append({
                     "customer_id":   row["customer_id"],
                     "customer_name": f"{row['last_name']} {row['first_name']}",
                     "risk_score":    risk_score,
+                    "recommend_types": rtypes,
+                    "current_types":   current_types,
+                    "reason":          row["reason"] or "",
                 })
 
         # ハイリスク顧客をrisk_score降順・最大10件に絞る
         high_risk_customers = sorted(high_risk_customers, key=lambda x: x["risk_score"], reverse=True)[:10]
 
+        # recommend_summary を降順ソートしたランキングリストに変換
+        recommend_type_ranking = sorted(
+            [{"policy_type": _CODE_TO_NAME.get(k, k), "code": k, "count": v}
+             for k, v in recommend_summary.items()],
+            key=lambda x: x["count"], reverse=True
+        )
+
         return {
-            "agency_code":         agency_code,
-            "total_customers":     total_customers,
-            "analyzed_customers":  analyzed_customers,
-            "recommend_summary":   recommend_summary,
-            "high_risk_customers": high_risk_customers,
+            "agency_code":             agency_code,
+            "total_customers":         total_customers,
+            "analyzed_customers":      analyzed_customers,
+            "recommend_summary":       recommend_summary,
+            "recommend_type_ranking":  recommend_type_ranking,
+            "high_risk_customers":     high_risk_customers,
         }
     finally:
         conn.close()
@@ -267,10 +284,14 @@ _bulk_jobs: dict = {}
 
 def _run_bulk_job(bulk_job_id: str, agency_code: str, customer_ids: list, all_type_codes: list):
     """バックグラウンドスレッドで一括AI分析を実行する"""
-    _bulk_jobs[bulk_job_id] = {"status": "running", "processed": 0, "failed": 0, "total": len(customer_ids)}
+    _bulk_jobs[bulk_job_id] = {"status": "running", "processed": 0, "failed": 0, "total": len(customer_ids), "cancelled": False}
     conn = _get_db()
     try:
         for customer_id in customer_ids:
+            # キャンセルフラグが立っていたら中断
+            if _bulk_jobs[bulk_job_id].get("cancelled"):
+                _bulk_jobs[bulk_job_id]["status"] = "cancelled"
+                return
             try:
                 customer = conn.execute("""
                     SELECT last_name, first_name, birth_date, gender, group_code
@@ -395,6 +416,21 @@ def get_bulk_status(
     if not job:
         raise HTTPException(status_code=404, detail="ジョブが見つかりません")
     return {"bulk_job_id": bulk_job_id, **job}
+
+
+@router.post("/ai/recommend/bulk/cancel/{bulk_job_id}")
+def cancel_bulk_job(
+    bulk_job_id: str,
+    payload: dict = Depends(_verify_token),
+):
+    """実行中の一括処理をキャンセルする"""
+    job = _bulk_jobs.get(bulk_job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="ジョブが見つかりません")
+    if job["status"] not in ("running",):
+        raise HTTPException(status_code=400, detail=f"キャンセルできません（状態: {job['status']}）")
+    _bulk_jobs[bulk_job_id]["cancelled"] = True
+    return {"bulk_job_id": bulk_job_id, "message": "キャンセルリクエストを受け付けました"}
 
 
 # ── 個別顧客エンドポイント ──────────────────────────────────────────────────────
