@@ -735,8 +735,8 @@
           <span class="nav-icon"><i class="fa-solid fa-coins"></i></span>
           <span class="nav-label">手数料管理</span>
         </a>
-        <!-- AIレコメンド（代理店プライベート：社員はグレー表示） -->
-        <a href="ai_recommend.html" class="nav-btn nav-btn-ai" id="btn-ai-recommend" data-feature="AI_RECOMMEND" data-tooltip="代理店専用機能です">
+        <!-- AIレコメンド（全ユーザー利用可能・権限チェックあり） -->
+        <a href="ai_recommend.html" class="nav-btn nav-btn-ai" id="btn-ai-recommend" data-feature="AI_RECOMMEND" data-tooltip="権限がありません">
           <span class="new-badge">New!</span>
           <span class="nav-icon"><i class="fa-solid fa-robot"></i></span>
           <span class="nav-label">AIレコメンド</span>
@@ -1016,8 +1016,8 @@
       document.getElementById('legend-dot2').style.background = c2;
 
       // 社員ユーザーには代理店プライベート機能をグレー無効化表示
-      // （成績管理・手数料管理・AIレコメンド）
-      const _agencyPrivateBtns = ['btn-sales', 'btn-commission', 'btn-ai-recommend'];
+      // （成績管理・手数料管理のみ。AIレコメンドは社員も利用可能）
+      const _agencyPrivateBtns = ['btn-sales', 'btn-commission'];
       if (userType === 'staff') {
         _agencyPrivateBtns.forEach(id => {
           const btn = document.getElementById(id);

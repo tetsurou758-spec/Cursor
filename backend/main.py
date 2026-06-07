@@ -64,28 +64,32 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "../db/users.sqlite")
 
 # 社員ロール別の利用可能機能リスト
 def _load_staff_permissions() -> dict:
-    """staff_role_permissionsテーブルから社員ロール権限を読み込む"""
+    """
+    staff_role_permissionsテーブルから社員ロール権限を読み込む。
+    get_db_connection()の定義順序に依存しないよう sqlite3 を直接使用する。
+    """
+    _common = ["CUSTOMER_EDIT","MATURITY_VIEW","CONTRACT_VIEW","PAYMENT_VIEW",
+               "REPORT_VIEW","CONTACT_VIEW","INTENTION_VIEW","TODO_VIEW","AI_RECOMMEND"]
+    _fallback = {
+        1: _common + ["USER_ADMIN","AGENCY_MASTER"],
+        2: list(_common),
+        3: list(_common),
+    }
     try:
-        conn = get_db_connection()
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT role_id, feature_code FROM staff_role_permissions"
         ).fetchall()
         conn.close()
+        if not rows:
+            return _fallback
         result: dict = {}
         for r in rows:
             result.setdefault(r["role_id"], []).append(r["feature_code"])
         return result
     except Exception:
-        # フォールバック（テーブルなし時）
-        # SALES_VIEW・COMMISSION_VIEWは代理店専用のため全社員除外
-        # AGENCY_MASTER・USER_ADMINはシステム管理者(role_id=1)のみ
-        _common = ["CUSTOMER_EDIT","MATURITY_VIEW","CONTRACT_VIEW","PAYMENT_VIEW",
-                   "REPORT_VIEW","CONTACT_VIEW","INTENTION_VIEW","TODO_VIEW","AI_RECOMMEND"]
-        return {
-            1: _common + ["USER_ADMIN","AGENCY_MASTER"],
-            2: _common,
-            3: _common,
-        }
+        return _fallback
 
 STAFF_PERMISSIONS: dict = _load_staff_permissions()
 
