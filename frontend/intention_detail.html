@@ -136,15 +136,35 @@
     .btn-save:hover { opacity: 0.85; }
     .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    /* トースト通知（固定位置・画面スクロールに関わらず常に中央上部に表示） */
+    .alert-success, .alert-error {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      z-index: 9999;
+      min-width: 280px;
+      max-width: 480px;
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      opacity: 0;
+      display: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .alert-success.show, .alert-error.show {
+      display: block;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
     .alert-success {
       background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d;
-      border-radius: 8px; padding: 12px 20px; margin-bottom: 16px;
-      font-size: 0.88rem; font-weight: 600; display: none;
     }
     .alert-error {
       background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
-      border-radius: 8px; padding: 12px 20px; margin-bottom: 16px;
-      font-size: 0.88rem; display: none;
     }
   </style>
 </head>
@@ -318,8 +338,10 @@
     if (!token) return; // requireAuth内でlogin.htmlへリダイレクト済み
 
     if (!_policyNo) {
-      document.getElementById('alert-error').style.display = '';
-      document.getElementById('alert-error').textContent = '証券番号が指定されていません';
+      const ng = document.getElementById('alert-error');
+      ng.textContent = '証券番号が指定されていません';
+      ng.style.display = 'block';
+      requestAnimationFrame(() => ng.classList.add('show'));
       return;
     }
 
@@ -368,8 +390,10 @@
 
     } catch (e) {
       console.error('データ取得エラー:', e);
-      document.getElementById('alert-error').style.display  = '';
-      document.getElementById('alert-error').textContent    = '契約データの取得に失敗しました';
+      const ngLoad = document.getElementById('alert-error');
+      ngLoad.textContent = '契約データの取得に失敗しました';
+      ngLoad.style.display = 'block';
+      requestAnimationFrame(() => ngLoad.classList.add('show'));
     }
   }
 
@@ -424,12 +448,15 @@
       if (!id && result.id) {
         document.getElementById('intention-id').value = result.id;
       }
-      // 成功メッセージを確実に表示（loadDataより先に設定）
-      document.getElementById('alert-success').style.display = '';
-      document.getElementById('alert-error').style.display   = 'none';
-      // 3秒後にアラートを非表示（loadDataの成否に関わらず動作）
+      // 成功トースト表示（固定位置・スクロール位置に関わらず見える）
+      const ok = document.getElementById('alert-success');
+      const ng = document.getElementById('alert-error');
+      ng.classList.remove('show');
+      ok.style.display = 'block';
+      requestAnimationFrame(() => ok.classList.add('show'));
       setTimeout(() => {
-        document.getElementById('alert-success').style.display = 'none';
+        ok.classList.remove('show');
+        setTimeout(() => { ok.style.display = 'none'; }, 300);
       }, 3000);
 
       // DBから最新データを再取得して画面を更新（失敗してもメッセージには影響させない）
@@ -439,8 +466,10 @@
 
     } catch (e) {
       console.error('保存エラー:', e);
-      document.getElementById('alert-error').style.display  = '';
-      document.getElementById('alert-error').textContent    = `❌ ${e.message}`;
+      const ng2 = document.getElementById('alert-error');
+      ng2.textContent = `❌ ${e.message}`;
+      ng2.style.display = 'block';
+      requestAnimationFrame(() => ng2.classList.add('show'));
     } finally {
       btn.disabled    = false;
       btn.innerHTML   = '<i class="fa-solid fa-floppy-disk"></i> 保存する';
