@@ -197,19 +197,25 @@
     }
     /* 曜日ヘッダー */
     .cal-grid {
-      display:grid; grid-template-columns:repeat(7,1fr); gap:1px;
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      grid-auto-rows: 52px;   /* 全行を固定高さで統一 */
+      gap:1px;
     }
     .cal-dow {
       text-align:center; font-size:0.6rem; font-weight:700;
       padding:2px 0 4px; color:var(--text-sub);
+      grid-row: 1;            /* 曜日ヘッダーは高さ固定不要 */
+      height: auto;
     }
-    .cal-dow:first-child { color:#dc2626; } /* 日 */
-    .cal-dow:last-child  { color:#2563eb; } /* 土 */
-    /* 日付セル */
+    .cal-dow:first-child { color:#dc2626; }
+    .cal-dow:last-child  { color:#2563eb; }
+    /* 日付セル: 固定高さ・はみ出し非表示でグリッド崩れを防止 */
     .cal-cell {
-      min-height:44px; padding:2px 2px 3px;
+      height:52px; overflow:hidden;
+      padding:2px 2px 2px;
       border-radius:4px; position:relative;
-      cursor:default;
+      cursor:default; box-sizing:border-box;
     }
     .cal-cell.other-month { opacity:0.3; }
     .cal-cell.today .cal-day-num {
@@ -218,27 +224,25 @@
       display:inline-flex; align-items:center; justify-content:center;
     }
     .cal-day-num {
-      font-size:0.65rem; font-weight:600; color:var(--text-main);
+      font-size:0.62rem; font-weight:600; color:var(--text-main);
       display:block; text-align:center; line-height:18px; margin-bottom:1px;
+      flex-shrink:0;
     }
     .cal-cell.sun .cal-day-num { color:#dc2626; }
     .cal-cell.sat .cal-day-num { color:#2563eb; }
     /* イベントバッジ */
     .cal-event {
       display:block; border-radius:2px; padding:1px 3px;
-      font-size:0.55rem; font-weight:600; line-height:1.4;
+      font-size:0.52rem; font-weight:600; line-height:1.35;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
       cursor:pointer; margin-bottom:1px;
+      max-width:100%;
     }
     .cal-event.maturity {
       background:#dbeafe; color:#1e40af; border-left:2px solid #3b82f6;
     }
     .cal-event.todo {
       background:#fef3c7; color:#92400e; border-left:2px solid #f59e0b;
-    }
-    .cal-event.more {
-      background:var(--gray-border); color:var(--text-sub);
-      border-left:2px solid #9ca3af; font-style:italic;
     }
     .cal-event:hover { opacity:0.82; }
 
@@ -1023,20 +1027,27 @@
           const maturityList = dayEvents.maturity || [];
           const todoList     = dayEvents.todo     || [];
 
-          // 満期イベント（最大1件表示、残りは+N件）
+          // 満期イベント
           if (maturityList.length > 0) {
-            const first = maturityList[0];
-            const name  = first.customer_name || first.contract_no || '';
-            const label = maturityList.length > 1
-              ? `${name.substring(0,5)} 他+${maturityList.length - 1}件`
-              : name.substring(0, 8) || first.contract_no;
+            const cnt = maturityList.length;
+            let label;
+            if (cnt >= 10) {
+              // 10件以上は件数のみ表示（個人名を出さない）
+              label = `📋 満期 ${cnt}件`;
+            } else if (cnt > 1) {
+              const name = (maturityList[0].customer_name || '').substring(0, 4);
+              label = `📋 ${name} 他+${cnt - 1}件`;
+            } else {
+              label = `📋 ${(maturityList[0].customer_name || '').substring(0, 7)}`;
+            }
             const ev = document.createElement('span');
             ev.className = 'cal-event maturity';
-            ev.title     = maturityList.map(m => `${m.customer_name}（${m.policy_type}）満期:${m.expiry_date}`).join('\n');
-            ev.textContent = `📋 ${label}`;
+            ev.title = maturityList.slice(0, 5).map(m =>
+              `${m.customer_name}（${m.policy_type}）満期:${m.expiry_date}`
+            ).join('\n') + (cnt > 5 ? `\n…他${cnt - 5}件` : '');
+            ev.textContent = label;
             ev.addEventListener('click', (e) => {
               e.stopPropagation();
-              // 満期日は当日+14日
               const expDate = new Date(dateStr);
               expDate.setDate(expDate.getDate() + 14);
               const expStr = `${expDate.getFullYear()}-${String(expDate.getMonth()+1).padStart(2,'0')}-${String(expDate.getDate()).padStart(2,'0')}`;
@@ -1045,16 +1056,24 @@
             cell.appendChild(ev);
           }
 
-          // TODOイベント（最大1件表示、残りは+N件）
+          // TODOイベント
           if (todoList.length > 0) {
-            const first = todoList[0];
-            const label = todoList.length > 1
-              ? `${first.title.substring(0,5)} 他+${todoList.length - 1}件`
-              : first.title.substring(0, 8);
+            const cnt = todoList.length;
+            let label;
+            if (cnt >= 10) {
+              label = `✓ TODO ${cnt}件`;
+            } else if (cnt > 1) {
+              const title = (todoList[0].title || '').substring(0, 4);
+              label = `✓ ${title} 他+${cnt - 1}件`;
+            } else {
+              label = `✓ ${(todoList[0].title || '').substring(0, 7)}`;
+            }
             const ev = document.createElement('span');
             ev.className = 'cal-event todo';
-            ev.title     = todoList.map(t => `${t.title}（${t.status}）`).join('\n');
-            ev.textContent = `✓ ${label}`;
+            ev.title = todoList.slice(0, 5).map(t =>
+              `${t.title}（${t.status}）`
+            ).join('\n') + (cnt > 5 ? `\n…他${cnt - 5}件` : '');
+            ev.textContent = label;
             ev.addEventListener('click', (e) => {
               e.stopPropagation();
               location.href = `todo_list.html?due_date=${dateStr}`;
