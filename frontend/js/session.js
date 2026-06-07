@@ -123,12 +123,12 @@ function applyUserBadge(elementId) {
     : ((info.agency_code || '') + ' ' + (info.login_id || '')).trim();
   const name = info.name || '';
   const role = info.role_name || '';
-  const ac   = 'var(--accent, #ffc800)';
 
+  // インラインスタイルではなくCSSクラスを使用（theme.cssでテーマ別に制御可能）
   el.innerHTML =
-    `<span style="color:${ac};font-weight:700">${code}</span>` +
-    (name ? `<span style="color:#fff;font-weight:400"> ｜ ${name}</span>` : '') +
-    (role ? `<span style="color:${ac};font-weight:600"> ｜ ${role}</span>` : '');
+    `<span class="badge-code">${code}</span>` +
+    (name ? `<span class="badge-login"> ｜ ${name}</span>` : '') +
+    (role ? `<span class="badge-role"> ｜ ${role}</span>` : '');
 }
 
 /**

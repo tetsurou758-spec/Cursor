@@ -1,5 +1,24 @@
 /* theme.css - user_typeによる動的テーマ定義 */
 
+/* ═══ ユーザーバッジ共通（全画面・全テーマ共通基盤） ═════════════════════════ */
+
+/* badge-code / badge-login / badge-role はapplyUserBadge()が生成するクラス */
+.user-badge {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--accent-border);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.user-badge .badge-code  { color: var(--accent-light); font-weight: 700; }
+.user-badge .badge-login { color: #fff; font-weight: 400; }
+.user-badge .badge-role  { color: var(--accent-light); font-weight: 600; }
+.user-badge .badge-buka  { color: rgba(255,255,255,0.7); font-size: 0.72rem; margin-left: 6px; }
+
 /* ═══ ヘッダー共通スタイル ═══════════════════════════════════════════════════ */
 
 /* 機能名を中央に絶対配置 */
@@ -63,38 +82,44 @@
    社員ピンクテーマ専用：ダークピンクヘッダー上の視認性改善
    ══════════════════════════════════════════════════════════════ */
 
-/* ヘッダーボタン（全画面共通）→ 白背景＋ピンク文字 */
+/* ① ヘッダーの全ボタン（遷移・戻る・ログアウト）→ 白背景＋ピンク文字 */
 :root[data-theme="staff"] .header-admin-link,
 :root[data-theme="staff"] .header-back-link,
-:root[data-theme="staff"] .btn-back {
+:root[data-theme="staff"] .btn-back,
+:root[data-theme="staff"] .btn-logout {
   background: #ffffff !important;
   border-color: #ffffff !important;
   color: #FF1493 !important;
 }
 :root[data-theme="staff"] .header-admin-link:hover,
 :root[data-theme="staff"] .header-back-link:hover,
-:root[data-theme="staff"] .btn-back:hover {
+:root[data-theme="staff"] .btn-back:hover,
+:root[data-theme="staff"] .btn-logout:hover {
   background: #FFE4F0 !important;
   border-color: #FFE4F0 !important;
   color: #FF1493 !important;
   opacity: 1;
 }
 
-/* ヘッダーロゴ：会社名を白に（SVGロゴ・絵文字ロゴ両対応） */
+/* ② ヘッダーロゴ：会社名を白に（SVGロゴ・絵文字ロゴ両対応） */
 :root[data-theme="staff"] .header-logo-text .company,
 :root[data-theme="staff"] .header-logo {
   color: #ffffff !important;
 }
 
-/* ユーザーバッジ：コンテナ・文字を白系で統一 */
+/* ③ ユーザーバッジ：枠線・全テキストを白に統一 */
 :root[data-theme="staff"] .user-badge {
-  background: rgba(255,255,255,0.15) !important;
-  border-color: rgba(255,255,255,0.4) !important;
+  background: rgba(255,255,255,0.12) !important;
+  border-color: rgba(255,255,255,0.55) !important;
 }
 :root[data-theme="staff"] .user-badge .badge-code,
-:root[data-theme="staff"] .user-badge .badge-role,
 :root[data-theme="staff"] .user-badge .badge-login,
+:root[data-theme="staff"] .user-badge .badge-role,
 :root[data-theme="staff"] .user-badge .badge-buka {
+  color: #ffffff !important;
+}
+/* 各画面ローカルの .user-badge span も白に上書き */
+:root[data-theme="staff"] .user-badge span {
   color: #ffffff !important;
 }
 
