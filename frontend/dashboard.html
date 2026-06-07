@@ -953,28 +953,32 @@
         if (tRes.ok) renderTodoWidget((await tRes.json()).todos || []);
       } catch (e) { console.error('TODO取得失敗:', e); }
 
-      // カレンダーウィジェット
-      try {
-        const today    = new Date();
-        const calRes   = await fetch(
-          `${API_BASE}/api/dashboard/calendar?year=${today.getFullYear()}&month=${today.getMonth()+1}`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (calRes.ok) renderCalendars(await calRes.json());
-      } catch (e) { console.error('カレンダー取得失敗:', e); }
+      // カレンダーウィジェット：骨格を即時描画し、イベントはAPI成功時に上乗せ
+      {
+        const today = new Date();
+        const y1 = today.getFullYear(), m1 = today.getMonth() + 1;
+        const m2Date = new Date(y1, today.getMonth() + 1, 1);
+        const y2 = m2Date.getFullYear(), m2 = m2Date.getMonth() + 1;
+        const todayStr = `${y1}-${String(m1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        // まず空イベントでカレンダー枠を描画（年月が必ず表示される）
+        renderOneCalendar('cal-grid-m1', 'cal-m1-label', y1, m1, {}, todayStr);
+        renderOneCalendar('cal-grid-m2', 'cal-m2-label', y2, m2, {}, todayStr);
+        // APIからイベントを取得して上書き
+        try {
+          const calRes = await fetch(
+            `${API_BASE}/api/dashboard/calendar?year=${y1}&month=${m1}`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (calRes.ok) {
+            const calData = await calRes.json();
+            renderOneCalendar('cal-grid-m1', 'cal-m1-label', y1, m1, calData.events || {}, todayStr);
+            renderOneCalendar('cal-grid-m2', 'cal-m2-label', y2, m2, calData.events || {}, todayStr);
+          }
+        } catch (e) { console.error('カレンダーイベント取得失敗:', e); }
+      }
     });
 
     // ── カレンダーウィジェット描画 ──────────────────────────────────
-    function renderCalendars(data) {
-      const events = data.events || {};
-      const today  = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-
-      // 今月・翌月それぞれ描画
-      renderOneCalendar('cal-grid-m1', 'cal-m1-label', data.month1.year, data.month1.month, events, todayStr);
-      renderOneCalendar('cal-grid-m2', 'cal-m2-label', data.month2.year, data.month2.month, events, todayStr);
-    }
-
     function renderOneCalendar(gridId, labelId, year, month, events, todayStr) {
       // ラベル更新
       document.getElementById(labelId).textContent = `${year}年${month}月`;
