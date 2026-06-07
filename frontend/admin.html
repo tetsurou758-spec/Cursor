@@ -694,11 +694,15 @@
         roles.map(r => `<th>${escHtml(r.role_name)}</th>`).join('') + '</tr>';
 
       // データ行
+      // 代理店専用機能コード（社員には触れない）
+      const AGENCY_PRIVATE = ['SALES_VIEW', 'COMMISSION_VIEW'];
+
       const tbody = document.getElementById('matrix-body');
       tbody.innerHTML = features.map(f => {
-        // 代理店ビューではAGENCY_MASTERを「社員専用」として特別表示
+        const colspan = roles.length;
+
+        // 代理店ビュー：AGENCY_MASTERは社員専用として特別表示
         if (userType !== 'staff' && f.feature_code === 'AGENCY_MASTER') {
-          const colspan = roles.length;
           return `<tr style="opacity:0.55;">
             <td>${escHtml(f.feature_name)}</td>
             <td colspan="${colspan}" style="text-align:center;font-size:0.78rem;color:#94a3b8;font-style:italic;">
@@ -706,6 +710,16 @@
             </td>
           </tr>`;
         }
+        // 社員ビュー：SALES_VIEW・COMMISSION_VIEWは代理店専用として特別表示
+        if (userType === 'staff' && AGENCY_PRIVATE.includes(f.feature_code)) {
+          return `<tr style="opacity:0.5;">
+            <td>${escHtml(f.feature_name)}</td>
+            <td colspan="${colspan}" style="text-align:center;font-size:0.78rem;color:#94a3b8;font-style:italic;">
+              代理店専用機能（社員は利用不可）
+            </td>
+          </tr>`;
+        }
+
         const cells = roles.map(r => {
           const has = (permissions[r.role_id] || []).includes(f.feature_code);
           return `<td>${has

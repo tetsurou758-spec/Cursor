@@ -59,6 +59,21 @@
   color: var(--primary-dark) !important;
 }
 
+/* 社員ピンクテーマ：ヘッダーボタンをダークヘッダー上で視認しやすい白地ピンク文字に */
+:root[data-theme="staff"] .header-admin-link,
+:root[data-theme="staff"] .header-back-link {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #FF1493 !important;
+}
+:root[data-theme="staff"] .header-admin-link:hover,
+:root[data-theme="staff"] .header-back-link:hover {
+  background: #FFE4F0 !important;
+  border-color: #FFE4F0 !important;
+  color: #FF1493 !important;
+  opacity: 1;
+}
+
 :root[data-theme="agency"] {
     --primary:       #1a2d5a;
     --primary-dark:  #0f1d3d;
