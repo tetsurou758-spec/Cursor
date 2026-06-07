@@ -123,15 +123,21 @@
     }
     .scope-badge.visible { display: inline-flex; }
 
-    /* ═══ CHARTS ════════════════════════════════════════════════ */
+    /* ═══ CHARTS + CALENDAR 5列グリッド ════════════════════════════ */
     .charts-section { margin-bottom: 28px; }
-    .charts-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+    /* 左3列: ドーナツグラフ  右2列: カレンダー */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr)) repeat(2, minmax(0,1.35fr));
+      gap: 16px;
+      align-items: start;
+    }
 
     .chart-card {
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 12px var(--card-shadow);
-      padding: 28px 24px 24px;
+      padding: 18px 16px 16px;
       text-align: center;
       border-top: 4px solid var(--primary);
     }
@@ -141,29 +147,100 @@
     .chart-card.prev .chart-center .count { color: #475569; }
     .chart-card.prev .chart-center .rate-badge { background: #64748b; }
 
-    .chart-card-title { font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:6px; letter-spacing:0.04em; }
+    .chart-card-title { font-size:0.88rem; font-weight:700; color:var(--primary); margin-bottom:4px; letter-spacing:0.04em; }
     .chart-card.sub .chart-card-title { color:var(--primary-dark); }
 
-    .chart-month-label { font-size:0.78rem; color:var(--text-sub); margin-bottom:20px; }
+    .chart-month-label { font-size:0.72rem; color:var(--text-sub); margin-bottom:12px; }
 
-    .chart-wrap { position:relative; width:200px; height:200px; margin:0 auto 16px; }
+    /* ドーナツを160pxに縮小 */
+    .chart-wrap { position:relative; width:160px; height:160px; margin:0 auto 12px; }
 
     .chart-center {
       position:absolute; top:50%; left:50%;
       transform:translate(-50%,-50%);
-      pointer-events:none; text-align:center; width:120px;
+      pointer-events:none; text-align:center; width:100px;
     }
-    .chart-center .count { font-size:1.5rem; font-weight:800; color:var(--primary); line-height:1; }
+    .chart-center .count { font-size:1.3rem; font-weight:800; color:var(--primary); line-height:1; }
     .chart-card.sub .chart-center .count { color:var(--primary-dark); }
-    .chart-center .label { font-size:0.7rem; color:var(--text-sub); margin:2px 0 6px; }
+    .chart-center .label { font-size:0.65rem; color:var(--text-sub); margin:2px 0 4px; }
     .chart-center .rate-badge {
       display:inline-block; background:var(--primary); color:#fff;
-      border-radius:12px; padding:2px 10px; font-size:0.78rem; font-weight:700;
+      border-radius:12px; padding:1px 8px; font-size:0.72rem; font-weight:700;
     }
     .chart-card.sub .chart-center .rate-badge { background:var(--accent); color:var(--primary-dark); }
 
-    .chart-legend { display:flex; justify-content:center; gap:20px; font-size:0.78rem; color:var(--text-sub); }
-    .legend-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+    .chart-legend { display:flex; justify-content:center; gap:14px; font-size:0.72rem; color:var(--text-sub); }
+    .legend-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+
+    /* ═══ CALENDAR WIDGET ════════════════════════════════════════ */
+    .cal-card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 12px var(--card-shadow);
+      padding: 14px 12px 12px;
+      border-top: 4px solid var(--primary-light, #4f6ea0);
+    }
+    .cal-card.next-month { border-top-color: var(--accent); }
+    .cal-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .cal-title {
+      font-size:0.82rem; font-weight:700; color:var(--primary);
+    }
+    .cal-month-label { font-size:0.78rem; color:var(--text-sub); }
+    /* 凡例 */
+    .cal-legend {
+      display:flex; gap:10px; margin-bottom:8px; font-size:0.65rem; color:var(--text-sub);
+    }
+    .cal-legend-dot {
+      display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:3px; vertical-align:middle;
+    }
+    /* 曜日ヘッダー */
+    .cal-grid {
+      display:grid; grid-template-columns:repeat(7,1fr); gap:1px;
+    }
+    .cal-dow {
+      text-align:center; font-size:0.6rem; font-weight:700;
+      padding:2px 0 4px; color:var(--text-sub);
+    }
+    .cal-dow:first-child { color:#dc2626; } /* 日 */
+    .cal-dow:last-child  { color:#2563eb; } /* 土 */
+    /* 日付セル */
+    .cal-cell {
+      min-height:44px; padding:2px 2px 3px;
+      border-radius:4px; position:relative;
+      cursor:default;
+    }
+    .cal-cell.other-month { opacity:0.3; }
+    .cal-cell.today .cal-day-num {
+      background:var(--primary); color:#fff;
+      border-radius:50%; width:18px; height:18px;
+      display:inline-flex; align-items:center; justify-content:center;
+    }
+    .cal-day-num {
+      font-size:0.65rem; font-weight:600; color:var(--text-main);
+      display:block; text-align:center; line-height:18px; margin-bottom:1px;
+    }
+    .cal-cell.sun .cal-day-num { color:#dc2626; }
+    .cal-cell.sat .cal-day-num { color:#2563eb; }
+    /* イベントバッジ */
+    .cal-event {
+      display:block; border-radius:2px; padding:1px 3px;
+      font-size:0.55rem; font-weight:600; line-height:1.4;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      cursor:pointer; margin-bottom:1px;
+    }
+    .cal-event.maturity {
+      background:#dbeafe; color:#1e40af; border-left:2px solid #3b82f6;
+    }
+    .cal-event.todo {
+      background:#fef3c7; color:#92400e; border-left:2px solid #f59e0b;
+    }
+    .cal-event.more {
+      background:var(--gray-border); color:var(--text-sub);
+      border-left:2px solid #9ca3af; font-style:italic;
+    }
+    .cal-event:hover { opacity:0.82; }
 
     /* ═══ NAV ═══════════════════════════════════════════════════ */
     .nav-section { margin-bottom:28px; }
@@ -357,7 +434,8 @@
     .direct-search-hint { font-size: 0.72rem; color: var(--text-sub); margin-top: 6px; height: 16px; }
 
     /* ═══ RESPONSIVE ════════════════════════════════════════════ */
-    @media (max-width:1100px) { .charts-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:1280px) { .charts-grid { grid-template-columns:repeat(3,1fr) repeat(2,1fr); } }
+    @media (max-width:1000px) { .charts-grid { grid-template-columns:repeat(3,1fr); } .cal-card { display:none; } }
     @media (max-width:700px)  { .charts-grid { grid-template-columns:1fr; } }
     @media (max-width:1100px) { .nav-grid { grid-template-columns:repeat(4,1fr); } }
     @media (max-width:900px)  { .nav-grid { grid-template-columns:repeat(3,1fr); } .bottom-grid { grid-template-columns:1fr; } }
@@ -450,6 +528,38 @@
           <div class="chart-legend">
             <span><span class="legend-dot" id="legend-dot2"></span>完了</span>
             <span><span class="legend-dot" style="background:var(--gray-border)"></span>対応中</span>
+          </div>
+        </div>
+
+        <!-- カレンダーウィジェット: 今月 -->
+        <div class="cal-card" id="cal-card-m1">
+          <div class="cal-header">
+            <span class="cal-title"><i class="fas fa-calendar-days" style="color:var(--primary);margin-right:5px"></i>今月スケジュール</span>
+            <span class="cal-month-label" id="cal-m1-label">-- 年 -- 月</span>
+          </div>
+          <div class="cal-legend">
+            <span><span class="cal-legend-dot" style="background:#3b82f6"></span>満期2週前</span>
+            <span><span class="cal-legend-dot" style="background:#f59e0b"></span>TODO期限</span>
+          </div>
+          <div class="cal-grid" id="cal-grid-m1">
+            <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div>
+            <div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
+          </div>
+        </div>
+
+        <!-- カレンダーウィジェット: 翌月 -->
+        <div class="cal-card next-month" id="cal-card-m2">
+          <div class="cal-header">
+            <span class="cal-title"><i class="fas fa-calendar-days" style="color:var(--accent);margin-right:5px"></i>翌月スケジュール</span>
+            <span class="cal-month-label" id="cal-m2-label">-- 年 -- 月</span>
+          </div>
+          <div class="cal-legend">
+            <span><span class="cal-legend-dot" style="background:#3b82f6"></span>満期2週前</span>
+            <span><span class="cal-legend-dot" style="background:#f59e0b"></span>TODO期限</span>
+          </div>
+          <div class="cal-grid" id="cal-grid-m2">
+            <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div>
+            <div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
           </div>
         </div>
       </div>
@@ -842,7 +952,126 @@
         );
         if (tRes.ok) renderTodoWidget((await tRes.json()).todos || []);
       } catch (e) { console.error('TODO取得失敗:', e); }
+
+      // カレンダーウィジェット
+      try {
+        const today    = new Date();
+        const calRes   = await fetch(
+          `${API_BASE}/api/dashboard/calendar?year=${today.getFullYear()}&month=${today.getMonth()+1}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (calRes.ok) renderCalendars(await calRes.json());
+      } catch (e) { console.error('カレンダー取得失敗:', e); }
     });
+
+    // ── カレンダーウィジェット描画 ──────────────────────────────────
+    function renderCalendars(data) {
+      const events = data.events || {};
+      const today  = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+      // 今月・翌月それぞれ描画
+      renderOneCalendar('cal-grid-m1', 'cal-m1-label', data.month1.year, data.month1.month, events, todayStr);
+      renderOneCalendar('cal-grid-m2', 'cal-m2-label', data.month2.year, data.month2.month, events, todayStr);
+    }
+
+    function renderOneCalendar(gridId, labelId, year, month, events, todayStr) {
+      // ラベル更新
+      document.getElementById(labelId).textContent = `${year}年${month}月`;
+
+      const grid = document.getElementById(gridId);
+      // 既存の日付セルを削除（曜日ヘッダー7個は残す）
+      const existing = grid.querySelectorAll('.cal-cell');
+      existing.forEach(el => el.remove());
+
+      // 月の初日の曜日（0=日〜6=土）と末日
+      const firstDay    = new Date(year, month - 1, 1).getDay();
+      const lastDate    = new Date(year, month, 0).getDate();
+      const prevLastDate = new Date(year, month - 1, 0).getDate();
+
+      const DOW_CLASS = ['sun','','','','','','sat'];
+
+      // 前月の日付（グレーアウト）
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell other-month';
+        cell.innerHTML = `<span class="cal-day-num">${prevLastDate - i}</span>`;
+        grid.appendChild(cell);
+      }
+
+      // 当月の日付
+      for (let d = 1; d <= lastDate; d++) {
+        const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dow     = new Date(year, month - 1, d).getDay();
+        const isToday = (dateStr === todayStr);
+
+        const cell = document.createElement('div');
+        cell.className = `cal-cell ${DOW_CLASS[dow] || ''}${isToday ? ' today' : ''}`;
+
+        const numSpan = document.createElement('span');
+        numSpan.className = 'cal-day-num';
+        numSpan.textContent = d;
+        cell.appendChild(numSpan);
+
+        // イベント描画
+        const dayEvents = events[dateStr];
+        if (dayEvents) {
+          const maturityList = dayEvents.maturity || [];
+          const todoList     = dayEvents.todo     || [];
+
+          // 満期イベント（最大1件表示、残りは+N件）
+          if (maturityList.length > 0) {
+            const first = maturityList[0];
+            const name  = first.customer_name || first.contract_no || '';
+            const label = maturityList.length > 1
+              ? `${name.substring(0,5)} 他+${maturityList.length - 1}件`
+              : name.substring(0, 8) || first.contract_no;
+            const ev = document.createElement('span');
+            ev.className = 'cal-event maturity';
+            ev.title     = maturityList.map(m => `${m.customer_name}（${m.policy_type}）満期:${m.expiry_date}`).join('\n');
+            ev.textContent = `📋 ${label}`;
+            ev.addEventListener('click', (e) => {
+              e.stopPropagation();
+              // 満期日は当日+14日
+              const expDate = new Date(dateStr);
+              expDate.setDate(expDate.getDate() + 14);
+              const expStr = `${expDate.getFullYear()}-${String(expDate.getMonth()+1).padStart(2,'0')}-${String(expDate.getDate()).padStart(2,'0')}`;
+              location.href = `maturity.html?expiry_date=${expStr}`;
+            });
+            cell.appendChild(ev);
+          }
+
+          // TODOイベント（最大1件表示、残りは+N件）
+          if (todoList.length > 0) {
+            const first = todoList[0];
+            const label = todoList.length > 1
+              ? `${first.title.substring(0,5)} 他+${todoList.length - 1}件`
+              : first.title.substring(0, 8);
+            const ev = document.createElement('span');
+            ev.className = 'cal-event todo';
+            ev.title     = todoList.map(t => `${t.title}（${t.status}）`).join('\n');
+            ev.textContent = `✓ ${label}`;
+            ev.addEventListener('click', (e) => {
+              e.stopPropagation();
+              location.href = `todo_list.html?due_date=${dateStr}`;
+            });
+            cell.appendChild(ev);
+          }
+        }
+
+        grid.appendChild(cell);
+      }
+
+      // 翌月の日付（グレーアウト）で6行になるよう埋める
+      const totalCells = firstDay + lastDate;
+      const remainder  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+      for (let d = 1; d <= remainder; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell other-month';
+        cell.innerHTML = `<span class="cal-day-num">${d}</span>`;
+        grid.appendChild(cell);
+      }
+    }
 
     // ── TODOウィジェット描画 ────────────────────────────────────────
     function renderTodoWidget(todos) {

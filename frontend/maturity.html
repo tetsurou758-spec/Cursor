@@ -495,6 +495,17 @@
       document.getElementById('date-from').value = `${my}-${pad(mm)}-01`;
       document.getElementById('date-to').value   = `${my}-${pad(mm)}-${pad(lastDay)}`;
     }
+    // カレンダーウィジェットからの遷移: 特定の満期日を直接指定
+    const _upExpiryDate = _up.get('expiry_date') || '';
+    if (_upExpiryDate) {
+      document.getElementById('date-from').value = _upExpiryDate;
+      document.getElementById('date-to').value   = _upExpiryDate;
+      // 絞り込みバナーを表示
+      const hint = document.createElement('div');
+      hint.style.cssText = 'background:#dbeafe;color:#1e40af;border:1px solid #3b82f6;border-radius:6px;padding:6px 14px;font-size:0.8rem;margin-bottom:10px';
+      hint.innerHTML = `<i class="fas fa-calendar-day" style="margin-right:6px"></i>満期日 <strong>${_upExpiryDate}</strong> の契約を表示中　<a href="maturity.html" style="color:#dc2626;margin-left:12px">絞り込み解除</a>`;
+      document.querySelector('.main-content') && document.querySelector('.main-content').prepend(hint);
+    }
 
     // 初期表示は全件（日付フィルタなし）
     doSearch();

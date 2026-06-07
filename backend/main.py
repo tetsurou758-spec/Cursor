@@ -50,6 +50,10 @@ app.include_router(commission_router, prefix="/api")
 from backend.routers.intention_router import router as intention_router  # noqa: E402
 app.include_router(intention_router, prefix="/api")
 
+# ダッシュボードカレンダールーターを登録
+from backend.routers.calendar_router import router as calendar_router  # noqa: E402
+app.include_router(calendar_router, prefix="/api")
+
 # JWT設定（本番環境では環境変数から取得すること）
 SECRET_KEY = "CHANGE_THIS_SECRET_IN_PRODUCTION"
 ALGORITHM = "HS256"
@@ -2029,6 +2033,7 @@ def get_agency_codes_for_user(payload: dict) -> List[str]:
 def get_todos(
     status: Optional[str] = Query(default=None, description="ステータス絞込（カンマ区切り可）"),
     staff_code: Optional[str] = Query(default=None, description="担当者コード絞込"),
+    due_date: Optional[str] = Query(default=None, description="期限日絞込（YYYY-MM-DD）"),
     payload: dict = Depends(verify_token),
 ):
     """
@@ -2060,6 +2065,11 @@ def get_todos(
         if staff_code:
             sql += " AND staff_code = ?"
             params.append(staff_code)
+
+        # 期限日絞込（カレンダーウィジェットからの遷移用）
+        if due_date:
+            sql += " AND due_date = ?"
+            params.append(due_date)
 
         sql += " ORDER BY due_date ASC, id DESC"
         rows = conn.execute(sql, params).fetchall()

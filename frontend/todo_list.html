@@ -334,8 +334,18 @@
 
       // URLパラメータで初期フィルタを適用
       const params = new URLSearchParams(location.search);
-      if (params.get('status')) document.getElementById('search-status').value = params.get('status');
-      if (params.get('staff_code')) document.getElementById('search-staff').value = params.get('staff_code');
+      if (params.get('status'))     document.getElementById('search-status').value = params.get('status');
+      if (params.get('staff_code')) document.getElementById('search-staff').value  = params.get('staff_code');
+      // due_date: カレンダーウィジェットからの遷移時に期限日で絞り込む
+      if (params.get('due_date')) {
+        const dd = params.get('due_date');
+        // 絞り込み用インフォバナーを表示
+        const hint = document.createElement('div');
+        hint.style.cssText = 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:6px;padding:6px 14px;font-size:0.8rem;margin-bottom:10px';
+        hint.innerHTML = `<i class="fas fa-calendar-day" style="margin-right:6px"></i>期限日 <strong>${dd}</strong> のTODOを表示中　<a href="todo_list.html" style="color:#2563eb;margin-left:12px">絞り込み解除</a>`;
+        document.querySelector('.main-content') && document.querySelector('.main-content').prepend(hint);
+        _dueDateFilter = dd;
+      }
 
       await loadTodos();
     });
@@ -378,6 +388,9 @@
       }
     }
 
+    // カレンダーからの期限日絞り込みフィルタ
+    let _dueDateFilter = null;
+
     // ── TODO一覧取得・描画 ──────────────────────────────────────
     async function loadTodos() {
       const token     = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
@@ -385,8 +398,9 @@
       const staffCode = document.getElementById('search-staff').value.trim();
 
       const qs = new URLSearchParams();
-      if (status)    qs.set('status',     status);
-      if (staffCode) qs.set('staff_code', staffCode);
+      if (status)          qs.set('status',     status);
+      if (staffCode)       qs.set('staff_code', staffCode);
+      if (_dueDateFilter)  qs.set('due_date',   _dueDateFilter);
 
       const tbody    = document.getElementById('todo-tbody');
       const infoEl   = document.getElementById('result-info');
