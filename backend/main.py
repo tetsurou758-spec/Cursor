@@ -338,7 +338,8 @@ def staff_login(request: StaffLoginRequest):
         "role_id":    role_id,
     })
 
-    permissions      = STAFF_PERMISSIONS.get(role_id, [])
+    # 毎回DBから最新の権限を取得（起動時キャッシュではなく動的参照）
+    permissions      = _load_staff_permissions().get(role_id, [])
     managed_agencies = get_staff_managed_agencies(role_id, buka_code)
 
     return {
@@ -372,7 +373,7 @@ def get_permissions(payload: dict = Depends(verify_token)):
             return {
                 "role_id":     role_id,
                 "role_name":   role["role_name"] if role else "",
-                "permissions": STAFF_PERMISSIONS.get(role_id, []),
+                "permissions": _load_staff_permissions().get(role_id, []),
             }
         finally:
             conn.close()

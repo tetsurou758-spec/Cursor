@@ -59,7 +59,11 @@
   color: var(--primary-dark) !important;
 }
 
-/* 社員ピンクテーマ：ヘッダーボタンをダークヘッダー上で視認しやすい白地ピンク文字に */
+/* ══════════════════════════════════════════════════════════════
+   社員ピンクテーマ専用：ダークピンクヘッダー上の視認性改善
+   ══════════════════════════════════════════════════════════════ */
+
+/* ヘッダーボタン（ユーザー管理へ・ダッシュボードへ等）→ 白背景＋ピンク文字 */
 :root[data-theme="staff"] .header-admin-link,
 :root[data-theme="staff"] .header-back-link {
   background: #ffffff !important;
@@ -70,6 +74,37 @@
 :root[data-theme="staff"] .header-back-link:hover {
   background: #FFE4F0 !important;
   border-color: #FFE4F0 !important;
+  color: #FF1493 !important;
+  opacity: 1;
+}
+
+/* ヘッダーロゴ：会社名を白に */
+:root[data-theme="staff"] .header-logo-text .company {
+  color: #ffffff !important;
+}
+
+/* ユーザーバッジ：担当者コード・ロール名を白に */
+:root[data-theme="staff"] .user-badge .badge-code,
+:root[data-theme="staff"] .user-badge .badge-role,
+:root[data-theme="staff"] .user-badge .badge-login {
+  color: #ffffff !important;
+}
+
+/* ウィジェット見出しアイコン → 黄色に（ピンク背景上で視認しやすく） */
+:root[data-theme="staff"] .widget-header .fa-solid,
+:root[data-theme="staff"] .widget-header svg {
+  color: #FFD700 !important;
+  stroke: #FFD700 !important;
+}
+
+/* 「すべて見る」ボタン → 白背景＋ピンク文字（ヘッダーボタンと統一） */
+:root[data-theme="staff"] .widget-header-btn {
+  background: #ffffff !important;
+  color: #FF1493 !important;
+  border-radius: 20px;
+}
+:root[data-theme="staff"] .widget-header-btn:hover {
+  background: #FFE4F0 !important;
   color: #FF1493 !important;
   opacity: 1;
 }
