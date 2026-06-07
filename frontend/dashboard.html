@@ -372,6 +372,36 @@
     }
     .nav-btn.no-permission:hover::after { opacity:1; }
 
+    /* 代理店プライベート機能：社員には表示するが操作不可 */
+    .nav-btn.agency-private,
+    .nav-btn.nav-btn-ai.agency-private {
+      background: #f1f5f9 !important; border-color: #cbd5e1 !important;
+      cursor: not-allowed; opacity: 0.5;
+    }
+    .nav-btn.agency-private:hover,
+    .nav-btn.nav-btn-ai.agency-private:hover {
+      background: #f1f5f9 !important; border-color: #cbd5e1 !important;
+      box-shadow: 0 2px 8px var(--card-shadow) !important; transform: none !important;
+    }
+    .nav-btn.agency-private .nav-icon,
+    .nav-btn.agency-private:hover .nav-icon { color: #94a3b8 !important; }
+    .nav-btn.agency-private .nav-label,
+    .nav-btn.agency-private:hover .nav-label { color: #94a3b8 !important; }
+    .nav-btn.agency-private .new-badge { display: none; }
+    .nav-btn.agency-private::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20,20,40,0.82); color: #fff;
+      padding: 5px 12px; border-radius: 4px;
+      font-size: 0.72rem; white-space: nowrap;
+      opacity: 0; pointer-events: none; transition: opacity 0.18s;
+    }
+    .nav-btn.agency-private:hover::after { opacity: 1; }
+
+    /* 社員専用ボタン */
+    .nav-btn.staff-only-btn { display: none; }
+
     /* ═══ BOTTOM WIDGETS ════════════════════════════════════════ */
     .bottom-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
 
@@ -660,53 +690,67 @@
     <section class="nav-section">
       <div class="section-title">メニュー</div>
       <div class="nav-grid">
+        <!-- 顧客管理 -->
         <a href="customer.html" class="nav-btn" data-feature="CUSTOMER_EDIT" data-tooltip="権限がありません">
           <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
           <span class="nav-label">顧客管理システム</span>
         </a>
+        <!-- 満期管理 -->
         <a href="maturity.html" class="nav-btn" data-feature="MATURITY_VIEW" data-tooltip="権限がありません">
           <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span>
           <span class="nav-label">満期管理システム</span>
         </a>
-        <a href="contract.html" class="nav-btn" data-feature="REPORT_VIEW" data-tooltip="権限がありません">
+        <!-- 契約照会 -->
+        <a href="contract.html" class="nav-btn" data-feature="CONTRACT_VIEW" data-tooltip="権限がありません">
           <span class="nav-icon"><i class="fa-solid fa-file-contract"></i></span>
           <span class="nav-label">契約照会システム</span>
         </a>
+        <!-- 保険金支払状況 -->
         <a href="claim.html" class="nav-btn" data-feature="PAYMENT_VIEW" data-tooltip="権限がありません">
           <span class="nav-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
           <span class="nav-label">保険金支払状況</span>
         </a>
-        <!-- 帳票管理ボタン（行1の5番目） -->
-        <a href="report_list.html" class="nav-btn" id="btn-report">
+        <!-- 帳票管理 -->
+        <a href="report_list.html" class="nav-btn" id="btn-report" data-feature="REPORT_VIEW" data-tooltip="権限がありません">
           <span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span>
           <span class="nav-label">帳票管理</span>
         </a>
-        <!-- 成績管理ボタン：代理店ユーザーのみ表示（行2の1番目） -->
-        <a href="sales.html" class="nav-btn agency-only-btn" id="btn-sales" data-tooltip="権限がありません" style="display:none">
-          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
-          <span class="nav-label">成績管理</span>
+        <!-- コンタクト履歴 -->
+        <a href="contact.html" class="nav-btn" id="btn-contact" data-feature="CONTACT_VIEW" data-tooltip="権限がありません">
+          <span class="nav-icon"><i class="fa-solid fa-comments"></i></span>
+          <span class="nav-label">コンタクト履歴</span>
         </a>
-        <!-- TODOリストボタン（行2の2番目） -->
-        <a href="todo_list.html" class="nav-btn" id="btn-todo">
-          <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
-          <span class="nav-label">TODOリスト</span>
-        </a>
-        <!-- 手数料管理ボタン -->
-        <a href="commission.html" class="nav-btn" id="btn-commission">
-          <span class="nav-icon"><i class="fa-solid fa-coins"></i></span>
-          <span class="nav-label">手数料管理</span>
-        </a>
-        <!-- 意向確認ボタン -->
-        <a href="intention.html" class="nav-btn" id="btn-intent">
+        <!-- 意向確認 -->
+        <a href="intention.html" class="nav-btn" id="btn-intent" data-feature="INTENTION_VIEW" data-tooltip="権限がありません">
           <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
           <span class="nav-label">意向確認</span>
         </a>
-        <!-- AIレコメンドボタン（代理店のみ・行2の5番目） -->
-        <a href="ai_recommend.html" class="nav-btn nav-btn-ai agency-only-btn" id="btn-ai-recommend" style="display:none">
+        <!-- TODOリスト -->
+        <a href="todo_list.html" class="nav-btn" id="btn-todo" data-feature="TODO_VIEW" data-tooltip="権限がありません">
+          <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+          <span class="nav-label">TODOリスト</span>
+        </a>
+        <!-- 成績管理（代理店プライベート：社員はグレー表示） -->
+        <a href="sales.html" class="nav-btn" id="btn-sales" data-feature="SALES_VIEW" data-tooltip="代理店専用機能です">
+          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+          <span class="nav-label">成績管理</span>
+        </a>
+        <!-- 手数料管理（代理店プライベート：社員はグレー表示） -->
+        <a href="commission.html" class="nav-btn" id="btn-commission" data-feature="COMMISSION_VIEW" data-tooltip="代理店専用機能です">
+          <span class="nav-icon"><i class="fa-solid fa-coins"></i></span>
+          <span class="nav-label">手数料管理</span>
+        </a>
+        <!-- AIレコメンド（代理店プライベート：社員はグレー表示） -->
+        <a href="ai_recommend.html" class="nav-btn nav-btn-ai" id="btn-ai-recommend" data-feature="AI_RECOMMEND" data-tooltip="代理店専用機能です">
           <span class="new-badge">New!</span>
           <span class="nav-icon"><i class="fa-solid fa-robot"></i></span>
           <span class="nav-label">AIレコメンド</span>
           <span class="nav-model">(claude-haiku-3-5)</span>
+        </a>
+        <!-- 代理店マスタ編集（社員専用・社員システム管理者のみ） -->
+        <a href="agency_master.html" class="nav-btn staff-only-btn" id="btn-agency-master" data-feature="AGENCY_MASTER" data-tooltip="権限がありません">
+          <span class="nav-icon"><i class="fa-solid fa-building-columns"></i></span>
+          <span class="nav-label">代理店マスタ編集</span>
         </a>
       </div>
     </section>
@@ -976,12 +1020,21 @@
       document.getElementById('legend-dot1').style.background = c1;
       document.getElementById('legend-dot2').style.background = c2;
 
-      // 代理店ユーザーのみ表示するボタン（成績管理・AIレコメンド）
-      if (userType !== 'staff') {
-        const salesBtn = document.getElementById('btn-sales');
-        if (salesBtn) salesBtn.style.display = '';
-        const aiBtn = document.getElementById('btn-ai-recommend');
-        if (aiBtn) aiBtn.style.display = '';
+      // 社員ユーザーには代理店プライベート機能をグレー無効化表示
+      // （成績管理・手数料管理・AIレコメンド）
+      const _agencyPrivateBtns = ['btn-sales', 'btn-commission', 'btn-ai-recommend'];
+      if (userType === 'staff') {
+        _agencyPrivateBtns.forEach(id => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          btn.classList.add('agency-private');
+          // クリック無効化
+          btn.addEventListener('click', e => e.preventDefault(), true);
+        });
+        // 社員専用ボタンを表示
+        document.querySelectorAll('.staff-only-btn').forEach(btn => {
+          btn.style.display = '';
+        });
       }
 
       if (userType === 'staff') {
