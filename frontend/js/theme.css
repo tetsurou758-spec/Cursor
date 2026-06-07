@@ -63,30 +63,38 @@
    社員ピンクテーマ専用：ダークピンクヘッダー上の視認性改善
    ══════════════════════════════════════════════════════════════ */
 
-/* ヘッダーボタン（ユーザー管理へ・ダッシュボードへ等）→ 白背景＋ピンク文字 */
+/* ヘッダーボタン（全画面共通）→ 白背景＋ピンク文字 */
 :root[data-theme="staff"] .header-admin-link,
-:root[data-theme="staff"] .header-back-link {
+:root[data-theme="staff"] .header-back-link,
+:root[data-theme="staff"] .btn-back {
   background: #ffffff !important;
   border-color: #ffffff !important;
   color: #FF1493 !important;
 }
 :root[data-theme="staff"] .header-admin-link:hover,
-:root[data-theme="staff"] .header-back-link:hover {
+:root[data-theme="staff"] .header-back-link:hover,
+:root[data-theme="staff"] .btn-back:hover {
   background: #FFE4F0 !important;
   border-color: #FFE4F0 !important;
   color: #FF1493 !important;
   opacity: 1;
 }
 
-/* ヘッダーロゴ：会社名を白に */
-:root[data-theme="staff"] .header-logo-text .company {
+/* ヘッダーロゴ：会社名を白に（SVGロゴ・絵文字ロゴ両対応） */
+:root[data-theme="staff"] .header-logo-text .company,
+:root[data-theme="staff"] .header-logo {
   color: #ffffff !important;
 }
 
-/* ユーザーバッジ：担当者コード・ロール名を白に */
+/* ユーザーバッジ：コンテナ・文字を白系で統一 */
+:root[data-theme="staff"] .user-badge {
+  background: rgba(255,255,255,0.15) !important;
+  border-color: rgba(255,255,255,0.4) !important;
+}
 :root[data-theme="staff"] .user-badge .badge-code,
 :root[data-theme="staff"] .user-badge .badge-role,
-:root[data-theme="staff"] .user-badge .badge-login {
+:root[data-theme="staff"] .user-badge .badge-login,
+:root[data-theme="staff"] .user-badge .badge-buka {
   color: #ffffff !important;
 }
 

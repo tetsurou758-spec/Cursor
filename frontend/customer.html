@@ -11,14 +11,18 @@
     body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--gray-bg); color: #333; min-height: 100vh; }
 
     /* ── ヘッダー ── */
-    .header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 12px var(--primary-shadow); position: relative; top: 0; z-index: 100; }
+    .header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 12px var(--primary-shadow); position: sticky; top: 0; z-index: 100; }
     .header-left { display: flex; align-items: center; gap: 16px; }
-    .header-logo { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
+    /* ロゴ：他画面と統一（SVGベース） */
+    .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+    .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header-logo-text { line-height: 1.2; }
+    .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); }
     .header-title { display: none; }
-    .header-right { display: flex; align-items: center; gap: 16px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
     .header-user { font-size: 13px; color: rgba(255,255,255,.85); }
-    .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-    .btn-logout:hover { background: rgba(255,255,255,.15); }
+    .btn-logout { background: transparent; border: 1.5px solid var(--accent-border-btn); color: var(--accent-light); padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 0.78rem; font-weight: 600; }
+    .btn-logout:hover { background: rgba(255,255,255,.12); }
 
     /* ── 説明バナー ── */
     .info-banner { background: #fffbe6; border-left: 4px solid #f59e0b; padding: 10px 20px; margin: 16px 24px 0; border-radius: 4px; font-size: 13px; color: #6b4800; }
@@ -216,7 +220,16 @@
 <!-- ── ヘッダー ── -->
 <header class="header">
   <div class="header-left">
-    <div class="header-logo">🛡 AX損害保険株式会社</div>
+    <div class="header-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 4L8 16v16c0 13.3 10.2 25.7 24 29 13.8-3.3 24-15.7 24-29V16L32 4z"
+              fill="var(--primary)" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M22 32l7 7 13-13" stroke="var(--accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-logo-text">
+        <div class="company">AX損害保険株式会社</div>
+      </div>
+    </div>
   </div>
   <span class="header-center-title">顧客管理</span>
   <div class="header-right">
