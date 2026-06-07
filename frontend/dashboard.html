@@ -123,14 +123,20 @@
     }
     .scope-badge.visible { display: inline-flex; }
 
-    /* ═══ CHARTS + CALENDAR 5列グリッド ════════════════════════════ */
-    .charts-section { margin-bottom: 28px; }
-    /* 左3列: ドーナツグラフ  右2列: カレンダー */
+    /* ═══ CHARTS（上段: ドーナツ3枚）════════════════════════════════ */
+    .charts-section { margin-bottom: 12px; }
     .charts-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr)) repeat(2, minmax(0,1.35fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
-      align-items: start;
+    }
+
+    /* ═══ CALENDARS（下段: カレンダー3枚）══════════════════════════ */
+    .calendars-section { margin-bottom: 28px; }
+    .calendars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
     }
 
     .chart-card {
@@ -177,8 +183,10 @@
       background: #fff; border-radius: 10px;
       box-shadow: 0 2px 12px var(--card-shadow);
       padding: 14px 12px 12px;
-      border-top: 4px solid var(--primary-light, #4f6ea0);
+      border-top: 4px solid var(--primary);
     }
+    .cal-card.prev-month { border-top-color: #94a3b8; }
+    .cal-card.prev-month .cal-title { color: #64748b; }
     .cal-card.next-month { border-top-color: var(--accent); }
     .cal-header {
       display:flex; align-items:center; justify-content:space-between;
@@ -438,8 +446,7 @@
     .direct-search-hint { font-size: 0.72rem; color: var(--text-sub); margin-top: 6px; height: 16px; }
 
     /* ═══ RESPONSIVE ════════════════════════════════════════════ */
-    @media (max-width:1280px) { .charts-grid { grid-template-columns:repeat(3,1fr) repeat(2,1fr); } }
-    @media (max-width:1000px) { .charts-grid { grid-template-columns:repeat(3,1fr); } .cal-card { display:none; } }
+    @media (max-width:900px)  { .charts-grid { grid-template-columns:1fr; } .calendars-grid { grid-template-columns:1fr; } }
     @media (max-width:700px)  { .charts-grid { grid-template-columns:1fr; } }
     @media (max-width:1100px) { .nav-grid { grid-template-columns:repeat(4,1fr); } }
     @media (max-width:900px)  { .nav-grid { grid-template-columns:repeat(3,1fr); } .bottom-grid { grid-template-columns:1fr; } }
@@ -535,6 +542,29 @@
           </div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- カレンダーセクション（下段: 先月・今月・翌月） -->
+    <section class="calendars-section">
+      <div class="calendars-grid">
+
+        <!-- カレンダーウィジェット: 先月 -->
+        <div class="cal-card prev-month" id="cal-card-m0">
+          <div class="cal-header">
+            <span class="cal-title"><i class="fas fa-calendar-days" style="color:#94a3b8;margin-right:5px"></i>先月スケジュール</span>
+            <span class="cal-month-label" id="cal-m0-label">-- 年 -- 月</span>
+          </div>
+          <div class="cal-legend">
+            <span><span class="cal-legend-dot" style="background:#3b82f6"></span>満期2週前</span>
+            <span><span class="cal-legend-dot" style="background:#f59e0b"></span>TODO期限</span>
+          </div>
+          <div class="cal-grid" id="cal-grid-m0">
+            <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div>
+            <div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
+          </div>
+        </div>
+
         <!-- カレンダーウィジェット: 今月 -->
         <div class="cal-card" id="cal-card-m1">
           <div class="cal-header">
@@ -566,6 +596,7 @@
             <div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
           </div>
         </div>
+
       </div>
     </section>
 
@@ -957,26 +988,35 @@
         if (tRes.ok) renderTodoWidget((await tRes.json()).todos || []);
       } catch (e) { console.error('TODO取得失敗:', e); }
 
-      // カレンダーウィジェット：骨格を即時描画し、イベントはAPI成功時に上乗せ
+      // カレンダーウィジェット（先月・今月・翌月）：骨格を即時描画し、イベントはAPI成功時に上乗せ
       {
         const today = new Date();
         const y1 = today.getFullYear(), m1 = today.getMonth() + 1;
-        const m2Date = new Date(y1, today.getMonth() + 1, 1);
+        // 先月
+        const m0Date = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const y0 = m0Date.getFullYear(), m0 = m0Date.getMonth() + 1;
+        // 翌月
+        const m2Date = new Date(today.getFullYear(), today.getMonth() + 1, 1);
         const y2 = m2Date.getFullYear(), m2 = m2Date.getMonth() + 1;
         const todayStr = `${y1}-${String(m1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
         // まず空イベントでカレンダー枠を描画（年月が必ず表示される）
+        renderOneCalendar('cal-grid-m0', 'cal-m0-label', y0, m0, {}, todayStr);
         renderOneCalendar('cal-grid-m1', 'cal-m1-label', y1, m1, {}, todayStr);
         renderOneCalendar('cal-grid-m2', 'cal-m2-label', y2, m2, {}, todayStr);
-        // APIからイベントを取得して上書き
+
+        // APIからイベントを取得して上書き（先月を基点にリクエスト）
         try {
           const calRes = await fetch(
-            `${API_BASE}/api/dashboard/calendar?year=${y1}&month=${m1}`,
+            `${API_BASE}/api/dashboard/calendar?year=${y0}&month=${m0}`,
             { headers: { 'Authorization': `Bearer ${token}` } }
           );
           if (calRes.ok) {
             const calData = await calRes.json();
-            renderOneCalendar('cal-grid-m1', 'cal-m1-label', y1, m1, calData.events || {}, todayStr);
-            renderOneCalendar('cal-grid-m2', 'cal-m2-label', y2, m2, calData.events || {}, todayStr);
+            const ev = calData.events || {};
+            renderOneCalendar('cal-grid-m0', 'cal-m0-label', y0, m0, ev, todayStr);
+            renderOneCalendar('cal-grid-m1', 'cal-m1-label', y1, m1, ev, todayStr);
+            renderOneCalendar('cal-grid-m2', 'cal-m2-label', y2, m2, ev, todayStr);
           }
         } catch (e) { console.error('カレンダーイベント取得失敗:', e); }
       }

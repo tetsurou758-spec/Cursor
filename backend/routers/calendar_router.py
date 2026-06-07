@@ -46,28 +46,30 @@ def get_calendar_events(
     指定年月のカレンダーイベントを返す。
     - 満期イベント: expiry_date の14日前を表示日とする
     - TODOイベント: due_date をそのまま表示日とする
-    対象は今月・翌月の2ヶ月分を一度に返す（yearとmonthはベース月）。
+    対象はベース月から3ヶ月分（先月・今月・翌月）を一度に返す。
+    フロントは先月をベース月としてリクエストする。
     """
-    # デフォルトは今月
+    # デフォルトは先月（先月起点で3ヶ月分）
     today = datetime.date.today()
     base_year  = year  if year  else today.year
     base_month = month if month else today.month
 
-    # 今月・翌月の日付範囲を計算
-    month1_start = datetime.date(base_year, base_month, 1)
-    if base_month == 12:
-        month2_start = datetime.date(base_year + 1, 1, 1)
-        month3_start = datetime.date(base_year + 1, 2, 1)
-    elif base_month == 11:
-        month2_start = datetime.date(base_year, 12, 1)
-        month3_start = datetime.date(base_year + 1, 1, 1)
-    else:
-        month2_start = datetime.date(base_year, base_month + 1, 1)
-        month3_start = datetime.date(base_year, base_month + 2, 1)
+    def _add_months(y: int, m: int, delta: int):
+        """年月に月数を加算してタプルで返す"""
+        total = (y - 1) * 12 + m + delta
+        return ((total - 1) // 12 + 1, (total - 1) % 12 + 1)
 
-    # カレンダー表示対象の全日付範囲
-    range_start = month1_start
-    range_end   = month3_start - datetime.timedelta(days=1)
+    def _month_start(y: int, m: int):
+        return datetime.date(y, m, 1)
+
+    def _month_end(y: int, m: int):
+        """翌月1日の前日＝当月末日"""
+        ny, nm = _add_months(y, m, 1)
+        return datetime.date(ny, nm, 1) - datetime.timedelta(days=1)
+
+    # 3ヶ月分の範囲（先月〜翌々月末 = ベース月から3ヶ月）
+    range_start = _month_start(base_year, base_month)
+    range_end   = _month_end(*_add_months(base_year, base_month, 2))
 
     # 満期イベントは expiry_date - 14日 が対象範囲内のもの
     # つまり expiry_date が (range_start + 14日) 〜 (range_end + 14日) の範囲
@@ -188,11 +190,9 @@ def get_calendar_events(
                 continue
 
         return {
-            "base_year":   base_year,
-            "base_month":  base_month,
-            "month1": {"year": month1_start.year, "month": month1_start.month},
-            "month2": {"year": month2_start.year, "month": month2_start.month},
-            "events": events,
+            "base_year":  base_year,
+            "base_month": base_month,
+            "events":     events,
         }
 
     finally:
