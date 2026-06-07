@@ -10,9 +10,12 @@
     body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--gray-bg); color: #333; min-height: 100vh; }
 
     /* ── ヘッダー ── */
-    .header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 12px var(--primary-shadow); position: relative; top: 0; z-index: 100; }
+    .site-header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; box-shadow: 0 2px 12px var(--primary-shadow); position: sticky; top: 0; z-index: 100; }
     .header-left { display: flex; align-items: center; gap: 16px; }
-    .header-logo { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
+    .header-logo { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+    .header-logo svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header-logo-text { line-height: 1.2; }
+    .header-logo-text .company { font-size: 1.02rem; font-weight: 700; letter-spacing: 0.08em; color: #fff; }
     .header-title { display: none; }
     .header-right { display: flex; align-items: center; gap: 16px; }
     .header-user { font-size: 13px; color: rgba(255,255,255,.85); }
@@ -85,9 +88,20 @@
 <body>
 
 <!-- ── ヘッダー ── -->
-<header class="header">
+<header class="site-header">
   <div class="header-left">
-    <div class="header-logo">🛡 AX損害保険株式会社</div>
+    <div class="header-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 4L8 14v18c0 13.3 10.3 25.7 24 29 13.7-3.3 24-15.7 24-29V14L32 4z"
+              fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M32 12L14 20v12c0 9 6.8 17.4 18 20.4C45.2 49.4 52 41 52 32V20L32 12z"
+              fill="rgba(255,255,255,0.15)"/>
+        <polyline points="22,32 29,39 43,25" stroke="var(--accent-light)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-logo-text">
+        <div class="company">AX損害保険株式会社</div>
+      </div>
+    </div>
   </div>
   <span class="header-center-title">コンタクト履歴</span>
   <div class="header-right">
