@@ -444,10 +444,12 @@
 
     .contact-item { padding:10px 0; border-bottom:1px solid var(--gray-border); }
     .contact-item:last-child { border-bottom:none; }
-    .contact-meta { display:flex; justify-content:space-between; margin-bottom:3px; }
-    .contact-date { font-size:0.7rem; color:var(--text-sub); }
-    .contact-name { font-size:0.78rem; font-weight:700; color:var(--primary); }
-    .contact-content { font-size:0.78rem; color:var(--text-main); line-height:1.4; }
+    /* Go!ボタンを左端に固定するためflexレイアウトに変更 */
+    .contact-meta { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+    .contact-meta-info { display:flex; align-items:center; gap:5px; flex:1; min-width:0; overflow:hidden; }
+    .contact-date { font-size:0.7rem; color:var(--text-sub); margin-left:auto; white-space:nowrap; flex-shrink:0; }
+    .contact-name { font-size:0.78rem; font-weight:700; color:var(--primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .contact-content { font-size:0.78rem; color:var(--text-main); line-height:1.4; padding-left:46px; }
 
     /* ═══ FOOTER ════════════════════════════════════════════════ */
     .site-footer { background:var(--primary-dark); color:rgba(255,255,255,0.45); text-align:center; font-size:0.7rem; letter-spacing:0.06em; padding:14px 16px; margin-top:40px; }
@@ -1255,14 +1257,15 @@
         const dot   = t.status === '未対応' ? 'main' : '';
         const badge = `<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${STATUS_COLOR[t.status] || '#6b7280'};color:#fff;margin-left:4px">${t.status}</span>`;
         const staff = t.staff_code ? `<span style="font-size:10px;color:#6b7280;margin-left:4px">[${t.staff_code}]</span>` : '';
-        // Go!ボタン: ステータス絞り込みでTODO一覧に遷移
+        // Go!ボタン: 左端固定・ステータス絞り込みでTODO一覧に遷移
         const qs    = new URLSearchParams({ status: t.status });
         if (t.staff_code) qs.set('staff_code', t.staff_code);
         const goBtn = `<a href="todo_list.html?${qs.toString()}" class="widget-go-btn">Go!</a>`;
-        return `<li style="gap:4px">
+        return `<li style="gap:6px">
+          ${goBtn}
           <span class="todo-dot ${dot}"></span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.title}">${t.title}</span>
-          ${badge}${staff}${goBtn}
+          ${badge}${staff}
         </li>`;
       }).join('');
     }
@@ -1281,13 +1284,16 @@
         const col   = BADGE_TEXT[ct.contact_type] || '#6b7280';
         const badge = `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${bg};color:${col};margin-left:6px">${ct.contact_type}</span>`;
         const memo  = ct.memo ? ct.memo.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '—';
-        // Go!ボタン: 顧客IDでコンタクト履歴画面に遷移
+        // Go!ボタン: 左端固定・顧客IDでコンタクト履歴画面に遷移
         const goBtn = ct.customer_id
-          ? `<a href="contact.html?customer_id=${ct.customer_id}&customer_name=${encodeURIComponent(ct.customer_name)}" class="widget-go-btn" style="margin-left:8px;vertical-align:middle">Go!</a>`
-          : '';
+          ? `<a href="contact.html?customer_id=${ct.customer_id}&customer_name=${encodeURIComponent(ct.customer_name)}" class="widget-go-btn">Go!</a>`
+          : `<span style="display:inline-block;width:36px;flex-shrink:0"></span>`;
         return `<div class="contact-item">
           <div class="contact-meta">
-            <span class="contact-name">${ct.customer_name} 様${badge}${goBtn}</span>
+            ${goBtn}
+            <span class="contact-meta-info">
+              <span class="contact-name">${ct.customer_name} 様</span>${badge}
+            </span>
             <span class="contact-date">${dt}</span>
           </div>
           <div class="contact-content">${memo}</div>
