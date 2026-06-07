@@ -76,13 +76,15 @@ def _load_staff_permissions() -> dict:
             result.setdefault(r["role_id"], []).append(r["feature_code"])
         return result
     except Exception:
-        # フォールバック（テーブルなし時）※SALES_VIEW・COMMISSION_VIEWは代理店専用のため除外
+        # フォールバック（テーブルなし時）
+        # SALES_VIEW・COMMISSION_VIEWは代理店専用のため全社員除外
+        # AGENCY_MASTER・USER_ADMINはシステム管理者(role_id=1)のみ
+        _common = ["CUSTOMER_EDIT","MATURITY_VIEW","CONTRACT_VIEW","PAYMENT_VIEW",
+                   "REPORT_VIEW","CONTACT_VIEW","INTENTION_VIEW","TODO_VIEW","AI_RECOMMEND"]
         return {
-            1: ["CUSTOMER_EDIT","MATURITY_VIEW","CONTRACT_VIEW","PAYMENT_VIEW","REPORT_VIEW",
-                "CONTACT_VIEW","INTENTION_VIEW","TODO_VIEW","AI_RECOMMEND","USER_ADMIN","AGENCY_MASTER"],
-            2: ["CUSTOMER_EDIT","MATURITY_VIEW","CONTRACT_VIEW","PAYMENT_VIEW","REPORT_VIEW",
-                "CONTACT_VIEW","INTENTION_VIEW","TODO_VIEW","AI_RECOMMEND"],
-            3: ["CONTRACT_VIEW","PAYMENT_VIEW","MATURITY_VIEW","CUSTOMER_EDIT"]
+            1: _common + ["USER_ADMIN","AGENCY_MASTER"],
+            2: _common,
+            3: _common,
         }
 
 STAFF_PERMISSIONS: dict = _load_staff_permissions()
