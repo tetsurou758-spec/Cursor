@@ -547,21 +547,41 @@
       updateSortIndicators();
 
       // 意向確認ステータスをAPIから取得してマップ構築
-      const agencyCode = _ssGet('agency_code') || '';
-      if (agencyCode) {
-        try {
-          const iRes = await fetch(
-            `${API_BASE}/api/intentions/${agencyCode}?limit=9999`,
-            { headers: { 'Authorization': `Bearer ${token}` } }
-          );
-          if (iRes.ok) {
-            const iData = await iRes.json();
-            _intentionMap = {};
-            (iData.intentions || []).forEach(it => {
-              _intentionMap[it.policy_no] = it.status || '未記録';
-            });
-          }
-        } catch (e) { console.warn('意向確認データ取得失敗:', e); }
+      // ③ 社員：満期データから代理店コードを抽出して各代理店の意向確認を取得
+      //    代理店：自分の agency_code 1件のみ取得
+      _intentionMap = {};
+      if (isStaff) {
+        const agencyCodes = [...new Set(rows.map(r => r.agency_code).filter(Boolean))];
+        for (const ac of agencyCodes) {
+          try {
+            const iRes = await fetch(
+              `${API_BASE}/api/intentions/${ac}?limit=9999`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            if (iRes.ok) {
+              const iData = await iRes.json();
+              (iData.intentions || []).forEach(it => {
+                _intentionMap[it.policy_no] = it.status || '未記録';
+              });
+            }
+          } catch (e) { console.warn(`意向確認データ取得失敗(${ac}):`, e); }
+        }
+      } else {
+        const agencyCode = _ssGet('agency_code') || '';
+        if (agencyCode) {
+          try {
+            const iRes = await fetch(
+              `${API_BASE}/api/intentions/${agencyCode}?limit=9999`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            if (iRes.ok) {
+              const iData = await iRes.json();
+              (iData.intentions || []).forEach(it => {
+                _intentionMap[it.policy_no] = it.status || '未記録';
+              });
+            }
+          } catch (e) { console.warn('意向確認データ取得失敗:', e); }
+        }
       }
 
       renderTable(currentData);
@@ -977,7 +997,8 @@
 
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM
-    const agCode  = _ssGet('agency_code') || agencyCode || '';
+    // ⑦ 社員の場合は部課コードをレポート名に使用（agency_codeは空のため）
+    const agCode  = _ssGet('agency_code') || agencyCode || _ssGet('staff_buka_code') || '';
     const reportName = `満期契約一覧_${agCode}_${dateStr}`;
 
     try {
@@ -1001,33 +1022,54 @@
     }
   }
 
-  // ── 意向バッジ再取得・更新（戻るボタンで復帰した際に呼ぶ） ───────────────────
+  // ── 意向バッジ再取得・更新（意向確認画面から戻った際に呼ぶ） ────────────────
+  // ④ 社員：currentData から代理店コードを抽出して各代理店の意向確認を再取得
+  //    代理店：自分の agency_code 1件のみ再取得
   async function refreshIntentionBadges() {
-    const agencyCode = _ssGet('agency_code') || '';
     const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token') || '';
-    // 検索結果が表示されていない場合はスキップ
-    if (!agencyCode || !token || currentData.length === 0) return;
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/intentions/${agencyCode}?limit=9999`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      if (!res.ok) return;
-      const data = await res.json();
-      // マップを再構築
-      _intentionMap = {};
-      (data.intentions || []).forEach(it => {
-        _intentionMap[it.policy_no] = it.status || '未記録';
-      });
-      // 表示中のすべてのバッジセルを更新
-      currentData.forEach(c => {
-        const rawNo = c.contract_no || c.policy_number || '';
-        const cell  = document.getElementById(`intent-cell-${c.id}`);
-        if (cell && rawNo) {
-          cell.innerHTML = intentionBadge(_intentionMap[rawNo] || '未記録', rawNo);
-        }
-      });
-    } catch (e) { console.warn('意向バッジ更新失敗:', e); }
+    if (!token || currentData.length === 0) return;
+
+    _intentionMap = {};
+    if (isStaff) {
+      const agencyCodes = [...new Set(currentData.map(r => r.agency_code).filter(Boolean))];
+      for (const ac of agencyCodes) {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/intentions/${ac}?limit=9999`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            (data.intentions || []).forEach(it => {
+              _intentionMap[it.policy_no] = it.status || '未記録';
+            });
+          }
+        } catch (e) { console.warn(`意向バッジ更新失敗(${ac}):`, e); }
+      }
+    } else {
+      const agencyCode = _ssGet('agency_code') || '';
+      if (!agencyCode) return;
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/intentions/${agencyCode}?limit=9999`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        (data.intentions || []).forEach(it => {
+          _intentionMap[it.policy_no] = it.status || '未記録';
+        });
+      } catch (e) { console.warn('意向バッジ更新失敗:', e); }
+    }
+
+    // 表示中のすべてのバッジセルを更新
+    currentData.forEach(c => {
+      const rawNo = c.contract_no || c.policy_number || '';
+      const cell  = document.getElementById(`intent-cell-${c.id}`);
+      if (cell && rawNo) {
+        cell.innerHTML = intentionBadge(_intentionMap[rawNo] || '未記録', rawNo);
+      }
+    });
   }
 
   // ブラウザ戻るボタンや画面復帰時に意向バッジを最新化

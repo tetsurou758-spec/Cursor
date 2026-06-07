@@ -426,40 +426,79 @@
       INCOME:    '所得補償',
     };
 
-    // 意向確認一覧を取得して描画（20件/ページ）
+    // 意向確認一覧を取得して描画
+    // ① ② 社員：管轄代理店全件をまとめて取得（getToken()で正しいトークンを使用）
+    //    代理店：既存の agency_code 単位サーバー側ページング
     async function loadIntentions(page = 1) {
       _currentPage = page;
-      const agencyCode  = sessionStorage.getItem('agency_code') || '';
-      const status      = document.getElementById('search-status').value;
-      const policyType  = document.getElementById('search-policy-type').value;
-      const staffCode   = document.getElementById('search-staff').value.trim();
-
-      const qs = new URLSearchParams({ page, limit: _limit });
-      if (status)     qs.set('status',      status);
-      if (policyType) qs.set('policy_type', policyType);
-      if (staffCode)  qs.set('staff_code',  staffCode);
-
+      const info    = getUserInfo();
+      const isStaff = (info?.user_type === 'staff');
+      const status     = document.getElementById('search-status').value;
+      const policyType = document.getElementById('search-policy-type').value;
+      const staffCode  = document.getElementById('search-staff').value.trim();
       const tbody = document.getElementById('intention-tbody');
       tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">読み込み中...</td></tr>';
 
       try {
-        const res = await fetch(`${API_BASE}/api/intentions/${agencyCode}?${qs}`, {
-          headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
-        });
-        if (res.status === 401) { doLogout(); return; }
-        if (!res.ok) throw new Error('API error');
-        const data = await res.json();
-        renderTable(data);
-        renderBadges(data);
-        renderPagination(data.total || 0, page);
-        // 業務上限チェック：超えた場合は絞り込みを促すバナーを表示
-        const banner = document.getElementById('over-limit-banner');
-        if ((data.total || 0) > BUSINESS_LIMIT) {
-          document.getElementById('over-limit-count').textContent =
-            `（現在 ${data.total.toLocaleString()} 件 ／ 表示上限 ${BUSINESS_LIMIT.toLocaleString()} 件）`;
-          banner.style.display = 'flex';
+        if (isStaff) {
+          // 社員：管轄代理店ごとにAPIを呼んで結合（クライアント側ページング）
+          const managedAgencies = info.managed_agencies || [];
+          const qs = new URLSearchParams({ limit: 9999 });
+          if (status)     qs.set('status',      status);
+          if (policyType) qs.set('policy_type', policyType);
+          if (staffCode)  qs.set('staff_code',  staffCode);
+
+          let allItems = [];
+          for (const ac of managedAgencies) {
+            const res = await fetch(`${API_BASE}/api/intentions/${ac}?${qs}`, {
+              headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (res.status === 401) { doLogout(); return; }
+            if (res.ok) {
+              const data = await res.json();
+              allItems = allItems.concat(data.intentions || []);
+            }
+          }
+          // クライアント側ページング
+          const total = allItems.length;
+          const start = (_currentPage - 1) * _limit;
+          const paged = allItems.slice(start, start + _limit);
+          renderTable({ intentions: paged });
+          renderBadges({ intentions: paged, total });
+          renderPagination(total, page);
+          const banner = document.getElementById('over-limit-banner');
+          if (total > BUSINESS_LIMIT) {
+            document.getElementById('over-limit-count').textContent =
+              `（現在 ${total.toLocaleString()} 件 ／ 表示上限 ${BUSINESS_LIMIT.toLocaleString()} 件）`;
+            banner.style.display = 'flex';
+          } else {
+            banner.style.display = 'none';
+          }
         } else {
-          banner.style.display = 'none';
+          // 代理店：サーバー側ページング
+          const agencyCode = sessionStorage.getItem('agency_code') || '';
+          const qs = new URLSearchParams({ page, limit: _limit });
+          if (status)     qs.set('status',      status);
+          if (policyType) qs.set('policy_type', policyType);
+          if (staffCode)  qs.set('staff_code',  staffCode);
+
+          const res = await fetch(`${API_BASE}/api/intentions/${agencyCode}?${qs}`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+          });
+          if (res.status === 401) { doLogout(); return; }
+          if (!res.ok) throw new Error('API error');
+          const data = await res.json();
+          renderTable(data);
+          renderBadges(data);
+          renderPagination(data.total || 0, page);
+          const banner = document.getElementById('over-limit-banner');
+          if ((data.total || 0) > BUSINESS_LIMIT) {
+            document.getElementById('over-limit-count').textContent =
+              `（現在 ${data.total.toLocaleString()} 件 ／ 表示上限 ${BUSINESS_LIMIT.toLocaleString()} 件）`;
+            banner.style.display = 'flex';
+          } else {
+            banner.style.display = 'none';
+          }
         }
       } catch (e) {
         console.error('意向確認一覧取得失敗:', e);
@@ -586,10 +625,11 @@
       const url    = id ? `${API_BASE}/api/intentions/${id}` : `${API_BASE}/api/intentions`;
       const method = id ? 'PUT' : 'POST';
       try {
+        // ⑤ getToken() で社員・代理店どちらも正しいトークンを取得
         const res = await fetch(url, {
           method,
           headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('token')}`,
+            'Authorization': `Bearer ${getToken()}`,
             'Content-Type':  'application/json'
           },
           body: JSON.stringify(payload)

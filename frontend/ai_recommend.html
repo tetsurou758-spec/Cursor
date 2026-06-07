@@ -287,6 +287,16 @@
   <div class="main-content">
     <div class="page-title"><i class="fas fa-robot"></i>AIレコメンド管理</div>
 
+    <!-- ⑥ 社員用代理店選択パネル（デフォルト非表示・社員ログイン時のみ表示） -->
+    <div id="staff-agency-panel" style="display:none;background:#fff;border:1px solid var(--gray-border);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
+      <i class="fas fa-building" style="color:var(--accent);font-size:1rem"></i>
+      <label for="staff-agency-select" style="font-weight:700;font-size:0.88rem;color:var(--text-sub)">対象代理店：</label>
+      <select id="staff-agency-select" style="border:1px solid var(--gray-border);border-radius:6px;padding:5px 12px;font-size:0.88rem;color:var(--text-main);min-width:160px">
+        <option value="">代理店を選択してください</option>
+      </select>
+      <span style="font-size:0.78rem;color:var(--text-sub)">管轄代理店の中から選択するとAIレコメンドを表示します</span>
+    </div>
+
     <!-- セクション1: 一括分析パネル -->
     <div class="card">
       <div class="card-title"><i class="fas fa-wand-magic-sparkles"></i>一括AI分析</div>
@@ -432,12 +442,16 @@
 
     // ── 認証ヘッダー取得 ─────────────────────────────────────────────
     function getAuthHeader() {
-      const token = _ssGet(_ssGet('user_type') === 'staff' ? 'staff_token' : 'token');
-      return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' };
     }
 
     // ── 代理店コード取得 ─────────────────────────────────────────────
+    // ⑥ 社員：UIの代理店選択ドロップダウンから取得 / 代理店：sessionStorage から取得
     function getAgencyCode() {
+      const info = getUserInfo();
+      if (info?.user_type === 'staff') {
+        return document.getElementById('staff-agency-select')?.value || '';
+      }
       return _ssGet('agency_code') || '';
     }
 
@@ -455,8 +469,30 @@
         if (e.target === e.currentTarget) closeModal();
       });
 
-      // 既存サマリーを取得して表示
-      await loadSummary();
+      // ⑥ 社員の場合：代理店選択パネルを表示し、管轄代理店をドロップダウンに設定
+      const info = getUserInfo();
+      if (info?.user_type === 'staff') {
+        const panel = document.getElementById('staff-agency-panel');
+        panel.style.display = 'flex';
+        const sel = document.getElementById('staff-agency-select');
+        const managed = info.managed_agencies || [];
+        managed.forEach(ac => {
+          const opt = document.createElement('option');
+          opt.value = ac;
+          opt.textContent = ac;
+          sel.appendChild(opt);
+        });
+        // 代理店選択変更時にサマリーを再取得
+        sel.addEventListener('change', () => loadSummary());
+        // 管轄代理店が1件以上あれば先頭を選択して自動ロード
+        if (managed.length > 0) {
+          sel.value = managed[0];
+          await loadSummary();
+        }
+      } else {
+        // 代理店：そのまま自動ロード
+        await loadSummary();
+      }
     });
 
     // ── サマリー取得 ─────────────────────────────────────────────────
