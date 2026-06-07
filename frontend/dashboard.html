@@ -210,6 +210,20 @@
     .nav-btn.no-permission:hover .nav-icon { color:var(--text-sub); }
     .nav-btn.no-permission .nav-label,
     .nav-btn.no-permission:hover .nav-label { color:var(--text-sub); }
+    /* AIレコメンドボタン：アクセントカラー（黄色）で強調 */
+    .nav-btn.nav-btn-ai {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .nav-btn.nav-btn-ai .nav-icon { color: var(--primary-dark); }
+    .nav-btn.nav-btn-ai .nav-label { color: var(--primary-dark); }
+    .nav-btn.nav-btn-ai:hover {
+      background: var(--primary); border-color: var(--primary);
+      box-shadow: 0 6px 20px var(--primary-shadow); transform: translateY(-3px);
+    }
+    .nav-btn.nav-btn-ai:hover .nav-icon { color: var(--accent); }
+    .nav-btn.nav-btn-ai:hover .nav-label { color: #fff; }
+
     .nav-btn.no-permission::after {
       content:attr(data-tooltip);
       position:absolute; bottom:calc(100% + 8px); left:50%;
@@ -489,7 +503,7 @@
           <span class="nav-label">意向確認</span>
         </a>
         <!-- AIレコメンドボタン（代理店のみ・行2の5番目） -->
-        <a href="ai_recommend.html" class="nav-btn agency-only-btn" id="btn-ai-recommend" style="display:none">
+        <a href="ai_recommend.html" class="nav-btn nav-btn-ai agency-only-btn" id="btn-ai-recommend" style="display:none">
           <span class="nav-icon"><i class="fa-solid fa-robot"></i></span>
           <span class="nav-label">AIレコメンド</span>
         </a>
