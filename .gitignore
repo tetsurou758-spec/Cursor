@@ -3,3 +3,14 @@ __pycache__/
 .env
 backend/.env
 *.env
+
+# サーバー実行時ログ（自動生成・git管理不要）
+logs/server.log
+logs/server_test.log
+logs/uvicorn_*.log
+
+# その他の実行時生成ファイル
+reports/test_renewal.pdf
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
